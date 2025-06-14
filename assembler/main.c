@@ -2,15 +2,23 @@
 #include "types.h"
 #include "parser.h"
 #include "gen.h"
+#include "syntax.h"
 
 int main() {
     printf("hello, world!\n");
-    Parser parser = Parser_new("a: enum { A = 3, B, C = 5, D }* @rax");
-    Generator gen = Generator_new();
+    Parser parser_ = Parser_new("\
+    struct Point {\
+        x: u32,\
+        y: u32,\
+    }");
+    Generator gen = GlobalSyntax_build(parser_);
+    Parser parser = Parser_new("a: struct { x: [u32; 5]} @stack");
     Variable variable;
     ParserMsg msg = Variable_parse(&parser, &gen, 0, &variable);
     if(ParserMsg_is_success(msg)) {
         Variable_print(&variable);
+        printf("\n");
+        Generator_print(&gen);
         printf("\n");
         Variable_free(variable);
     }else {

@@ -10,11 +10,13 @@ struct Type {
     enum {
         Type_Integer,
         Type_Ptr,
+        Type_Array,
         Type_Struct,
         Type_Enum,
     } type;
     union {
         struct Type* t_ptr;
+        struct { struct Type* type; u32 len; } t_array;
         Vec t_struct;// Vec<StructMember>
         Vec t_enum;// Vec<EnumMember>
     } body;
@@ -69,9 +71,14 @@ typedef struct {
 } Variable;
 
 typedef struct {
-    Vec types;// Vec<Type>
-} Generator;
+    u32 line;
+    char msg[256];
+} Error;
 
+typedef struct {
+    Vec types;// Vec<Type>
+    Vec errors;// Vec<Error>
+} Generator;
 
 ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_parse_enum(inout Parser* parser, out Type* type);
@@ -104,13 +111,20 @@ void Data_free(Data self);
 ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* storage);
 void Storage_print(in Storage* self);
 
+Error Error_from_parsermsg(ParserMsg parser_msg);
+Error Error_from_sresult(u32 line, SResult result);
+void Error_print(in Error* self);
+void Error_print_for_vec(in void* ptr);
+
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Variable* variable);
 Variable Variable_clone(in Variable* self);
 void Variable_print(in Variable* self);
 void Variable_free(Variable self);
 
 Generator Generator_new();
+SResult Generator_add_type(inout Generator* self, Type type);
 SResult Generator_get_type(in Generator* self, in char* name, out Type* type);
+void Generator_add_error(inout Generator* self, Error error);
 void Generator_print(in Generator* self);
 void Generator_free(Generator self);
 

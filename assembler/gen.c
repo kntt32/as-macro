@@ -119,15 +119,80 @@ ParserMsg Type_parse_enum(inout Parser* parser, out Type* type) {
     return SUCCESS_PARSER_MSG;
 }
 
-ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type) {
-    Parser parser_copy = *parser;
-    char token[256];
+static ParserMsg Type_parse_array_get_args(Parser parser, in Generator* generator, out Type* type, out u32* len) {
     PARSERMSG_UNWRAP(
-        Parser_parse_ident(&parser_copy, token),
+        Type_parse(&parser, generator, type),
         (void)NULL
     );
 
-    if(strcmp(token, "struct") == 0) {
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser, ";"),
+        Type_free(*type)
+    );
+
+    i64 value;
+    PARSERMSG_UNWRAP(
+        Parser_parse_number(&parser, &value),
+        (void)NULL
+    );
+    if(value <= 0) {
+        ParserMsg msg = {parser.line, "array length must be natural number"};
+        return msg;
+    }
+    *len = value;
+
+    if(!Parser_is_empty(&parser)) {
+        Type_free(*type);
+        ParserMsg msg = {parser.line, "unexpected token"};
+        return msg;
+    }
+
+    return SUCCESS_PARSER_MSG;
+}
+
+ParserMsg Type_parse_array(inout Parser* parser, in Generator* generator, out Type* type) {
+    Parser parser_copy = *parser;
+
+    Parser index_parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_index(&parser_copy, &index_parser),
+        (void)NULL
+    );
+    
+    type->type = Type_Array;
+    
+    Type* child_type = malloc(sizeof(Type));
+    type->body.t_array.type = child_type;
+    UNWRAP_NULL(child_type);
+
+    u32* len = &type->body.t_array.len;
+
+    PARSERMSG_UNWRAP(
+        Type_parse_array_get_args(index_parser, generator, child_type, len),
+        free(child_type)
+    );
+
+    strcpy(type->name, "[");
+    strncat(type->name, child_type->name, sizeof(type->name) - strlen(type->name) - 1);
+    strncat(type->name, "]", sizeof(type->name) - strlen(type->name) - 1);
+
+    type->size = *len * child_type->size;
+    type->align = child_type->align;
+
+    *parser = parser_copy;
+    return SUCCESS_PARSER_MSG;
+}
+
+ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type) {
+    Parser parser_copy = *parser;
+
+    char token[256];
+    if(!ParserMsg_is_success(Parser_parse_ident(&parser_copy, token))) {
+        PARSERMSG_UNWRAP(
+            Type_parse_array(&parser_copy, generator, type),
+            (void)NULL
+        );
+    }else if(strcmp(token, "struct") == 0) {
         PARSERMSG_UNWRAP(
             Type_parse_struct(&parser_copy, generator, type),
             (void)NULL
@@ -161,7 +226,14 @@ Type Type_clone(in Type* self) {
             break;
         case Type_Ptr:
             type.body.t_ptr = malloc(sizeof(Type));
+            UNWRAP_NULL(type.body.t_ptr);
             *type.body.t_ptr = Type_clone(self->body.t_ptr);
+            break;
+        case Type_Array:
+            type.body.t_array.type = malloc(sizeof(Type));
+            UNWRAP_NULL(type.body.t_ptr);
+            *type.body.t_array.type = Type_clone(self->body.t_array.type);
+            type.body.t_array.len = self->body.t_array.len;
             break;
         case Type_Struct:
             type.body.t_struct = Vec_clone(&self->body.t_struct, StructMember_clone_for_vec);
@@ -182,6 +254,11 @@ void Type_print(in Type* self) {
         case Type_Ptr:
             printf(".t_ptr: ");
             Type_print(self->body.t_ptr);
+            break;
+        case Type_Array:
+            printf(".t_array: { type: ");
+            Type_print(self->body.t_array.type);
+            printf(", len: %u }", self->body.t_array.len);
             break;
         case Type_Struct:
             printf(".t_struct: ");
@@ -207,6 +284,10 @@ void Type_free(Type self) {
         case Type_Ptr:
             Type_free(*self.body.t_ptr);
             free(self.body.t_ptr);
+            break;
+        case Type_Array:
+            Type_free(*self.body.t_array.type);
+            free(self.body.t_array.type);
             break;
         case Type_Struct:
             Vec_free_all(self.body.t_struct, StructMember_free_for_vec);
@@ -453,9 +534,49 @@ void Variable_free(Variable self) {
     Data_free(self.data);
 }
 
+Error Error_from_parsermsg(ParserMsg parser_msg) {
+    Error error;
+    error.line = parser_msg.line;
+    strcpy(error.msg, parser_msg.msg);
+
+    return error;
+}
+
+Error Error_from_sresult(u32 line, SResult result) {
+    Error error;
+    error.line = line;
+    strcpy(error.msg, result.error);
+
+    return error;
+}
+
+void Error_print(in Error* self) {
+    printf("Error { line: %u, msg: %s }", self->line, self->msg);
+}
+
+void Error_print_for_vec(in void* ptr) {
+    Error_print(ptr);
+}
+
 Generator Generator_new() {
-    Generator generator = { Vec_from(TYPES, LEN(TYPES), sizeof(Type)) };
+    Generator generator = { Vec_from(TYPES, LEN(TYPES), sizeof(Type)), Vec_new(sizeof(Error)) };
     return generator;
+}
+
+SResult Generator_add_type(inout Generator* self, Type type) {
+    for(u32 i=0; i<Vec_len(&self->types); i++) {
+        Type* ptr = Vec_index(&self->types, i);
+        if(strcmp(ptr->name, type.name) == 0) {
+            SResult result;
+            result.ok_flag = false;
+            snprintf(result.error, 256, "type \"%.10s\" has been already defined", type.name);
+            return result;
+        }
+    }
+
+    Vec_push(&self->types, &type);
+
+    return SRESULT_OK;
 }
 
 SResult Generator_get_type(in Generator* self, in char* name, out Type* type) {
@@ -475,13 +596,20 @@ SResult Generator_get_type(in Generator* self, in char* name, out Type* type) {
     return result;
 }
 
+void Generator_add_error(inout Generator* self, Error error) {
+    Vec_push(&self->errors, &error);
+}
+
 void Generator_print(in Generator* self) {
     printf("Generator { types: ");
     Vec_print(&self->types, Type_print_for_vec);
+    printf(", errors: ");
+    Vec_print(&self->errors, Error_print_for_vec);
     printf(" }");
 }
 
 void Generator_free(Generator self) {
     Vec_free_all(self.types, Type_free_for_vec);
+    Vec_free(self.errors);
 }
 

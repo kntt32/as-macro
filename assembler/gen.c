@@ -172,9 +172,7 @@ ParserMsg Type_parse_array(inout Parser* parser, in Generator* generator, out Ty
         free(child_type)
     );
 
-    strcpy(type->name, "[");
-    strncat(type->name, child_type->name, sizeof(type->name) - strlen(type->name) - 1);
-    strncat(type->name, "]", sizeof(type->name) - strlen(type->name) - 1);
+    snprintf(type->name, 256, "[%.200s]", child_type->name);
 
     type->size = *len * child_type->size;
     type->align = child_type->align;
@@ -591,7 +589,7 @@ SResult Generator_get_type(in Generator* self, in char* name, out Type* type) {
 
     SResult result;
     result.ok_flag = false;
-    snprintf(result.error, 255, "type \"%s\" is undefined", name);
+    snprintf(result.error, 255, "type \"%.10s\" is undefined", name);
 
     return result;
 }

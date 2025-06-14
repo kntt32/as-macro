@@ -1,0 +1,216 @@
+gen.c: In function ‘EnumMember_print_for_vec’:
+gen.c:12:13: error: invalid storage class for function ‘Type_parse_ref’
+   12 | static void Type_parse_ref(inout Parser* parser, inout Type* type) {
+      |             ^~~~~~~~~~~~~~
+gen.c:25:18: error: invalid storage class for function ‘Type_parse_struct_members’
+   25 | static ParserMsg Type_parse_struct_members(Parser parser, in Generator* generator, inout Type* type) {
+      |                  ^~~~~~~~~~~~~~~~~~~~~~~~~
+gen.c:74:18: error: invalid storage class for function ‘Type_parse_enum_members’
+   74 | static ParserMsg Type_parse_enum_members(Parser parser, in Generator* generator, out Type* type) {
+      |                  ^~~~~~~~~~~~~~~~~~~~~~~
+In file included from register.h:4,
+                 from gen.c:3:
+gen.c: In function ‘Type_parse_enum_members’:
+gen.c:81:59: error: ‘enum_parser’ undeclared (first use in this function)
+   81 |             EnumMember_parse(&parser, generator, &value, &enum_parser),
+      |                                                           ^~~~~~~~~~~
+parser.h:51:22: note: in definition of macro ‘PARSERMSG_UNWRAP’
+   51 |     ParserMsg msg = (parser_msg);\
+      |                      ^~~~~~~~~~
+gen.c:81:59: note: each undeclared identifier is reported only once for each function it appears in
+   81 |             EnumMember_parse(&parser, generator, &value, &enum_parser),
+      |                                                           ^~~~~~~~~~~
+parser.h:51:22: note: in definition of macro ‘PARSERMSG_UNWRAP’
+   51 |     ParserMsg msg = (parser_msg);\
+      |                      ^~~~~~~~~~
+gen.c:82:45: error: ‘EnumMember_free_for_vec’ undeclared (first use in this function); did you mean ‘EnumMember_print_for_vec’?
+   82 |             Vec_free_all(type->body.t_enum, EnumMember_free_for_vec)
+      |                                             ^~~~~~~~~~~~~~~~~~~~~~~
+parser.h:53:9: note: in definition of macro ‘PARSERMSG_UNWRAP’
+   53 |         catch_proc;\
+      |         ^~~~~~~~~~
+gen.c: In function ‘Type_clone’:
+gen.c:154:5: warning: enumeration value ‘Type_Enum’ not handled in switch [-Wswitch]
+  154 |     switch(self->type) {
+      |     ^~~~~~
+gen.c: In function ‘Type_print’:
+gen.c:170:5: warning: enumeration value ‘Type_Enum’ not handled in switch [-Wswitch]
+  170 |     switch(self->type) {
+      |     ^~~~~~
+gen.c: In function ‘Type_free’:
+gen.c:192:5: warning: enumeration value ‘Type_Enum’ not handled in switch [-Wswitch]
+  192 |     switch(self.type) {
+      |     ^~~~~~
+gen.c: In function ‘EnumMember_print_for_vec’:
+gen.c:274:11: error: static declaration of ‘EnumMember_parse’ follows non-static declaration
+  274 | ParserMsg EnumMember_parse(inout Parser* parser, in Generator* generator, inout i32* value, out EnumMember* enum_member) {
+      |           ^~~~~~~~~~~~~~~~
+In file included from gen.c:5:
+gen.h:94:11: note: previous declaration of ‘EnumMember_parse’ with type ‘ParserMsg(Parser *, Generator *, i32 *, EnumMember *)’ {aka ‘ParserMsg(Parser *, Generator *, int *, EnumMember *)’}
+   94 | ParserMsg EnumMember_parse(inout Parser* parser, in Generator* generator, inout i32* value, out EnumMember* enum_member);
+      |           ^~~~~~~~~~~~~~~~
+gen.c: In function ‘EnumMember_parse’:
+gen.c:283:47: warning: passing argument 2 of ‘Parser_parse_number’ from incompatible pointer type [-Wincompatible-pointer-types]
+  283 |             Parser_parse_number(&parser_copy, value),
+      |                                               ^~~~~
+      |                                               |
+      |                                               i32 * {aka int *}
+parser.h:51:22: note: in definition of macro ‘PARSERMSG_UNWRAP’
+   51 |     ParserMsg msg = (parser_msg);\
+      |                      ^~~~~~~~~~
+parser.h:36:60: note: expected ‘i64 *’ {aka ‘long long int *’} but argument is of type ‘i32 *’ {aka ‘int *’}
+   36 | ParserMsg Parser_parse_number(inout Parser* self, out i64* value);
+      |                                                       ~~~~~^~~~~
+gen.c:274:64: warning: unused parameter ‘generator’ [-Wunused-parameter]
+  274 | ParserMsg EnumMember_parse(inout Parser* parser, in Generator* generator, inout i32* value, out EnumMember* enum_member) {
+      |                                                     ~~~~~~~~~~~^~~~~~~~~
+gen.c: In function ‘EnumMember_print_for_vec’:
+gen.c:296:6: error: static declaration of ‘EnumMember_print’ follows non-static declaration
+  296 | void EnumMember_print(in EnumMember* self) {
+      |      ^~~~~~~~~~~~~~~~
+gen.h:95:6: note: previous declaration of ‘EnumMember_print’ with type ‘void(EnumMember *)’
+   95 | void EnumMember_print(in EnumMember* self);
+      |      ^~~~~~~~~~~~~~~~
+gen.c:304:6: error: static declaration of ‘Memory_print’ follows non-static declaration
+  304 | void Memory_print(in Memory* self) {
+      |      ^~~~~~~~~~~~
+gen.h:96:6: note: previous declaration of ‘Memory_print’ with type ‘void(Memory *)’
+   96 | void Memory_print(in Memory* self);
+      |      ^~~~~~~~~~~~
+gen.c:322:11: error: static declaration of ‘Storage_parse’ follows non-static declaration
+  322 | ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* storage) {
+      |           ^~~~~~~~~~~~~
+gen.h:103:11: note: previous declaration of ‘Storage_parse’ with type ‘ParserMsg(Parser *, i32,  Storage *)’ {aka ‘ParserMsg(Parser *, int,  Storage *)’}
+  103 | ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* storage);
+      |           ^~~~~~~~~~~~~
+gen.c:341:6: error: static declaration of ‘Storage_print’ follows non-static declaration
+  341 | void Storage_print(in Storage* self) {
+      |      ^~~~~~~~~~~~~
+gen.h:104:6: note: previous declaration of ‘Storage_print’ with type ‘void(Storage *)’
+  104 | void Storage_print(in Storage* self);
+      |      ^~~~~~~~~~~~~
+gen.c:356:11: error: static declaration of ‘Data_parse’ follows non-static declaration
+  356 | ParserMsg Data_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Data* data) {
+      |           ^~~~~~~~~~
+gen.h:98:11: note: previous declaration of ‘Data_parse’ with type ‘ParserMsg(Parser *, Generator *, i32,  Data *)’ {aka ‘ParserMsg(Parser *, Generator *, int,  Data *)’}
+   98 | ParserMsg Data_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Data* data);
+      |           ^~~~~~~~~~
+gen.c:378:6: error: static declaration of ‘Data_clone’ follows non-static declaration
+  378 | Data Data_clone(in Data* self) {
+      |      ^~~~~~~~~~
+gen.h:99:6: note: previous declaration of ‘Data_clone’ with type ‘Data(Data *)’
+   99 | Data Data_clone(in Data* self);
+      |      ^~~~~~~~~~
+gen.c:387:6: error: static declaration of ‘Data_print’ follows non-static declaration
+  387 | void Data_print(in Data* self) {
+      |      ^~~~~~~~~~
+gen.h:100:6: note: previous declaration of ‘Data_print’ with type ‘void(Data *)’
+  100 | void Data_print(in Data* self);
+      |      ^~~~~~~~~~
+gen.c:395:6: error: static declaration of ‘Data_free’ follows non-static declaration
+  395 | void Data_free(Data self) {
+      |      ^~~~~~~~~
+gen.h:101:6: note: previous declaration of ‘Data_free’ with type ‘void(Data)’
+  101 | void Data_free(Data self);
+      |      ^~~~~~~~~
+gen.c:399:11: error: static declaration of ‘Variable_parse’ follows non-static declaration
+  399 | ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Variable* variable) {
+      |           ^~~~~~~~~~~~~~
+gen.h:106:11: note: previous declaration of ‘Variable_parse’ with type ‘ParserMsg(Parser *, Generator *, i32,  Variable *)’ {aka ‘ParserMsg(Parser *, Generator *, int,  Variable *)’}
+  106 | ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Variable* variable);
+      |           ^~~~~~~~~~~~~~
+gen.c:420:10: error: static declaration of ‘Variable_clone’ follows non-static declaration
+  420 | Variable Variable_clone(in Variable* self) {
+      |          ^~~~~~~~~~~~~~
+gen.h:107:10: note: previous declaration of ‘Variable_clone’ with type ‘Variable(Variable *)’
+  107 | Variable Variable_clone(in Variable* self);
+      |          ^~~~~~~~~~~~~~
+gen.c:429:6: error: static declaration of ‘Variable_print’ follows non-static declaration
+  429 | void Variable_print(in Variable* self) {
+      |      ^~~~~~~~~~~~~~
+gen.h:108:6: note: previous declaration of ‘Variable_print’ with type ‘void(Variable *)’
+  108 | void Variable_print(in Variable* self);
+      |      ^~~~~~~~~~~~~~
+gen.c:435:6: error: static declaration of ‘Variable_free’ follows non-static declaration
+  435 | void Variable_free(Variable self) {
+      |      ^~~~~~~~~~~~~
+gen.h:109:6: note: previous declaration of ‘Variable_free’ with type ‘void(Variable)’
+  109 | void Variable_free(Variable self);
+      |      ^~~~~~~~~~~~~
+gen.c:439:11: error: static declaration of ‘Generator_new’ follows non-static declaration
+  439 | Generator Generator_new() {
+      |           ^~~~~~~~~~~~~
+gen.h:111:11: note: previous declaration of ‘Generator_new’ with type ‘Generator()’
+  111 | Generator Generator_new();
+      |           ^~~~~~~~~~~~~
+gen.c:444:9: error: static declaration of ‘Generator_get_type’ follows non-static declaration
+  444 | SResult Generator_get_type(in Generator* self, in char* name, out Type* type) {
+      |         ^~~~~~~~~~~~~~~~~~
+gen.h:112:9: note: previous declaration of ‘Generator_get_type’ with type ‘SResult(Generator *, char *, Type *)’
+  112 | SResult Generator_get_type(in Generator* self, in char* name, out Type* type);
+      |         ^~~~~~~~~~~~~~~~~~
+gen.c:461:6: error: static declaration of ‘Generator_print’ follows non-static declaration
+  461 | void Generator_print(in Generator* self) {
+      |      ^~~~~~~~~~~~~~~
+gen.h:113:6: note: previous declaration of ‘Generator_print’ with type ‘void(Generator *)’
+  113 | void Generator_print(in Generator* self);
+      |      ^~~~~~~~~~~~~~~
+gen.c:467:6: error: static declaration of ‘Generator_free’ follows non-static declaration
+  467 | void Generator_free(Generator self) {
+      |      ^~~~~~~~~~~~~~
+gen.h:114:6: note: previous declaration of ‘Generator_free’ with type ‘void(Generator)’
+  114 | void Generator_free(Generator self);
+      |      ^~~~~~~~~~~~~~
+gen.c:469:1: error: expected declaration or statement at end of input
+  469 | }
+      | ^
+gen.h:92:40: warning: unused parameter ‘ptr’ [-Wunused-parameter]
+   92 | void EnumMember_print_for_vec(in void* ptr) {
+      |                                  ~~~~~~^~~
+gen.c: At top level:
+gen.c:467:6: warning: ‘Generator_free’ defined but not used [-Wunused-function]
+  467 | void Generator_free(Generator self) {
+      |      ^~~~~~~~~~~~~~
+gen.c:461:6: warning: ‘Generator_print’ defined but not used [-Wunused-function]
+  461 | void Generator_print(in Generator* self) {
+      |      ^~~~~~~~~~~~~~~
+gen.c:444:9: warning: ‘Generator_get_type’ defined but not used [-Wunused-function]
+  444 | SResult Generator_get_type(in Generator* self, in char* name, out Type* type) {
+      |         ^~~~~~~~~~~~~~~~~~
+gen.c:439:11: warning: ‘Generator_new’ defined but not used [-Wunused-function]
+  439 | Generator Generator_new() {
+      |           ^~~~~~~~~~~~~
+gen.c:435:6: warning: ‘Variable_free’ defined but not used [-Wunused-function]
+  435 | void Variable_free(Variable self) {
+      |      ^~~~~~~~~~~~~
+gen.c:429:6: warning: ‘Variable_print’ defined but not used [-Wunused-function]
+  429 | void Variable_print(in Variable* self) {
+      |      ^~~~~~~~~~~~~~
+gen.c:420:10: warning: ‘Variable_clone’ defined but not used [-Wunused-function]
+  420 | Variable Variable_clone(in Variable* self) {
+      |          ^~~~~~~~~~~~~~
+gen.c:399:11: warning: ‘Variable_parse’ defined but not used [-Wunused-function]
+  399 | ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Variable* variable) {
+      |           ^~~~~~~~~~~~~~
+gen.c:300:6: warning: ‘EnumMember_print_for_vec’ defined but not used [-Wunused-function]
+  300 | void EnumMember_print_for_vec(in void* ptr) {
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~
+gen.c:274:11: warning: ‘EnumMember_parse’ defined but not used [-Wunused-function]
+  274 | ParserMsg EnumMember_parse(inout Parser* parser, in Generator* generator, inout i32* value, out EnumMember* enum_member) {
+      |           ^~~~~~~~~~~~~~~~
+gen.c:269:6: warning: ‘StructMember_free_for_vec’ defined but not used [-Wunused-function]
+  269 | void StructMember_free_for_vec(void* ptr) {
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~
+gen.c:261:6: warning: ‘StructMember_print_for_vec’ defined but not used [-Wunused-function]
+  261 | void StructMember_print_for_vec(in void* ptr) {
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~
+gen.c:248:6: warning: ‘StructMember_clone_for_vec’ defined but not used [-Wunused-function]
+  248 | void StructMember_clone_for_vec(out void* dst, in void* src) {
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~
+gen.c:210:11: warning: ‘StructMember_parse’ defined but not used [-Wunused-function]
+  210 | ParserMsg StructMember_parse(inout Parser* parser, in Generator* generator, inout u64* align, inout u32* size, out StructMember* struct_member) {
+      |           ^~~~~~~~~~~~~~~~~~
+gen.c:97:11: warning: ‘Type_parse_enum’ defined but not used [-Wunused-function]
+   97 | ParserMsg Type_parse_enum(inout Parser* parser, in Generator* generator, out Type* type) {
+      |           ^~~~~~~~~~~~~~~
+make: *** [Makefile:31: gen.o] Error 1

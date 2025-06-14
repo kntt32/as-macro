@@ -223,14 +223,21 @@ ParserMsg Parser_parse_symbol(inout Parser* self, in char* symbol) {
 
 ParserMsg Parser_parse_number(inout Parser* self, out i64* value) {
     Parser self_copy = *self;
-    
+
+    bool minus_flag = ParserMsg_is_success(Parser_parse_symbol(self, "-"));
+
     char token[256];
     
     Parser_run_for_gap(&self_copy, token);
-    
-    if(Util_str_to_i64(token, value) == NULL) {
+    u64 value_u64;
+    if(Util_str_to_u64(token, &value_u64) == NULL) {
         ParserMsg msg = {self_copy.line, "expected number literal"};
         return msg;
+    }
+
+    *value = value_u64;
+    if(minus_flag) {
+        *value = - *value;
     }
 
     *self = self_copy;

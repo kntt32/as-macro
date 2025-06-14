@@ -4,17 +4,17 @@
 #include "gen.h"
 
 int main() {
-    printf("hello, world!");
-    Parser parser = Parser_new("u32 **");
+    printf("hello, world!\n");
+    Parser parser = Parser_new("a: enum { A = 3, B, C = 5, D }* @rax");
     Generator gen = Generator_new();
-    Type type;
-    ParserMsg msg = Type_parse(&parser, &gen, &type);
+    Variable variable;
+    ParserMsg msg = Variable_parse(&parser, &gen, 0, &variable);
     if(ParserMsg_is_success(msg)) {
-        Type_print(&type);
+        Variable_print(&variable);
         printf("\n");
-        Type_free(type);
+        Variable_free(variable);
     }else {
-        printf("%s", msg.msg);
+        printf("%s\n", msg.msg);
     }
     Generator_free(gen);
     return 0;

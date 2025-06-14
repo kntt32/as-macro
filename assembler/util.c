@@ -41,20 +41,12 @@ static u64* Util_str_to_i64_helper(in char* str, in char* prefix, in u8 base, ou
     return ptr;
 }
 
-u64* Util_str_to_i64(in char* str, out i64* ptr) {
+u64* Util_str_to_u64(in char* str, out u64* ptr) {
     static struct {char* prefix; u8 base; } TABLE[] = {{"0b", 2}, {"0o", 8}, {"", 10}, {"0x", 16}};
 
     str = Util_trim_str(str);
-    bool minus_flag = false;
-    if(str[0] == '-') {
-        minus_flag = true;
-        str++;
-    }
     for(u32 i=0; i<LEN(TABLE); i++) {
         if(Util_str_to_i64_helper(str, TABLE[i].prefix, TABLE[i].base, ptr) != NULL) {
-            if(minus_flag) {
-                *ptr = - (*ptr);
-            }
             return ptr;
         }
     }

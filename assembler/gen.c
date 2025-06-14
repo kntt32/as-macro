@@ -22,6 +22,103 @@ static void Type_parse_ref(inout Parser* parser, inout Type* type) {
     }
 }
 
+static ParserMsg Type_parse_struct_members(Parser parser, in Generator* generator, inout Type* type) {
+    type->body.t_struct = Vec_new(sizeof(StructMember));
+
+    while(!Parser_is_empty(&parser)) {
+        StructMember struct_member;
+        PARSERMSG_UNWRAP(
+            StructMember_parse(&parser, generator, &type->align, &type->size, &struct_member),
+            Vec_free_all(type->body.t_struct, StructMember_free_for_vec)
+        );
+        Vec_push(&type->body.t_struct, &struct_member);
+
+        if(!Parser_is_empty(&parser)) {
+            PARSERMSG_UNWRAP(
+                Parser_parse_symbol(&parser, ","),
+                Vec_free_all(type->body.t_struct, StructMember_free_for_vec)
+            );
+        }
+    }
+
+    type->size = (type->size + type->align - 1)/type->align*type->align;
+
+    return SUCCESS_PARSER_MSG;
+}
+
+ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out Type* type) {
+    Parser parser_copy = *parser;
+
+    type->type = Type_Struct;
+    if(!ParserMsg_is_success(Parser_parse_ident(&parser_copy, type->name))) {
+        type->name[0] = '\0';
+    }
+
+    Parser block_parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_block(&parser_copy, &block_parser),
+        (void)NULL
+    );
+
+    type->size = 0;
+    type->align = 1;
+    PARSERMSG_UNWRAP(
+        Type_parse_struct_members(block_parser, generator, type),
+        (void)NULL
+    );
+
+    *parser = parser_copy;
+    return SUCCESS_PARSER_MSG;
+}
+
+static ParserMsg Type_parse_enum_members(Parser parser, out Type* type) {
+    type->body.t_enum = Vec_new(sizeof(EnumMember));
+
+    i32 value = 0;
+    while(!Parser_is_empty(&parser)) {
+        EnumMember enum_member;
+        PARSERMSG_UNWRAP(
+            EnumMember_parse(&parser, &value, &enum_member),
+            Vec_free(type->body.t_enum)
+        );
+        Vec_push(&type->body.t_enum, &enum_member);
+
+        if(!Parser_is_empty(&parser)) {
+            PARSERMSG_UNWRAP(
+                Parser_parse_symbol(&parser, ","),
+                Vec_free(type->body.t_enum)
+            );
+        }
+    }
+
+    return SUCCESS_PARSER_MSG;
+}
+
+ParserMsg Type_parse_enum(inout Parser* parser, out Type* type) {
+    Parser parser_copy = *parser;
+
+    type->type = Type_Enum;
+    if(!ParserMsg_is_success(Parser_parse_ident(&parser_copy, type->name))) {
+        type->name[0] = '\0';
+    }
+
+    Parser block_parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_block(&parser_copy, &block_parser),
+        (void)NULL
+    );
+
+    type->size = 4;
+    type->align = 4;
+    PARSERMSG_UNWRAP(
+        Type_parse_enum_members(block_parser, type),
+        (void)NULL
+    );
+
+    *parser = parser_copy;
+    return SUCCESS_PARSER_MSG;
+}
+
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type) {
     Parser parser_copy = *parser;
     char token[256];
@@ -31,7 +128,15 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
     );
 
     if(strcmp(token, "struct") == 0) {
-        TODO();
+        PARSERMSG_UNWRAP(
+            Type_parse_struct(&parser_copy, generator, type),
+            (void)NULL
+        );
+    }else if(strcmp(token, "enum") == 0) {
+        PARSERMSG_UNWRAP(
+            Type_parse_enum(&parser_copy, type),
+            (void)NULL
+        );
     }else {
         SResult result = Generator_get_type(generator, token, type);
         if(!SRESULT_IS_OK(result)) {
@@ -58,6 +163,12 @@ Type Type_clone(in Type* self) {
             type.body.t_ptr = malloc(sizeof(Type));
             *type.body.t_ptr = Type_clone(self->body.t_ptr);
             break;
+        case Type_Struct:
+            type.body.t_struct = Vec_clone(&self->body.t_struct, StructMember_clone_for_vec);
+            break;
+        case Type_Enum:
+            type.body.t_enum = Vec_clone(&self->body.t_enum, NULL);
+            break;
     }
     return type;
 }
@@ -71,6 +182,14 @@ void Type_print(in Type* self) {
         case Type_Ptr:
             printf(".t_ptr: ");
             Type_print(self->body.t_ptr);
+            break;
+        case Type_Struct:
+            printf(".t_struct: ");
+            Vec_print(&self->body.t_struct, StructMember_print_for_vec);
+            break;
+        case Type_Enum:
+            printf(".t_enum: ");
+            Vec_print(&self->body.t_enum, EnumMember_print_for_vec);
             break;
     }
     printf(", size: %u, align: %llu }", self->size, self->align);
@@ -89,12 +208,114 @@ void Type_free(Type self) {
             Type_free(*self.body.t_ptr);
             free(self.body.t_ptr);
             break;
+        case Type_Struct:
+            Vec_free_all(self.body.t_struct, StructMember_free_for_vec);
+            break;
+        case Type_Enum:
+            Vec_free(self.body.t_enum);
+            break;
     }
 }
 
 void Type_free_for_vec(void* ptr) {
     Type* self = ptr;
     Type_free(*self);
+}
+
+ParserMsg StructMember_parse(inout Parser* parser, in Generator* generator, inout u64* align, inout u32* size, out StructMember* struct_member) {
+    Parser parser_copy = *parser;
+    // name: Type
+    
+    PARSERMSG_UNWRAP(
+        Parser_parse_ident(&parser_copy, struct_member->name),
+        (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, ":"),
+        (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Type_parse(&parser_copy, generator, &struct_member->type),
+        (void)NULL
+    );
+
+    Type* type = &struct_member->type;
+    if(*align < type->align) {
+        *align = type->align;
+    }
+    struct_member->offset = (*size + type->align - 1)/type->align*type->align;
+    *size = struct_member->offset + type->size;
+
+    *parser = parser_copy;
+    return SUCCESS_PARSER_MSG;
+}
+
+StructMember StructMember_clone(in StructMember* self) {
+    StructMember struct_member;
+
+    strcpy(struct_member.name, self->name);
+    struct_member.type = Type_clone(&self->type);
+    struct_member.offset = self->offset;
+
+    return struct_member;
+}
+
+void StructMember_clone_for_vec(out void* dst, in void* src) {
+    StructMember* dst_ptr = dst;
+    StructMember* src_ptr = src;
+
+    *dst_ptr = StructMember_clone(src_ptr);
+}
+
+void StructMember_print(in StructMember* self) {
+    printf("StructMember { name: %s, type: ", self->name);
+    Type_print(&self->type);
+    printf(", offset: %u }", self->offset);
+}
+
+void StructMember_print_for_vec(in void* ptr) {
+    StructMember_print(ptr);
+}
+
+void StructMember_free(StructMember self) {
+    Type_free(self.type);
+}
+
+void StructMember_free_for_vec(void* ptr) {
+    StructMember* member = ptr;
+    StructMember_free(*member);
+}
+
+ParserMsg EnumMember_parse(inout Parser* parser, inout i32* value, out EnumMember* enum_member) {
+    Parser parser_copy = *parser;
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_ident(&parser_copy, enum_member->name),
+        (void)NULL
+    );
+    if(ParserMsg_is_success(Parser_parse_symbol(&parser_copy, "="))) {
+        i64 value_i64;
+        PARSERMSG_UNWRAP(
+            Parser_parse_number(&parser_copy, &value_i64),
+            (void)NULL
+        );
+        *value = value_i64;
+    }
+
+    enum_member->value = *value;
+    (*value) ++;
+
+    *parser = parser_copy;
+
+    return SUCCESS_PARSER_MSG;
+}
+
+void EnumMember_print(in EnumMember* self) {
+    printf("EnumMember { name: %s, value: %d }", self->name, self->value);
+}
+
+void EnumMember_print_for_vec(in void* ptr) {
+    EnumMember_print(ptr);
 }
 
 void Memory_print(in Memory* self) {
@@ -158,13 +379,26 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, i32 rbp_offs
         (void)NULL
     );
     PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, "@"),
+        Type_free(data->type)
+    );
+    PARSERMSG_UNWRAP(
         Storage_parse(&parser_copy, rbp_offset, &data->storage),
-        (void)NULL
+        Type_free(data->type)
     );
 
     *parser = parser_copy;
 
     return SUCCESS_PARSER_MSG;
+}
+
+Data Data_clone(in Data* self) {
+    Data data;
+    
+    data.type = Type_clone(&self->type);
+    data.storage = self->storage;
+    
+    return data;
 }
 
 void Data_print(in Data* self) {
@@ -177,6 +411,46 @@ void Data_print(in Data* self) {
 
 void Data_free(Data self) {
     Type_free(self.type);
+}
+
+ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Variable* variable) {
+    // name: Data
+    Parser parser_copy = *parser;
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_ident(&parser_copy, variable->name),
+        (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, ":"),
+        (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Data_parse(&parser_copy, generator, rbp_offset, &variable->data),
+        (void)NULL
+    );
+
+    *parser = parser_copy;
+    return SUCCESS_PARSER_MSG;
+}
+
+Variable Variable_clone(in Variable* self) {
+    Variable variable;
+    
+    strcpy(variable.name, self->name);
+    variable.data = Data_clone(&self->data);
+
+    return variable;
+}
+
+void Variable_print(in Variable* self) {
+    printf("Variable { name: %s, data: ", self->name);
+    Data_print(&self->data);
+    printf(" }");
+}
+
+void Variable_free(Variable self) {
+    Data_free(self.data);
 }
 
 Generator Generator_new() {

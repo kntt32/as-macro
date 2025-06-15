@@ -169,6 +169,19 @@ ParserMsg Parser_split(inout Parser* self, in char* symbol, out Parser* parser) 
     return SUCCESS_PARSER_MSG;
 }
 
+char* Parser_own(in Parser* parser, out Parser* owned_parser) {
+    char* src = malloc(sizeof(char) * (parser->len + 1));
+    UNWRAP_NULL(src);
+    memcpy(src, parser->src, parser->len);
+    src[parser->len] = '\0';
+    
+    owned_parser->src = src;
+    owned_parser->len = parser->len;
+    owned_parser->line = parser->line;
+
+    return src;
+}
+
 ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]) {
     Parser self_copy = *self;
     Parser_run_for_gap(&self_copy, token);

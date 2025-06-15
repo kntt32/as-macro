@@ -7,7 +7,7 @@ ifeq ($(RELEASE),1)
 	CFLAGS := -Wall -Wextra -Ofast
 endif
 
-asm.elf: main.o types.o vec.o str.o parser.o util.o register.o gen.o syntax.o
+asm.elf: main.o types.o vec.o str.o parser.o util.o register.o gen.o syntax.o asm.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 main.o: main.c types.h parser.h syntax.h
@@ -17,8 +17,9 @@ vec.o: vec.c vec.h types.h
 str.o: str.c str.h vec.h
 util.o: util.c util.h types.h
 register.o: register.c register.h types.h
-gen.o: gen.c types.h parser.h gen.h
+gen.o: gen.c types.h parser.h gen.h asm.h
 syntax.o: syntax.c types.h gen.h syntax.h
+asm.o: asm.c vec.h asm.h types.h parser.h
 
 types.h:
 parser.h: types.h
@@ -28,6 +29,7 @@ util.h: types.h
 register.h: types.h parser.h
 gen.h: types.h register.h vec.h
 syntax.h: types.h gen.h
+asm.h: types.h vec.h parser.h
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

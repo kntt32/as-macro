@@ -25,6 +25,17 @@ static bool GlobalSyntax_build_struct(inout Parser* parser, inout Generator* gen
     return true;
 }
 
+bool GlobalSyntax_build_define_asmacro(inout Parser* parser, inout Generator* generator) {
+    if(!Parser_start_with(parser, "as")) {
+        return false;
+    }
+
+    Asmacro asmacro;
+    ParserMsg msg = Asmacro_parse(parser, generator, &asmacro);
+    TODO();
+    return true;
+}
+
 Generator GlobalSyntax_build(Parser parser) {
     static bool (*BUILDERS[])(inout Parser*, inout Generator*) = {GlobalSyntax_build_struct};
     Generator generator = Generator_new();

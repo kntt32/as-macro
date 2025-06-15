@@ -27,6 +27,8 @@ ParserMsg Parser_split(inout Parser* self, in char* symbol, out Parser* parser);
 
 void Parser_skip_to_semicolon(inout Parser* self);
 
+char* Parser_own(in Parser* parser, out Parser* owned_parser);
+
 ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]);
 
 ParserMsg Parser_parse_keyword(inout Parser* self, in char* keyword);

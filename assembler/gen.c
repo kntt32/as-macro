@@ -217,6 +217,41 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
     return SUCCESS_PARSER_MSG;
 }
 
+bool Type_cmp(in Type* self, in Type* other) {
+    if(strcmp(self->name, other->name) != 0
+        || self->type != other->type
+        || self->size != other->size
+        || self->align != other->align) {
+        return false;
+    }
+
+    switch(self->type) {
+        case Type_Integer:
+            break;
+        case Type_Ptr:
+            if(!Type_cmp(self->body.t_ptr, other->body.t_ptr)) {
+                return false;
+            }
+            break;
+        case Type_Array:
+            if(!Type_cmp(self->body.t_array.type, other->body.t_array.type) || self->body.t_array.len != other->body.t_array.len) {
+                return false;
+            }
+            break;
+        case Type_Struct:
+            if(!Vec_cmp(&self->body.t_struct, &other->body.t_struct, StructMember_cmp_for_vec)) {
+                return false;
+            }
+            break;
+        case Type_Enum:
+            if(!Vec_cmp(&self->body.t_enum, &other->body.t_enum, EnumMember_cmp_for_vec)) {
+                return false;
+            }
+            break;
+    }
+    return true;
+}
+
 Type Type_clone(in Type* self) {
     Type type = *self;
     switch(self->type) {
@@ -346,6 +381,16 @@ void StructMember_clone_for_vec(out void* dst, in void* src) {
     *dst_ptr = StructMember_clone(src_ptr);
 }
 
+bool StructMember_cmp(in StructMember* self, in StructMember* other) {
+    return strcmp(self->name, other->name)
+        && self->offset == other->offset
+        && Type_cmp(&self->type, &other->type);
+}
+
+bool StructMember_cmp_for_vec(in void* self, in void* other) {
+    return StructMember_cmp(self, other);
+}
+
 void StructMember_print(in StructMember* self) {
     printf("StructMember { name: %s, type: ", self->name);
     Type_print(&self->type);
@@ -387,6 +432,14 @@ ParserMsg EnumMember_parse(inout Parser* parser, inout i32* value, out EnumMembe
     *parser = parser_copy;
 
     return SUCCESS_PARSER_MSG;
+}
+
+bool EnumMember_cmp(in EnumMember* self, in EnumMember* other) {
+    return self->value == other->value && strcmp(self->name, other->name);
+}
+
+bool EnumMember_cmp_for_vec(in void* self, in void* other) {
+    return EnumMember_cmp(self, other);
 }
 
 void EnumMember_print(in EnumMember* self) {
@@ -528,8 +581,276 @@ void Variable_print(in Variable* self) {
     printf(" }");
 }
 
+void Variable_print_for_vec(in void* ptr) {
+    Variable_print(ptr);
+}
+
 void Variable_free(Variable self) {
     Data_free(self.data);
+}
+
+void Variable_free_for_vec(inout void* ptr) {
+    Variable* variable = ptr;
+    Variable_free(*variable);
+}
+
+static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argument* argument) {
+    Parser parser_copy = *parser;
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, "@"),
+        (void)NULL
+    );
+
+    argument->reg_flag = ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "reg"));
+    Parser_parse_symbol(&parser_copy, "/");
+    argument->mem_flag = ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "mem"));
+    if(!argument->reg_flag && !argument->mem_flag) {
+        ParserMsg msg = {parser_copy.line, "expected reg or mem"};
+        return msg;
+    }
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, "."),
+        (void)NULL
+    );
+    i64 size;
+    PARSERMSG_UNWRAP(
+        Parser_parse_number(&parser_copy, &size),
+        (void)NULL
+    );
+    if(size <= 0) {
+        ParserMsg msg = {parser_copy.line, "size must be greeter than zero"};
+        return msg;
+    }
+    argument->size = size;
+
+    *parser = parser_copy;
+    return SUCCESS_PARSER_MSG;
+}
+
+ParserMsg Argument_parse(inout Parser* parser, in Generator* generator, out Argument* argument) {
+    // (in)(out) name (: Type) @ [reg | mem]size
+    Parser parser_copy = *parser;
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_ident(&parser_copy, argument->name),
+        (void)NULL
+    );
+
+    argument->type_flag = ParserMsg_is_success(Parser_parse_symbol(&parser_copy, ":"));
+    if(argument->type_flag) {
+        PARSERMSG_UNWRAP(
+            Type_parse(&parser_copy, generator, &argument->type),
+            (void)NULL
+        );
+    }
+    argument->reg_flag = false;
+    argument->mem_flag = false;
+    argument->size = 0;
+
+    PARSERMSG_UNWRAP(
+        Argument_parse_storage_bound(&parser_copy, argument),
+        Argument_free(*argument)
+    );
+
+    if(argument->type_flag && argument->type.size != argument->size) {
+        Argument_free(*argument);
+        ParserMsg msg = {parser_copy.line, "conflicted argument size"};
+        return msg;
+    }
+
+    *parser = parser_copy;
+    return SUCCESS_PARSER_MSG;
+}
+
+bool Argument_cmp(in Argument* self, out Argument* other) {
+    if(self->type_flag && other->type_flag) {
+        if(!Type_cmp(&self->type, &other->type)) {
+            return false;
+        }
+    }
+    return strcmp(self->name, other->name)
+        && self->type_flag == other->type_flag
+        && self->reg_flag == other->reg_flag
+        && self->mem_flag == other->mem_flag
+        && self->size == other->size;
+}
+
+bool Argument_cmp_for_vec(in void* self, in void* other) {
+    return Argument_cmp(self, other);
+}
+
+void Argument_print(in Argument* self) {
+    printf("Argument { name: %s", self->name);
+    if(self->type_flag) {
+        printf(", type: ");
+        Type_print(&self->type);
+    }
+    printf(", reg_flag: %s, mem_flag: %s }", BOOL_TO_STR(self->reg_flag), BOOL_TO_STR(self->mem_flag));
+}
+
+void Argument_print_for_vec(in void* ptr) {
+    Argument_print(ptr);
+}
+
+void Argument_free(Argument self) {
+    if(self.type_flag) {
+        Type_free(self.type);
+    }
+}
+
+void Argument_free_for_vec(inout void* ptr) {
+    Argument* argument = ptr;
+    Argument_free(*argument);
+}
+
+static ParserMsg Asmacro_parse_header_arguments(Parser parser, in Generator* generator, inout Vec* arguments) {
+    while(!Parser_is_empty(&parser)) {
+        Argument argument;
+        PARSERMSG_UNWRAP(
+            Argument_parse(&parser, generator, &argument),
+            (void)NULL
+        );
+        Vec_push(arguments, &argument);
+        
+        if(!Parser_is_empty(&parser)) {
+            if(!ParserMsg_is_success(Parser_parse_symbol(&parser, ","))) {
+                ParserMsg msg = {parser.line, "expected symbol \",\""};
+                return msg;
+            }
+        }
+    }
+    return SUCCESS_PARSER_MSG;
+}
+
+static ParserMsg Asmacro_parse_header(inout Parser* parser, in Generator* generator, out Asmacro* asmacro) {
+    Parser parser_copy = *parser;
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_keyword(&parser_copy, "as"),
+        (void)NULL
+    );
+    
+    PARSERMSG_UNWRAP(
+        Parser_parse_ident(&parser_copy, asmacro->name),
+        (void)NULL
+    );
+    
+    Parser block_parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_paren(&parser_copy, &block_parser),
+        (void)NULL
+    );
+    asmacro->arguments = Vec_new(sizeof(Argument));
+    PARSERMSG_UNWRAP(
+        Asmacro_parse_header_arguments(block_parser, generator, &asmacro->arguments),
+        Vec_free_all(asmacro->arguments, Argument_free_for_vec)
+    );
+
+    *parser = parser_copy;
+    return SUCCESS_PARSER_MSG;
+}
+
+static ParserMsg Asmacro_parse_proc(inout Parser* parser, out Asmacro* asmacro) {
+    Parser block_parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_block(parser, &block_parser),
+        (void)NULL
+    );
+    
+    asmacro->type = Asmacro_UserOperator;
+    asmacro->body.user_operator.src = Parser_own(&block_parser, &asmacro->body.user_operator.parser);
+
+    return SUCCESS_PARSER_MSG;
+}
+
+static ParserMsg Asmacro_parse_encoding(inout Parser* parser, out Asmacro* asmacro) {
+    Parser parser_copy = *parser;
+
+    Parser paren_parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_paren(&parser_copy, &paren_parser),
+        (void)NULL
+    );
+
+    asmacro->type = Asmacro_AsmOperator;
+    PARSERMSG_UNWRAP(
+        AsmEncoding_parse(paren_parser, &asmacro->body.asm_operator),
+        (void)NULL
+    );
+
+    return SUCCESS_PARSER_MSG;
+}
+
+ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmacro* asmacro) {
+    // as name ( args ) { proc }
+    // as name ( args ) : ( encoding )
+    Parser parser_copy = *parser;
+
+    PARSERMSG_UNWRAP(
+        Asmacro_parse_header(&parser_copy, generator, asmacro),
+        (void)NULL
+    );
+
+    if(ParserMsg_is_success(Parser_parse_symbol(&parser_copy, ":"))) {
+        PARSERMSG_UNWRAP(
+            Asmacro_parse_encoding(&parser_copy, asmacro),
+            (void)NULL
+        );
+    }else {
+        PARSERMSG_UNWRAP(
+            Asmacro_parse_proc(&parser_copy, asmacro),
+            (void)NULL
+        );
+    }
+
+    *parser = parser_copy;
+    return SUCCESS_PARSER_MSG;
+}
+
+bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other) {
+    return strcmp(self->name, other->name) == 0
+        && Vec_cmp(&self->arguments, &other->arguments, Argument_cmp_for_vec);
+}
+
+void Asmacro_print(in Asmacro* self) {
+    printf("Asmacro { name: %s, arguments: ", self->name);
+    Vec_print(&self->arguments, Argument_print_for_vec);
+    printf(", type: %d, body: ", self->type);
+
+    switch(self->type) {
+        case Asmacro_AsmOperator:
+            printf(".asm_operator: ");
+            AsmEncoding_print(&self->body.asm_operator);
+            break;
+        case Asmacro_UserOperator:
+            printf(".user_operator: \"%s\"", self->body.user_operator.src);
+            break;
+    }
+    
+    printf(" }");
+}
+
+void Asmacro_print_for_vec(in void* ptr) {
+    Asmacro_print(ptr);
+}
+
+void Asmacro_free(Asmacro self) {
+    Vec_free_all(self.arguments, Argument_free_for_vec);
+    switch(self.type) {
+        case Asmacro_AsmOperator:
+            AsmEncoding_free(self.body.asm_operator);
+            break;
+        case Asmacro_UserOperator:
+            free(self.body.user_operator.src);
+            break;
+    }
+}
+
+void Asmacro_free_for_vec(inout void* ptr) {
+    Asmacro* asmacro = ptr;
+    Asmacro_free(*asmacro);
 }
 
 Error Error_from_parsermsg(ParserMsg parser_msg) {
@@ -557,7 +878,12 @@ void Error_print_for_vec(in void* ptr) {
 }
 
 Generator Generator_new() {
-    Generator generator = { Vec_from(TYPES, LEN(TYPES), sizeof(Type)), Vec_new(sizeof(Error)) };
+    Generator generator = {
+        Vec_from(TYPES, LEN(TYPES), sizeof(Type)),
+        Vec_new(sizeof(Variable)),
+        Vec_new(sizeof(Asmacro)),
+        Vec_new(sizeof(Error))
+    };
     return generator;
 }
 
@@ -568,6 +894,7 @@ SResult Generator_add_type(inout Generator* self, Type type) {
             SResult result;
             result.ok_flag = false;
             snprintf(result.error, 256, "type \"%.10s\" has been already defined", type.name);
+            Type_free(type);
             return result;
         }
     }
@@ -594,6 +921,39 @@ SResult Generator_get_type(in Generator* self, in char* name, out Type* type) {
     return result;
 }
 
+SResult Generator_add_global_variable(inout Generator* self, Variable variable) {
+    for(u32 i=0; i<Vec_len(&self->global_variables); i++) {
+        Variable* ptr = Vec_index(&self->global_variables, i);
+        if(strcmp(ptr->name, variable.name) == 0) {
+            SResult result;
+            result.ok_flag = false;
+            snprintf(result.error, 256, "variable \"%.10s\" has been already defined", variable.name);
+            Variable_free(variable);
+            return result;
+        }
+    }
+
+    Vec_push(&self->global_variables, &variable);
+
+    return SRESULT_OK;
+}
+
+SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro) {
+    for(u32 i=0; i<Vec_len(&self->asmacroes); i++) {
+        Asmacro* ptr = Vec_index(&self->asmacroes, i);
+        if(Asmacro_cmp_signature(ptr, &asmacro)) {
+            SResult result;
+            result.ok_flag = false;
+            snprintf(result.error, 256, "asmacro \"%.10s\" has been already defined in same signature", asmacro.name);
+            Asmacro_free(asmacro);
+            return result;
+        }
+    }
+
+    Vec_push(&self->asmacroes, &asmacro);
+    return SRESULT_OK;
+}
+
 void Generator_add_error(inout Generator* self, Error error) {
     Vec_push(&self->errors, &error);
 }
@@ -601,6 +961,10 @@ void Generator_add_error(inout Generator* self, Error error) {
 void Generator_print(in Generator* self) {
     printf("Generator { types: ");
     Vec_print(&self->types, Type_print_for_vec);
+    printf(", global_variables: ");
+    Vec_print(&self->global_variables, Variable_print_for_vec);
+    printf(", asmacroes: ");
+    Vec_print(&self->asmacroes, Asmacro_print_for_vec);
     printf(", errors: ");
     Vec_print(&self->errors, Error_print_for_vec);
     printf(" }");
@@ -608,6 +972,8 @@ void Generator_print(in Generator* self) {
 
 void Generator_free(Generator self) {
     Vec_free_all(self.types, Type_free_for_vec);
+    Vec_free_all(self.global_variables, Variable_free_for_vec);
+    Vec_free_all(self.asmacroes, Asmacro_free_for_vec);
     Vec_free(self.errors);
 }
 

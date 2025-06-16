@@ -302,7 +302,7 @@ void Type_print(in Type* self) {
             Vec_print(&self->body.t_enum, EnumMember_print_for_vec);
             break;
     }
-    printf(", size: %u, align: %llu }", self->size, self->align);
+    printf(", size: %u, align: %lu }", self->size, self->align);
 }
 
 void Type_print_for_vec(void* ptr) {

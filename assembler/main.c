@@ -17,6 +17,7 @@ int main() {
         MyEnum_B = 3,\n\
         MyEnum_C,\n\
     };\n\
+    type ptr = Point;\n\
 \n\
     as area(x: u32@reg.4, y: u32@reg.4) {\n\
         imul x, y\n\

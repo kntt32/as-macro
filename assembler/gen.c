@@ -854,6 +854,50 @@ void Asmacro_free_for_vec(inout void* ptr) {
     Asmacro_free(*asmacro);
 }
 
+SResult Section_new(in char* name, out Section* section) {
+    if(!(strlen(name) < 256)) {
+        SResult result = {false, "section name must be shorter than 256 bytes"};
+        return result;
+    }
+
+    strcpy(section->name, name);
+    section->binary = Vec_new(sizeof(u8));
+
+    return SRESULT_OK;
+}
+
+void Section_print(in Section* self) {
+    printf("Section { name: %s, binary: ", self->name);
+    Vec_print(&self->binary, u8_print_for_vec);
+    printf(" }");
+}
+
+void Section_print_for_vec(in void* ptr) {
+    Section_print(ptr);
+}
+
+void Section_free(Section self) {
+    Vec_free(self.binary);
+}
+
+void Section_free_for_vec(inout void* ptr) {
+    Section* section = ptr;
+    Section_free(*section);
+}
+
+void Label_print(in Label* self) {
+    printf("Label { name: %s, public_flag: %s, section_index: %d, offset: %lu }",
+        self->name,
+        BOOL_TO_STR(self->public_flag),
+        self->section_index,
+        self->offset
+    );
+}
+
+void Label_print_for_vec(in void* ptr) {
+    Label_print(ptr);
+}
+
 Error Error_from_parsermsg(ParserMsg parser_msg) {
     Error error;
     error.line = parser_msg.line;
@@ -883,7 +927,9 @@ Generator Generator_new() {
         Vec_from(TYPES, LEN(TYPES), sizeof(Type)),
         Vec_new(sizeof(Variable)),
         Vec_new(sizeof(Asmacro)),
-        Vec_new(sizeof(Error))
+        Vec_new(sizeof(Error)),
+        Vec_new(sizeof(Section)),
+        Vec_new(sizeof(Label)),
     };
     return generator;
 }
@@ -959,6 +1005,42 @@ void Generator_add_error(inout Generator* self, Error error) {
     Vec_push(&self->errors, &error);
 }
 
+SResult Generator_new_section(inout Generator* self, in char* name) {
+    for(u32 i=0; i<Vec_len(&self->sections); i++) {
+        Section* section = Vec_index(&self->sections, i);
+        if(strcmp(section->name, name) == 0) {
+            SResult result;
+            result.ok_flag = true;
+            snprintf(result.error, 256, "section \"%.10s\" has been already defined", name);
+            return result;
+        }
+    }
+
+    Section section;
+    SRESULT_UNWRAP(
+        Section_new(name, &section), (void)NULL
+    );
+
+    Vec_push(&self->sections, &section);
+
+    return SRESULT_OK;
+}
+
+SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte) {
+    for(u32 i=0; i<Vec_len(&self->sections); i++) {
+        Section* section = Vec_index(&self->sections, i);
+        if(strcmp(section->name, name) == 0) {
+            Vec_push(&section->binary, &byte);
+            return SRESULT_OK;
+        }
+    }
+
+    SResult result;
+    result.ok_flag = false;
+    snprintf(result.error, 256, "section \"%.10s\" is undefined", name);
+    return result;
+}
+
 void Generator_print(in Generator* self) {
     printf("Generator { types: ");
     Vec_print(&self->types, Type_print_for_vec);
@@ -968,6 +1050,10 @@ void Generator_print(in Generator* self) {
     Vec_print(&self->asmacroes, Asmacro_print_for_vec);
     printf(", errors: ");
     Vec_print(&self->errors, Error_print_for_vec);
+    printf(", sections: ");
+    Vec_print(&self->sections, Section_print_for_vec);
+    printf(", labels: ");
+    Vec_print(&self->labels, Label_print_for_vec);
     printf(" }");
 }
 
@@ -976,5 +1062,7 @@ void Generator_free(Generator self) {
     Vec_free_all(self.global_variables, Variable_free_for_vec);
     Vec_free_all(self.asmacroes, Asmacro_free_for_vec);
     Vec_free(self.errors);
+    Vec_free_all(self.sections, Section_free_for_vec);
+    Vec_free(self.labels);
 }
 

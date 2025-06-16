@@ -91,6 +91,18 @@ typedef struct {
 } Asmacro;
 
 typedef struct {
+    char name[256];
+    Vec binary;// Vec<u8>
+} Section;
+
+typedef struct {
+    pub char name[256];
+    pub bool public_flag;
+    pub i32 section_index;// <0: unknown
+    pub u64 offset;
+} Label;
+
+typedef struct {
     u32 line;
     char msg[256];
 } Error;
@@ -100,6 +112,9 @@ typedef struct {
     Vec global_variables;// Vec<Variable>
     Vec asmacroes;// Vec<Asmacro>
     Vec errors;// Vec<Error>
+    
+    Vec sections;// Vec<Section>
+    Vec labels;// Vec<Label>
 } Generator;
 
 ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out Type* type);
@@ -159,6 +174,15 @@ void Asmacro_print_for_vec(in void* ptr);
 void Asmacro_free(Asmacro self);
 void Asmacro_free_for_vec(inout void* ptr);
 
+SResult Section_new(in char* name, out Section* section);
+void Section_print(in Section* self);
+void Section_print_for_vec(in void* ptr);
+void Section_free(Section self);
+void Section_free_for_vec(inout void* ptr);
+
+void Label_print(in Label* self);
+void Label_print_for_vec(in void* ptr);
+
 Error Error_from_parsermsg(ParserMsg parser_msg);
 Error Error_from_sresult(u32 line, SResult result);
 void Error_print(in Error* self);
@@ -170,6 +194,8 @@ SResult Generator_get_type(in Generator* self, in char* name, out Type* type);
 SResult Generator_add_global_variable(inout Generator* self, Variable variable);
 SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro);
 void Generator_add_error(inout Generator* self, Error error);
+SResult Generator_new_section(inout Generator* self, in char* name);
+SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte);
 void Generator_print(in Generator* self);
 void Generator_free(Generator self);
 

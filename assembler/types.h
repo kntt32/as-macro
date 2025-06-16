@@ -30,6 +30,7 @@ extern SResult SRESULT_OK;
 #define out
 #define inout
 #define optional
+#define pub
 #define PANIC(msg)\
 {\
     fflush(NULL);\
@@ -63,4 +64,7 @@ extern SResult SRESULT_OK;
     }\
 }
 #define loop while(true)
+
+void u8_print_for_vec(in void* ptr);
+
 

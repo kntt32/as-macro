@@ -23,7 +23,7 @@ bool Parser_start_with(inout Parser* self, in char* keyword);
 
 bool Parser_start_with_symbol(inout Parser* self, in char* symbol);
 
-ParserMsg Parser_split(inout Parser* self, in char* symbol, out Parser* parser);
+void Parser_split(inout Parser* self, in char* symbol, out optional Parser* parser);
 
 void Parser_skip_to_semicolon(inout Parser* self);
 

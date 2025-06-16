@@ -37,7 +37,7 @@ static void Parser_skip_space(inout Parser* self) {
 
 static bool Parser_is_gap(in Parser* self) {
     char c = self->src[0];
-    return self->src[0] != '\0' && (isspace(c) || ispunct(c));
+    return self->src[0] != '\0' && (isspace(c) || (ispunct(c) && c != '_'));
 }
 
 static void Parser_run_for_gap(inout Parser* self, out char token[256]) {
@@ -143,30 +143,35 @@ bool Parser_start_with_symbol(inout Parser* self, in char* symbol) {
     return ParserMsg_is_success(Parser_parse_symbol(&self_copy, symbol));
 }
 
-ParserMsg Parser_split(inout Parser* self, in char* symbol, out Parser* parser) {
+void Parser_split(inout Parser* self, in char* symbol, out optional Parser* parser) {
     Parser self_copy = *self;
 
     if(Parser_is_empty(self)) {
-        *parser = *self;
-        return SUCCESS_PARSER_MSG;
+        if(parser != NULL) {
+            *parser = *self;
+        }
+        return;
     }
 
-    *parser = *self;
+    if(parser != NULL) {
+        *parser = *self;
+    }
     while(!ParserMsg_is_success(Parser_parse_symbol(&self_copy, symbol))) {
         if(!Parser_skip(&self_copy)) {
             if(Parser_is_empty(&self_copy)) {
                 break;
             }else {
-                ParserMsg msg = {self_copy.line, "unknown token"};
-                return msg;
+                PANIC("unknown token");
             }
         }
-        parser->len = self->len - self_copy.len;
+        if(parser != NULL) {
+            parser->len = self->len - self_copy.len;
+        }
     }
 
     *self = self_copy;
 
-    return SUCCESS_PARSER_MSG;
+    return;
 }
 
 char* Parser_own(in Parser* parser, out Parser* owned_parser) {

@@ -1,8 +1,12 @@
+FSANITIZE ?= 1
 RELEASE ?= 0
 
 CC := gcc
 
 CFLAGS := -Wall -Wextra -g -fsanitize=undefined -fsanitize=address
+ifeq ($(FSANITIZE), 0)
+    CFLAGS := -Wall -Wextra -g
+endif
 ifeq ($(RELEASE),1)
 	CFLAGS := -Wall -Wextra -Ofast
 endif

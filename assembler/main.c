@@ -6,24 +6,28 @@
 
 int main() {
     printf("hello, world!\n");
-    Parser parser_ = Parser_new("\
-    struct Point {\
-        x: u32,\
-        y: u32,\
-    }");
-    Generator gen = GlobalSyntax_build(parser_);
-    Parser parser = Parser_new("a: struct { x: [u32; 5]} @stack");
-    Variable variable;
-    ParserMsg msg = Variable_parse(&parser, &gen, 0, &variable);
-    if(ParserMsg_is_success(msg)) {
-        Variable_print(&variable);
-        printf("\n");
-        Generator_print(&gen);
-        printf("\n");
-        Variable_free(variable);
-    }else {
-        printf("%s\n", msg.msg);
-    }
+
+    Parser parser = Parser_new("\n\
+    struct Point {\n\
+        x: u32,\n\
+        y: u32,\n\
+    };\n\
+    enum MyEnum {\n\
+        MyEnum_A,\n\
+        MyEnum_B = 3,\n\
+        MyEnum_C,\n\
+    };\n\
+\n\
+    as area(x: u32@reg.4, y: u32@reg.4) {\n\
+        imul x, y\n\
+    };\n\
+    as mul(x: u32@reg.4, y: u32@reg.4) {\n\
+        imul x, y\n\
+    };\n\
+    ");
+    Generator gen = GlobalSyntax_build(parser);
+    Generator_print(&gen);
+    printf("\n");
     Generator_free(gen);
     return 0;
 }

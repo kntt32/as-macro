@@ -721,6 +721,7 @@ static ParserMsg Asmacro_parse_header_arguments(Parser parser, in Generator* gen
             }
         }
     }
+
     return SUCCESS_PARSER_MSG;
 }
 

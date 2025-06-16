@@ -13,31 +13,60 @@ static bool GlobalSyntax_build_struct(inout Parser* parser, inout Generator* gen
     ParserMsg msg = Type_parse_struct(parser, generator, &type);
     if(!ParserMsg_is_success(msg)) {
         Generator_add_error(generator, Error_from_parsermsg(msg));
-        return false;
+        return true;
     }
 
     SResult result = Generator_add_type(generator, type);
     if(!SRESULT_IS_OK(result)) {
         Generator_add_error(generator, Error_from_sresult(parser->line, result));
-        return false;
+        return true;
     }
 
     return true;
 }
 
-bool GlobalSyntax_build_define_asmacro(inout Parser* parser, inout Generator* generator) {
+static bool GlobalSyntax_build_enum(inout Parser* parser, inout Generator* generator) {
+    if(!ParserMsg_is_success(Parser_parse_keyword(parser, "enum"))) {
+        return false;
+    }
+
+    Type type;
+    ParserMsg msg = Type_parse_enum(parser, &type);
+    if(!ParserMsg_is_success(msg)) {
+        Generator_add_error(generator, Error_from_parsermsg(msg));
+        return true;
+    }
+
+    SResult result = Generator_add_type(generator, type);
+    if(!SRESULT_IS_OK(result)) {
+        Generator_add_error(generator, Error_from_sresult(parser->line, result));
+        return true;
+    }
+
+    return true;
+}
+
+static bool GlobalSyntax_build_define_asmacro(inout Parser* parser, inout Generator* generator) {
     if(!Parser_start_with(parser, "as")) {
         return false;
     }
 
     Asmacro asmacro;
     ParserMsg msg = Asmacro_parse(parser, generator, &asmacro);
-    TODO();
+    if(!ParserMsg_is_success(msg)) {
+        Generator_add_error(generator, Error_from_parsermsg(msg));
+        return true;
+    }
+
+    Generator_add_asmacro(generator, asmacro);
+
     return true;
 }
 
 Generator GlobalSyntax_build(Parser parser) {
-    static bool (*BUILDERS[])(inout Parser*, inout Generator*) = {GlobalSyntax_build_struct};
+    static bool (*BUILDERS[])(inout Parser*, inout Generator*) = {
+        GlobalSyntax_build_struct, GlobalSyntax_build_enum, GlobalSyntax_build_define_asmacro
+    };
     Generator generator = Generator_new();
 
     bool matched_flag;
@@ -46,13 +75,17 @@ Generator GlobalSyntax_build(Parser parser) {
         for(u32 i=0; i<LEN(BUILDERS); i++) {
             if(BUILDERS[i](&parser, &generator)) {
                 matched_flag = true;
+                if(!ParserMsg_is_success(Parser_parse_symbol(&parser, ";"))) {
+                    Error error = {parser.line, "expected symbol \";\""};
+                    Generator_add_error(&generator, error);
+                }
                 break;
             }
         }
         if(!matched_flag) {
             Error error =  {parser.line, "unknown syntax"};
             Generator_add_error(&generator, error);
-            break;
+            Parser_split(&parser, ";", NULL);
         }
     }
 

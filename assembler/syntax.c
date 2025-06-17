@@ -126,9 +126,96 @@ static bool GlobalSyntax_build_type(Parser parser, inout Generator* generator) {
     return true;
 }
 
+static ParserMsg GlobalSyntax_build_function_parse_arguments(Parser parser, inout Generator* generator, inout Vec* args) {
+    // $ident: $type @ (register/stack), ..
+    i32 rbp_offset = -8;
+    while(!Parser_is_empty(&parser)) {
+        Variable variable;
+        PARSERMSG_UNWRAP(
+            Variable_parse(&parser, generator, rbp_offset, &variable),
+            (void)NULL
+        );
+
+        Storage* storage = Variable_get_storage(&variable);
+        switch(storage->type) {
+            case StorageType_reg:
+                break;
+            case StorageType_mem:
+            {
+                Type* type = Variable_get_type(&variable);
+                rbp_offset -= type->size;
+                rbp_offset = (rbp_offset - type->align + 1)/type->align*type->align;
+                storage->body.mem.disp = rbp_offset;
+            }
+                break;
+        }
+
+        Vec_push(&args, &variable);
+        if(!Parser_is_empty(&parser)) {
+            PARSERMSG_UNWRAP(
+                Parser_parse_symbol(&parser, ","),
+                (void)NULL
+            );
+        }
+    }
+
+    return SUCCESS_PARSER_MSG;
+}
+
+static ParserMsg GlobalSyntax_build_function_parse(
+    Parser parser, inout Generator* generator, out char name[256], inout Vec* args, out Parser* proc_parser) {
+    PARSERMSG_UNWRAP(
+        Parser_parse_keyword(&parser, "fn"),
+        (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Parser_parse_ident(&parser, name),
+        (void)NULL
+    );
+
+    Parser paren_parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_paren(&parser, &paren_parser),
+        (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        GlobalSyntax_build_function_parse_arguments(paren_parser, generator, args),
+        (void)NULL
+    );
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_block(&parser, proc_parser),
+        (void)NULL
+    );
+
+    return SUCCESS_PARSER_MSG;
+}
+
+static bool GlobalSyntax_build_function(Parser parser, inout Generator* generator) {
+    if(!Parser_start_with(&parser, "fn")) {
+        return false;
+    }
+
+    char name[256];
+    Vec vec = Vec_new(sizeof(Variable));
+    Parser proc_parser;
+    if(GlobalSyntax_resolve_parsermsg(
+        GlobalSyntax_build_function_parse(parser, generator, name, &vec, &proc_parser), generator)) {
+        Vec_free_all(vec, Variable_free_for_vec);
+        return true;
+    }
+
+    TODO();
+
+    return true;
+}
+
 Generator GlobalSyntax_build(Parser parser) {
     static bool (*BUILDERS[])(Parser, inout Generator*) = {
-        GlobalSyntax_build_struct, GlobalSyntax_build_enum, GlobalSyntax_build_define_asmacro, GlobalSyntax_build_type
+        GlobalSyntax_build_struct,
+        GlobalSyntax_build_enum,
+        GlobalSyntax_build_define_asmacro,
+        GlobalSyntax_build_type,
     };
     Generator generator = Generator_new();
 

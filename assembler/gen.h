@@ -2,7 +2,6 @@
 #include "types.h"
 #include "register.h"
 #include "vec.h"
-#include "asm.h"
 
 struct Type;
 
@@ -38,6 +37,36 @@ typedef struct {
     i32 value;
 } EnumMember;
 
+typedef struct {
+    enum {
+        ModRmType_R,
+        ModRmType_Dight,
+    } type;
+    union {
+        u8 dight;// 0~7
+    } body;
+} ModRmType;
+
+typedef struct {
+    enum {
+        AsmEncodingElement_Value,
+        AsmEncodingElement_Imm,
+        AsmEncodingElement_ModRm,
+        AsmEncodingElement_AddReg,
+    } type;
+    union {
+        u8 value;
+        u8 imm;// size of immidiate value (8, 16, 32, 64)
+        ModRmType mod_rm;// modrm type
+        u8 add_reg;// register size to add (8, 16, 32, 64)
+    } body;
+} AsmEncodingElement;
+
+typedef struct {
+    Vec encoding_elements;// Vec<AsmEncodingElement>
+    u8 default_operand_size;// 32, 64
+} AsmEncoding;
+
 typedef enum {
     StorageType_reg,
     StorageType_mem
@@ -60,6 +89,15 @@ typedef struct {
         Memory mem;
     } body;
 } Storage;
+
+typedef struct {
+    bool reg_flag;
+    optional Register reg;
+    bool regmem_flag;
+    optional Storage regmem;
+    bool imm_flag;
+    optional u64 imm;
+} AsmArgs;
 
 typedef struct {
     Type type;
@@ -143,22 +181,40 @@ bool EnumMember_cmp_for_vec(in void* self, in void* other);
 void EnumMember_print(in EnumMember* self);
 void EnumMember_print_for_vec(in void* ptr);
 
+ParserMsg ModRmType_parse(inout Parser* parser, out ModRmType* mod_rm_type);
+void ModRmType_print(in ModRmType* self);
+
+ParserMsg AsmEncodingElement_parse(inout Parser* parser, out AsmEncodingElement* asm_encoding_element);
+void AsmEncodingElement_print(in AsmEncodingElement* self);
+void AsmEncodingElement_print_for_vec(in void* ptr);
+
+ParserMsg AsmEncoding_parse(Parser parser, in AsmEncoding* asm_encoding);
+void AsmEncoding_print(in AsmEncoding* self);
+void AsmEncoding_free(AsmEncoding self);
+
 void Memory_print(in Memory* self);
+
+ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* storage);
+void Storage_print(in Storage* self);
+
+void AsmArgs_print(in AsmArgs* self);
+void AsmArgs_print_for_vec(in void* ptr);
 
 ParserMsg Data_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Data* data);
 Data Data_clone(in Data* self);
 void Data_print(in Data* self);
 void Data_free(Data self);
 
-ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* storage);
-void Storage_print(in Storage* self);
-
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Variable* variable);
 Variable Variable_clone(in Variable* self);
+SResult Variable_get_stack_offset(in Variable* self, out i32* rbp_offset);
+SResult Variable_set_stack_offset(inout Variable* self, i32 rbp_offset);
+Type* Variable_get_type(in Variable* self);
+Storage* Variable_get_storage(in Variable* self);
 void Variable_print(in Variable* self);
 void Variable_print_for_vec(in void* ptr);
 void Variable_free(Variable self);
-void Variable_free(Variable self);
+void Variable_free_for_vec(inout void* ptr);
 
 ParserMsg Argument_parse(inout Parser* parser, in Generator* generator, out Argument* argument);
 bool Argument_cmp(in Argument* self, out Argument* other);

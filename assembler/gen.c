@@ -264,7 +264,7 @@ Type Type_clone(in Type* self) {
             break;
         case Type_Array:
             type.body.t_array.type = malloc(sizeof(Type));
-            UNWRAP_NULL(type.body.t_ptr);
+            UNWRAP_NULL(type.body.t_array.type);
             *type.body.t_array.type = Type_clone(self->body.t_array.type);
             type.body.t_array.len = self->body.t_array.len;
             break;
@@ -488,8 +488,12 @@ void ModRmType_print(in ModRmType* self) {
 }
 
 static ParserMsg AsmEncodingElement_parse_imm_and_addreg(inout Parser* parser, out AsmEncodingElement* asm_encoding_element) {
-    static struct { char str[5]; u8 imm_field; } IMMS[4] = {{"ib", 8}, {"iw", 16}, {"id", 32}, {"iq", 64}};
-    static struct { char str[5]; u8 add_reg_field; } ADD_REGS[4] = {{"rb", 8}, {"rw", 16}, {"rd", 32}, {"rq", 64}};
+    static struct { char str[5]; u8 imm_field; } IMMS[4] = {
+        {"ib", 8}, {"iw", 16}, {"id", 32}, {"iq", 64}
+    };
+    static struct { char str[5]; u8 add_reg_field; } ADD_REGS[4] = {
+        {"rb", 8}, {"rw", 16}, {"rd", 32}, {"rq", 64}
+    };
 
     Parser parser_copy = *parser;
     char token[256];
@@ -573,39 +577,50 @@ void AsmEncodingElement_print_for_vec(in void* ptr) {
     AsmEncodingElement_print(ptr);
 }
 
-ParserMsg AsmEncoding_parse(Parser parser, in AsmEncoding* asm_encoding) {
-    if(ParserMsg_is_success(Parser_parse_keyword(&parser, "quad"))) {
+ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmEncoding* asm_encoding) {
+    if(ParserMsg_is_success(Parser_parse_keyword(parser, "quad"))) {
         asm_encoding->default_operand_size = 64;
     }else {
         PARSERMSG_UNWRAP(
-            Parser_parse_keyword(&parser, "double"),
+            Parser_parse_keyword(parser, "double"),
             (void)NULL
         );
         asm_encoding->default_operand_size = 32;
     }
     PARSERMSG_UNWRAP(
-        Parser_parse_symbol(&parser, ":"),
+        Parser_parse_symbol(parser, ":"),
         (void)NULL
     );
     
     Vec elements = Vec_new(sizeof(AsmEncodingElement));
-    while(!Parser_is_empty(&parser)) {
+    while(!Parser_is_empty(parser)) {
         AsmEncodingElement encoding_element;
         PARSERMSG_UNWRAP(
-            AsmEncodingElement_parse(&parser, &encoding_element),
+            AsmEncodingElement_parse(parser, &encoding_element),
             Vec_free(elements)
         );
         Vec_push(&elements, &encoding_element);
 
-        if(!Parser_is_empty(&parser)) {
+        if(!Parser_is_empty(parser)) {
             PARSERMSG_UNWRAP(
-                Parser_parse_symbol(&parser, ","),
-                (void)NULL
+                Parser_parse_symbol(parser, ","),
+                Vec_free(elements)
             );
         }
     }
+    asm_encoding->encoding_elements = elements;
 
     return SUCCESS_PARSER_MSG;
+}
+
+SResult AsmEncoding_encode(in AsmEncoding* self, in Generator* generator) {
+    u8 rex_prefix = 0x40;
+
+    for(u32 i=0; i<Vec_len(&self->encoding_elements); i++) {
+
+    }
+
+    return SRESULT_OK;
 }
 
 void AsmEncoding_print(in AsmEncoding* self) {
@@ -618,22 +633,83 @@ void AsmEncoding_free(AsmEncoding self) {
     Vec_free(self.encoding_elements);
 }
 
+void Index_print(in Index* self) {
+    printf("Index { type: %d, body: ", self->type);
+    switch(self->type) {
+        case Index_None:
+            printf("none");
+            break;
+        case Index_Reg:
+            printf(".reg: ");
+            Register_print(self->body.reg);
+            break;
+    }
+    printf(", scale: %d }", self->scale);
+}
+
+void Disp_print(in Disp* self) {
+    printf("Disp { type: %d, body: ", self->type);
+    switch(self->type) {
+        case Disp_None:
+            printf("none");
+            break;
+        case Disp_Offset:
+            printf(".offset: %d", self->body.offset);
+            break;
+        case Disp_Label:
+            printf(".label: %s", self->body.label);
+            break;
+    }
+    printf(" }");
+}
+
+bool Memory_cmp(in Memory* self, in Memory* other) {
+    if(self->base != other->base) {
+        return false;
+    }
+
+    if(self->index.type != other->index.type) {
+        return false;
+    }
+    switch(self->index.type) {
+        case Index_None:
+            break;
+        case Index_Reg:
+            if(self->index.body.reg != other->index.body.reg) {
+                return false;
+            }
+            break;
+    }
+
+    if(self->disp.type != other->disp.type) {
+        return false;
+    }
+    switch(self->disp.type) {
+        case Disp_None:
+            break;
+        case Disp_Offset:
+            if(self->disp.body.offset != other->disp.body.offset) {
+                return false;
+            }
+            break;
+        case Disp_Label:
+            if(strcmp(self->disp.body.label, other->disp.body.label) != 0) {
+                return false;
+            }
+             break;
+    }
+
+    return true;
+}
+
 void Memory_print(in Memory* self) {
-    printf("Memory { ");
-    if(self->base_flag) {
-        printf("base: ");
-        Register_print(self->base);
-        printf(", ");
-    }
-    if(self->index_flag) {
-        printf("index: ");
-        Register_print(self->index);
-        printf(", scale: %d, ", self->scale);
-    }
-    if(self->disp_flag) {
-        printf("disp: %d, ", self->disp);
-    }
-    printf("}");
+    printf("Memory { base: ");
+    Register_print(self->base);
+    printf(", index: ");
+    Index_print(&self->index);
+    printf(", disp: ");
+    Disp_print(&self->disp);
+    printf(" }");
 }
 
 ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* storage) {
@@ -642,17 +718,33 @@ ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* stora
     }else if(ParserMsg_is_success(Parser_parse_keyword(parser, "stack"))) {
         storage->type = StorageType_mem;
         Memory* mem = &storage->body.mem;
-        mem->base_flag = true;
         mem->base = Rbp;
-        mem->index_flag = false;
-        mem->disp_flag = rbp_offset != 0;
-        mem->disp = rbp_offset;
+        mem->index.type = Index_None;
+        mem->disp.type = Disp_Offset;
+        mem->disp.body.offset = rbp_offset;
     }else {
         ParserMsg msg = {parser->line, "expected storage"};
         return msg;
     }
 
     return SUCCESS_PARSER_MSG;
+}
+
+bool Storage_cmp(in Storage* self, in Storage* other) {
+    if(self->type != other->type) {
+        return false;
+    }
+    switch(self->type) {
+        case StorageType_reg:
+            return self->body.reg == other->body.reg;
+        case StorageType_mem:
+            return Memory_cmp(&self->body.mem, &other->body.mem);
+        case StorageType_xmm:
+            return self->body.xmm == other->body.xmm;
+        case StorageType_imm:
+            return true;
+    }
+    return false;
 }
 
 void Storage_print(in Storage* self) {
@@ -666,31 +758,15 @@ void Storage_print(in Storage* self) {
             printf(".mem: ");
             Memory_print(&self->body.mem);
             break;
+        case StorageType_xmm:
+            printf(".xmm: ");
+            Register_print(self->body.xmm);
+            break;
+        case StorageType_imm:
+            printf(".imm: %lu", self->body.imm);
+            break;
     }
     printf(" }");
-}
-
-void AsmArgs_print(in AsmArgs* self) {
-    printf("AsmArgs { ");
-    if(self->reg_flag) {
-        printf("reg: ");
-        Register_print(self->reg);
-        printf(", ");
-    }
-    if(self->regmem_flag) {
-        printf("regmem: ");
-        Storage_print(&self->regmem);
-        printf(", ");
-    }
-    if(self->imm_flag) {
-        printf("imm: ");
-        printf("%lu, ", self->imm);
-    }
-    printf("}");
-}
-
-void AsmArgs_print_for_vec(in void* ptr) {
-    AsmArgs_print(ptr);
 }
 
 ParserMsg Data_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Data* data) {
@@ -801,79 +877,87 @@ static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argume
         (void)NULL
     );
 
-    argument->reg_flag = ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "reg"));
-    Parser_parse_symbol(&parser_copy, "/");
-    argument->mem_flag = ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "mem"));
-    if(!argument->reg_flag && !argument->mem_flag) {
-        ParserMsg msg = {parser_copy.line, "expected reg or mem"};
-        return msg;
-    }
+    if(ParserMsg_is_success(Storage_parse(&parser_copy, 0, &argument->storage.storage))) {
+        argument->storage_type = Argument_Storage;
+    }else {
+        bool reg_flag = ParserMsg_is_success(
+            Parser_parse_keyword(&parser_copy, "reg")
+        );
+        bool slash_flag = ParserMsg_is_success(
+            Parser_parse_symbol(&parser_copy, "/")
+        );
+        bool mem_flag = ParserMsg_is_success(
+            Parser_parse_keyword(&parser_copy, "mem")
+        );
 
-    PARSERMSG_UNWRAP(
-        Parser_parse_symbol(&parser_copy, "."),
-        (void)NULL
-    );
-    i64 size;
-    PARSERMSG_UNWRAP(
-        Parser_parse_number(&parser_copy, &size),
-        (void)NULL
-    );
-    if(size <= 0) {
-        ParserMsg msg = {parser_copy.line, "size must be greeter than zero"};
-        return msg;
+        if((reg_flag && slash_flag && !slash_flag)
+            || ((!reg_flag || !slash_flag) && slash_flag)) {
+            ParserMsg msg = {parser_copy.line, "invalid usage of \"/\""};
+            return msg;
+        }
+        if(!reg_flag && !mem_flag) {
+            ParserMsg msg = {parser_copy.line, "expected storage bound"};
+            return msg;
+        }
+
+        argument->storage_type = Argument_Trait;
+        argument->storage.trait.reg_flag = reg_flag;
+        argument->storage.trait.mem_flag = mem_flag;
     }
-    argument->size = size;
 
     *parser = parser_copy;
     return SUCCESS_PARSER_MSG;
 }
 
 ParserMsg Argument_parse(inout Parser* parser, in Generator* generator, out Argument* argument) {
-    // (in)(out) name (: Type) @ [reg | mem]size
+    // (in)(out) name (: Type) @ [reg | mem | xmm | imm]
     Parser parser_copy = *parser;
 
     PARSERMSG_UNWRAP(
         Parser_parse_ident(&parser_copy, argument->name),
         (void)NULL
     );
-
-    argument->type_flag = ParserMsg_is_success(Parser_parse_symbol(&parser_copy, ":"));
-    if(argument->type_flag) {
-        PARSERMSG_UNWRAP(
-            Type_parse(&parser_copy, generator, &argument->type),
-            (void)NULL
-        );
-    }
-    argument->reg_flag = false;
-    argument->mem_flag = false;
-    argument->size = 0;
+    
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, ":"),
+        (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Type_parse(&parser_copy, generator, &argument->type),
+        (void)NULL
+    );
 
     PARSERMSG_UNWRAP(
         Argument_parse_storage_bound(&parser_copy, argument),
         Argument_free(*argument)
     );
 
-    if(argument->type_flag && argument->type.size != argument->size) {
-        Argument_free(*argument);
-        ParserMsg msg = {parser_copy.line, "conflicted argument size"};
-        return msg;
-    }
-
     *parser = parser_copy;
     return SUCCESS_PARSER_MSG;
 }
 
 bool Argument_cmp(in Argument* self, out Argument* other) {
-    if(self->type_flag && other->type_flag) {
-        if(!Type_cmp(&self->type, &other->type)) {
-            return false;
-        }
+    if(!Type_cmp(&self->type, &other->type)) {
+        return false;
     }
-    return strcmp(self->name, other->name)
-        && self->type_flag == other->type_flag
-        && self->reg_flag == other->reg_flag
-        && self->mem_flag == other->mem_flag
-        && self->size == other->size;
+    if(self->storage_type != other->storage_type) {
+        return false;
+    }
+    switch(self->storage_type) {
+        case Argument_Trait:    
+            if(self->storage.trait.reg_flag != other->storage.trait.reg_flag
+                || self->storage.trait.mem_flag != other->storage.trait.mem_flag) {
+                return false;
+            }
+            break;
+        case Argument_Storage:
+            if(!Storage_cmp(&self->storage.storage, &other->storage.storage)) {
+                return false;
+            }
+            break;
+    }
+
+    return strcmp(self->name, other->name);
 }
 
 bool Argument_cmp_for_vec(in void* self, in void* other) {
@@ -881,12 +965,21 @@ bool Argument_cmp_for_vec(in void* self, in void* other) {
 }
 
 void Argument_print(in Argument* self) {
-    printf("Argument { name: %s", self->name);
-    if(self->type_flag) {
-        printf(", type: ");
-        Type_print(&self->type);
+    printf("Argument { name: %s, type: ", self->name);
+    Type_print(&self->type);
+    printf(", storage_type: %d, storage: ", self->storage_type);
+    switch(self->storage_type) {
+        case Argument_Trait:
+            printf(".trait: { reg_flag: %s, mem_flag: %s }",
+                BOOL_TO_STR(self->storage.trait.reg_flag),
+                BOOL_TO_STR(self->storage.trait.mem_flag));
+            break;
+        case Argument_Storage:
+            printf(".storage: ");
+            Storage_print(&self->storage.storage);
+            break;
     }
-    printf(", reg_flag: %s, mem_flag: %s }", BOOL_TO_STR(self->reg_flag), BOOL_TO_STR(self->mem_flag));
+    printf(" }");
 }
 
 void Argument_print_for_vec(in void* ptr) {
@@ -894,9 +987,7 @@ void Argument_print_for_vec(in void* ptr) {
 }
 
 void Argument_free(Argument self) {
-    if(self.type_flag) {
-        Type_free(self.type);
-    }
+    Type_free(self.type);
 }
 
 void Argument_free_for_vec(inout void* ptr) {
@@ -976,9 +1067,11 @@ static ParserMsg Asmacro_parse_encoding(inout Parser* parser, out Asmacro* asmac
 
     asmacro->type = Asmacro_AsmOperator;
     PARSERMSG_UNWRAP(
-        AsmEncoding_parse(paren_parser, &asmacro->body.asm_operator),
+        AsmEncoding_parse(&paren_parser, &asmacro->body.asm_operator),
         (void)NULL
     );
+
+    *parser = parser_copy;
 
     return SUCCESS_PARSER_MSG;
 }
@@ -996,12 +1089,12 @@ ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmac
     if(ParserMsg_is_success(Parser_parse_symbol(&parser_copy, ":"))) {
         PARSERMSG_UNWRAP(
             Asmacro_parse_encoding(&parser_copy, asmacro),
-            (void)NULL
+            Vec_free_all(asmacro->arguments, Argument_free_for_vec)
         );
     }else {
         PARSERMSG_UNWRAP(
             Asmacro_parse_proc(&parser_copy, asmacro),
-            (void)NULL
+            Vec_free_all(asmacro->arguments, Argument_free_for_vec)
         );
     }
 

@@ -69,17 +69,29 @@ typedef struct {
 
 typedef enum {
     StorageType_reg,
-    StorageType_mem
+    StorageType_mem,
+    StorageType_xmm,
+    StorageType_imm,
 } StorageType;
 
 typedef struct {
-    bool base_flag;
-    Register base;
-    bool index_flag;
-    Register index;
+    enum { Index_None, Index_Reg } type;
+    union { Register reg; } body;
     u8 scale;
-    bool disp_flag;
-    i32 disp;
+} Index;
+
+typedef struct {
+    enum { Disp_None, Disp_Offset, Disp_Label } type;
+    union {
+        i32 offset;
+        char label[256];
+    } body;
+} Disp;
+
+typedef struct {
+    Register base;
+    Index index;
+    Disp disp;
 } Memory;
 
 typedef struct {
@@ -87,17 +99,10 @@ typedef struct {
     union {
         Register reg;
         Memory mem;
+        Register xmm;
+        u64 imm;
     } body;
 } Storage;
-
-typedef struct {
-    bool reg_flag;
-    optional Register reg;
-    bool regmem_flag;
-    optional Storage regmem;
-    bool imm_flag;
-    optional u64 imm;
-} AsmArgs;
 
 typedef struct {
     Type type;
@@ -111,11 +116,15 @@ typedef struct {
 
 typedef struct {
     char name[256];
-    bool type_flag;
-    optional Type type;
-    bool reg_flag;
-    bool mem_flag;
-    u32 size;
+    Type type;
+    enum { Argument_Trait, Argument_Storage } storage_type;
+    union {
+        struct {
+            bool reg_flag;
+            bool mem_flag;
+        } trait;
+        Storage storage;
+    } storage;
 } Argument;
 
 typedef struct {
@@ -188,17 +197,16 @@ ParserMsg AsmEncodingElement_parse(inout Parser* parser, out AsmEncodingElement*
 void AsmEncodingElement_print(in AsmEncodingElement* self);
 void AsmEncodingElement_print_for_vec(in void* ptr);
 
-ParserMsg AsmEncoding_parse(Parser parser, in AsmEncoding* asm_encoding);
+
+ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmEncoding* asm_encoding);
 void AsmEncoding_print(in AsmEncoding* self);
 void AsmEncoding_free(AsmEncoding self);
 
+bool Memory_cmp(in Memory* self, in Memory* other);
 void Memory_print(in Memory* self);
 
 ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* storage);
 void Storage_print(in Storage* self);
-
-void AsmArgs_print(in AsmArgs* self);
-void AsmArgs_print_for_vec(in void* ptr);
 
 ParserMsg Data_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Data* data);
 Data Data_clone(in Data* self);

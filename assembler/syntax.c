@@ -145,12 +145,16 @@ static ParserMsg GlobalSyntax_build_function_parse_arguments(Parser parser, inou
                 Type* type = Variable_get_type(&variable);
                 rbp_offset -= type->size;
                 rbp_offset = (rbp_offset - type->align + 1)/type->align*type->align;
-                storage->body.mem.disp = rbp_offset;
+                storage->body.mem.disp.body.offset = rbp_offset;
             }
+                break;
+            case StorageType_xmm:
+                break;
+            case StorageType_imm:
                 break;
         }
 
-        Vec_push(&args, &variable);
+        Vec_push(args, &variable);
         if(!Parser_is_empty(&parser)) {
             PARSERMSG_UNWRAP(
                 Parser_parse_symbol(&parser, ","),

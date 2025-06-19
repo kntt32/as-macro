@@ -3,6 +3,8 @@
 #include "register.h"
 #include "vec.h"
 
+#define REX_B 0x1
+
 struct Type;
 
 struct Type {
@@ -95,6 +97,14 @@ typedef struct {
 } Memory;
 
 typedef struct {
+    enum { Imm_Imm, Imm_Label} type;
+    union {
+        u64 imm;
+        char label[256];
+    } body;
+} Imm;
+
+typedef struct {
     StorageType type;
     union {
         Register reg;
@@ -126,6 +136,18 @@ typedef struct {
         Storage storage;
     } storage;
 } Argument;
+
+typedef struct {
+    bool reg_flag;
+    optional Register reg;
+    enum {AsmArgs_Rm_Reg, AsmArgs_Rm_Mem} regmem_type;
+    union {
+        Register reg;
+        Memory mem;
+    } regmem;
+    bool imm_flag;
+    optional Imm imm;
+} AsmArgs;
 
 typedef struct {
     char name[256];

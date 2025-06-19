@@ -3,6 +3,10 @@
 #include "types.h"
 #include "parser.h"
 
+#define ADDREG_ADDCODE 0x7
+#define ADDREG_REXB 0x8
+#define ADDREG_REX 0x80
+
 typedef enum {
     Rsp,
     Rbp,
@@ -39,6 +43,8 @@ typedef enum {
     Xmm14,
     Xmm15,
 } Register;
+
+u8 Register_get_addreg_code(Register self);
 
 ParserMsg Register_parse(Parser* parser, Register* ptr);
 

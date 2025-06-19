@@ -553,6 +553,29 @@ ParserMsg AsmEncodingElement_parse(inout Parser* parser, out AsmEncodingElement*
     return SUCCESS_PARSER_MSG;
 }
 
+SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_need_flag) {
+    switch(self->type) {
+        case AsmEncodingElement_Value:
+            break;
+        case AsmEncodingElement_Imm:
+            break;
+        case AsmEncodingElement_ModRm:
+            TODO();
+            break;
+        case AsmEncodingElement_AddReg:
+            u8 addreg_code = Register_get_addreg_code(args->reg);
+            if((addreg_code & ADDREG_REX) || (addreg_code & ADDREG_REXB)) {
+                *rex_prefix_need_flag = true;
+            }
+            if(addreg_code & ADDREG_REXB) {
+                *rex_prefix |= REX_B;
+            }
+            break;
+    }
+    
+    return SRESULT_OK;
+}
+
 void AsmEncodingElement_print(in AsmEncodingElement* self) {
     printf("AsmEncodingElement { type: %d, body: ", self->type);
     switch(self->type) {
@@ -613,12 +636,23 @@ ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmEncoding* asm_encoding) 
     return SUCCESS_PARSER_MSG;
 }
 
-SResult AsmEncoding_encode(in AsmEncoding* self, in Generator* generator) {
+SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generator* generator) {
     u8 rex_prefix = 0x40;
+    bool rex_prefix_needed_flag = false;
 
     for(u32 i=0; i<Vec_len(&self->encoding_elements); i++) {
-
+        AsmEncodingElement* element = Vec_index(&self->encoding_elements, i);
+        SRESULT_UNWRAP(
+            AsmEncodingElement_encode_rexprefix(element, args, &rex_prefix, &rex_prefix_needed_flag),
+            (void)NULL
+        );
     }
+
+    if(rex_prefix_needed_flag) {
+        Generator_append_binary(generator, "text", rex_prefix);
+    }
+
+    TODO();
 
     return SRESULT_OK;
 }

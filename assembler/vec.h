@@ -29,6 +29,8 @@ void Vec_pop(Vec* self, void* ptr);
 
 void Vec_last(Vec* self, void* ptr);
 
+SResult Vec_last_ptr(Vec* self, void** ptr);
+
 Vec Vec_from(void* src, u32 len, u32 size);
 
 void Vec_append(Vec* self, void* src, u32 len); 

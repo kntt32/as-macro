@@ -92,6 +92,15 @@ void Vec_last(Vec* self, void* restrict ptr) {
     }
 }
 
+SResult Vec_last_ptr(Vec* self, void** ptr) {
+    if(self->len == 0) {
+        SResult result = {false, "vec length is zero"};
+        return result;
+    }
+    *ptr = self->ptr + self->size * (self->len - 1);
+    return SRESULT_OK;
+}
+
 Vec Vec_from(void* src, u32 len, u32 size) {
     Vec vec = Vec_new(size);
     Vec_append(&vec, src, len);

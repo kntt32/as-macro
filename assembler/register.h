@@ -7,6 +7,14 @@
 #define ADDREG_REXB 0x8
 #define ADDREG_REX 0x80
 
+#define MODRMREG_REGFIELD 0x7
+#define MODRMREG_REXR 0x8
+#define MODRMREG_REX 0x80
+
+#define MODRMBASE_RMFIELD 0x7
+#define MODRMBASE_REXB 0x8
+#define MODRMREG_REX 0x80
+
 typedef enum {
     Rsp,
     Rbp,
@@ -44,9 +52,18 @@ typedef enum {
     Xmm15,
 } Register;
 
-u8 Register_get_addreg_code(Register self);
+SResult Register_get_addreg_code(Register self, out u8* value);
+
+SResult Register_get_modrmreg_code(Register self, out u8* value);
+
+SResult Register_get_modrmregmem_base_code(Register self, out u8* value);
 
 ParserMsg Register_parse(Parser* parser, Register* ptr);
 
 void Register_print(in Register self);
+
+bool Register_is_integer(Register self);
+
+bool Register_is_xmm(Register self);
+
 

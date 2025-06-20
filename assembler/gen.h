@@ -4,6 +4,9 @@
 #include "vec.h"
 
 #define REX_B 0x1
+#define REX_X 0x2
+#define REX_R 0x4
+#define REX_W 0x8
 
 struct Type;
 
@@ -167,9 +170,16 @@ typedef struct {
 typedef struct {
     pub char name[256];
     pub bool public_flag;
-    pub i32 section_index;// <0: unknown
+    pub char section_name[256];
     pub u64 offset;
 } Label;
+
+typedef struct {
+    pub char label[256];
+    pub char section_name[256];
+    pub u8 size;// 8, 16, 32, 64
+    pub u32 offset;
+} Rel;
 
 typedef struct {
     u32 line;
@@ -184,6 +194,7 @@ typedef struct {
     
     Vec sections;// Vec<Section>
     Vec labels;// Vec<Label>
+    Vec rels;
 } Generator;
 
 ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out Type* type);
@@ -213,14 +224,17 @@ void EnumMember_print(in EnumMember* self);
 void EnumMember_print_for_vec(in void* ptr);
 
 ParserMsg ModRmType_parse(inout Parser* parser, out ModRmType* mod_rm_type);
+SResult ModRmType_encode_rex_prefix(in ModRmType* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag);
 void ModRmType_print(in ModRmType* self);
 
 ParserMsg AsmEncodingElement_parse(inout Parser* parser, out AsmEncodingElement* asm_encoding_element);
+SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_need_flag);
 void AsmEncodingElement_print(in AsmEncodingElement* self);
 void AsmEncodingElement_print_for_vec(in void* ptr);
 
 
 ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmEncoding* asm_encoding);
+SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generator* generator);
 void AsmEncoding_print(in AsmEncoding* self);
 void AsmEncoding_free(AsmEncoding self);
 
@@ -269,6 +283,9 @@ void Section_free_for_vec(inout void* ptr);
 void Label_print(in Label* self);
 void Label_print_for_vec(in void* ptr);
 
+void Rel_print(in Rel* self);
+void Rel_print_for_vec(in void* ptr);
+
 Error Error_from_parsermsg(ParserMsg parser_msg);
 Error Error_from_sresult(u32 line, SResult result);
 void Error_print(in Error* self);
@@ -281,7 +298,11 @@ SResult Generator_add_global_variable(inout Generator* self, Variable variable);
 SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro);
 void Generator_add_error(inout Generator* self, Error error);
 SResult Generator_new_section(inout Generator* self, in char* name);
+SResult Generator_new_label(inout Generator* self, Label label);
+SResult Generator_new_rel(inout Generator* self, Rel rel);
 SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte);
+SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte);
+SResult Generator_binary_len(in Generator* self, in char* name, out u32* len);
 void Generator_print(in Generator* self);
 void Generator_free(Generator self);
 

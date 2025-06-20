@@ -553,6 +553,60 @@ ParserMsg AsmEncodingElement_parse(inout Parser* parser, out AsmEncodingElement*
     return SUCCESS_PARSER_MSG;
 }
 
+static SResult ModRmType_encode_rex_prefix_reg(in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
+    if(!args->reg_flag) {
+        SResult result = {false, "expected register argument"};
+        return result;
+    }
+    u8 modrmreg_code;
+    SRESULT_UNWRAP(
+        Register_get_modrmreg_code(args->reg, &modrmreg_code),
+        (void)NULL
+    );
+
+    if(modrmreg_code & MODRMREG_REXR) {
+        *rex_prefix |= REX_R;
+        *rex_prefix_needed_flag = true;
+    }
+    if(modrmreg_code & MODRMREG_REX) {
+        *rex_prefix_needed_flag = true;
+    }
+
+    return SRESULT_OK;
+}
+
+static SResult ModRmType_encode_rex_prefix_regmem(in ModRmType* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
+    (void)self;
+    (void)args;
+    (void)rex_prefix;
+    (void)rex_prefix_needed_flag;
+    TODO();
+    return SRESULT_OK;
+}
+
+SResult ModRmType_encode_rex_prefix(in ModRmType* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
+    switch(self->type) {
+        case ModRmType_R:
+            SRESULT_UNWRAP(
+                ModRmType_encode_rex_prefix_reg(args, rex_prefix, rex_prefix_needed_flag),
+                (void)NULL
+            );
+            SRESULT_UNWRAP(
+                ModRmType_encode_rex_prefix_regmem(self, args, rex_prefix, rex_prefix_needed_flag),
+                (void)NULL
+            )
+            break;
+        case ModRmType_Dight:
+            SRESULT_UNWRAP(
+                ModRmType_encode_rex_prefix_regmem(self, args, rex_prefix, rex_prefix_needed_flag),
+                (void)NULL
+            );
+            break;
+    }
+
+    return SRESULT_OK;
+}
+
 SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_need_flag) {
     switch(self->type) {
         case AsmEncodingElement_Value:
@@ -560,19 +614,105 @@ SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmA
         case AsmEncodingElement_Imm:
             break;
         case AsmEncodingElement_ModRm:
-            TODO();
+            SRESULT_UNWRAP(
+                ModRmType_encode_rex_prefix(&self->body.mod_rm, args, rex_prefix, rex_prefix_need_flag),
+                (void)NULL
+            );
             break;
         case AsmEncodingElement_AddReg:
-            u8 addreg_code = Register_get_addreg_code(args->reg);
+            u8 addreg_code;
+            SRESULT_UNWRAP(
+                Register_get_addreg_code(args->reg, &addreg_code),
+                (void)NULL
+            );
             if((addreg_code & ADDREG_REX) || (addreg_code & ADDREG_REXB)) {
                 *rex_prefix_need_flag = true;
             }
             if(addreg_code & ADDREG_REXB) {
                 *rex_prefix |= REX_B;
+                *rex_prefix_need_flag = true;
             }
             break;
     }
     
+    return SRESULT_OK;
+}
+
+static SResult AsmEncodingElement_encode_value(in AsmEncodingElement* self, inout Generator* generator) {
+    SRESULT_UNWRAP(
+        Generator_append_binary(generator, "text", self->body.value),
+        (void)NULL
+    );
+    return SRESULT_OK;
+}
+
+static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in AsmArgs* args, inout Generator* generator) {
+    if(!args->imm_flag) {
+        SResult result = {false, "expected imm argument"};
+        return result;
+    }
+    u64 value = 0;
+    Imm* imm = &args->imm;
+    switch(imm->type) {
+        case Imm_Imm:
+            value = imm->body.imm;
+            break;
+        case Imm_Label:
+            value = 0;
+            {
+                Rel rel;
+                strcpy(rel.label, imm->body.label);
+                strcpy(rel.section_name, "text");
+                rel.size = self->body.imm;
+                SRESULT_UNWRAP(
+                    Generator_binary_len(generator, "text", &rel.offset),
+                    (void)NULL
+                );
+                SRESULT_UNWRAP(
+                    Generator_new_rel(generator, rel),
+                    (void)NULL
+                );
+            }
+    }
+    
+    for(u32 i=0; i<self->body.imm/8; i++) {
+        u8 byte = (value >> (64 - 8*i)) & 0xff;
+        SRESULT_UNWRAP(
+            Generator_append_binary(generator, "text", byte),
+            (void)NULL
+        );
+    }
+    return SRESULT_OK;
+}
+
+SResult AsmEncodingElement_encode(in AsmEncodingElement* self, in AsmArgs* args, inout Generator* generator) {
+    switch(self->type) {
+        case AsmEncodingElement_Value:
+            SRESULT_UNWRAP(
+                AsmEncodingElement_encode_value(self, generator),
+                (void)NULL
+            );
+            break;
+        case AsmEncodingElement_Imm:
+            SRESULT_UNWRAP(
+                AsmEncodingElement_encode_imm(self, args, generator),
+                (void)NULL
+            );
+            break;
+        case AsmEncodingElement_ModRm:
+            TODO();
+            break;
+        case AsmEncodingElement_AddReg:
+            TODO();
+        /*
+            SRESULT_UNWRAP(
+                AsmEncodingElement_encode_addreg(self, generator),
+                (void)NULL
+            );
+        */
+            break;
+    }
+
     return SRESULT_OK;
 }
 
@@ -647,9 +787,19 @@ SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generat
             (void)NULL
         );
     }
-
     if(rex_prefix_needed_flag) {
-        Generator_append_binary(generator, "text", rex_prefix);
+        SRESULT_UNWRAP(
+            Generator_append_binary(generator, "text", rex_prefix),
+            (void)NULL
+        );
+    }
+
+    for(u32 i=0; i<Vec_len(&self->encoding_elements); i++) {
+        AsmEncodingElement* element = Vec_index(&self->encoding_elements, i);
+        SRESULT_UNWRAP(
+            AsmEncodingElement_encode(element, args, generator),
+            (void)NULL
+        );
     }
 
     TODO();
@@ -1212,16 +1362,29 @@ void Section_free_for_vec(inout void* ptr) {
 }
 
 void Label_print(in Label* self) {
-    printf("Label { name: %s, public_flag: %s, section_index: %d, offset: %lu }",
+    printf("Label { name: %s, public_flag: %s, section_name: %s, offset: %lu }",
         self->name,
         BOOL_TO_STR(self->public_flag),
-        self->section_index,
+        self->section_name,
         self->offset
     );
 }
 
 void Label_print_for_vec(in void* ptr) {
     Label_print(ptr);
+}
+
+void Rel_print(in Rel* self) {
+    printf("Rel { label: %s, section_name: %s, size: %u, offset: %u }",
+        self->label,
+        self->section_name,
+        self->size,
+        self->offset
+    );
+}
+
+void Rel_print_for_vec(in void* ptr) {
+    Rel_print(ptr);
 }
 
 Error Error_from_parsermsg(ParserMsg parser_msg) {
@@ -1256,6 +1419,7 @@ Generator Generator_new() {
         Vec_new(sizeof(Error)),
         Vec_new(sizeof(Section)),
         Vec_new(sizeof(Label)),
+        Vec_new(sizeof(Rel))
     };
     return generator;
 }
@@ -1352,11 +1516,20 @@ SResult Generator_new_section(inout Generator* self, in char* name) {
     return SRESULT_OK;
 }
 
-SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte) {
+SResult Generator_new_label(inout Generator* self, Label label) {
+    Vec_push(&self->labels, &label);
+    return SRESULT_OK;
+}
+
+SResult Generator_new_rel(inout Generator* self, Rel rel) {
+    Vec_push(&self->rels, &rel);
+    return SRESULT_OK;
+}
+
+static SResult Generator_get_section(in Generator* self, in char* name, out Section** section) {
     for(u32 i=0; i<Vec_len(&self->sections); i++) {
-        Section* section = Vec_index(&self->sections, i);
-        if(strcmp(section->name, name) == 0) {
-            Vec_push(&section->binary, &byte);
+        *section = Vec_index(&self->sections, i);
+        if(strcmp((*section)->name, name) == 0) {
             return SRESULT_OK;
         }
     }
@@ -1365,6 +1538,41 @@ SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte) {
     result.ok_flag = false;
     snprintf(result.error, 256, "section \"%.10s\" is undefined", name);
     return result;
+}
+
+SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte) {
+    Section* section;
+    SRESULT_UNWRAP(
+        Generator_get_section(self, name, &section),
+        (void)NULL
+    );
+    Vec_push(&section->binary, &byte);
+    return SRESULT_OK;
+}
+
+SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte) {
+    Section* section;
+    SRESULT_UNWRAP(
+        Generator_get_section(self, name, &section),
+        (void)NULL
+    );
+    SRESULT_UNWRAP(
+        Vec_last_ptr(&section->binary, (void**)byte),
+        (void)NULL
+    );
+    return SRESULT_OK;
+}
+
+SResult Generator_binary_len(in Generator* self, in char* name, out u32* len) {
+    Section* section;
+    SRESULT_UNWRAP(
+        Generator_get_section(self, name, &section),
+        (void)NULL
+    );
+
+    *len = Vec_len(&section->binary);
+
+    return SRESULT_OK;
 }
 
 void Generator_print(in Generator* self) {
@@ -1380,6 +1588,8 @@ void Generator_print(in Generator* self) {
     Vec_print(&self->sections, Section_print_for_vec);
     printf(", labels: ");
     Vec_print(&self->labels, Label_print_for_vec);
+    printf(", rels: ");
+    Vec_print(&self->rels, Rel_print_for_vec);
     printf(" }");
 }
 
@@ -1390,6 +1600,7 @@ void Generator_free(Generator self) {
     Vec_free(self.errors);
     Vec_free_all(self.sections, Section_free_for_vec);
     Vec_free(self.labels);
+    Vec_free(self.rels);
 }
 
 void Generator_free_for_vec(inout void* ptr) {

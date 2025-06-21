@@ -20,7 +20,8 @@ static bool GlobalSyntax_resolve_parsermsg(ParserMsg msg, inout Generator* gener
     return false;
 }
 
-static bool GlobalSyntax_build_struct(Parser parser, inout Generator* generator) {
+bool GlobalSyntax_build_struct(Parser parser, inout Generator* generator) {
+    // struct $name { .. }
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "struct"))) {
         return false;
     }
@@ -43,7 +44,8 @@ static bool GlobalSyntax_build_struct(Parser parser, inout Generator* generator)
     return true;
 }
 
-static bool GlobalSyntax_build_enum(Parser parser, inout Generator* generator) {
+bool GlobalSyntax_build_enum(Parser parser, inout Generator* generator) {
+    // enum $name { .. }
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "enum"))) {
         return false;
     }
@@ -66,7 +68,9 @@ static bool GlobalSyntax_build_enum(Parser parser, inout Generator* generator) {
     return true;
 }
 
-static bool GlobalSyntax_build_define_asmacro(Parser parser, inout Generator* generator) {
+bool GlobalSyntax_build_define_asmacro(Parser parser, inout Generator* generator) {
+    // as $name ( .. ) { .. }
+    // as $name ( .. ) : ( .. )
     if(!Parser_start_with(&parser, "as")) {
         return false;
     }
@@ -84,7 +88,7 @@ static bool GlobalSyntax_build_define_asmacro(Parser parser, inout Generator* ge
     return true;
 }
 
-static ParserMsg GlobalSyntax_build_type_parse(Parser parser, inout Generator* generator, out Type* type) {
+ParserMsg GlobalSyntax_build_type_parse(Parser parser, inout Generator* generator, out Type* type) {
     char alias[256];
     PARSERMSG_UNWRAP(
         Parser_parse_ident(&parser, alias), (void)NULL
@@ -125,8 +129,25 @@ static bool GlobalSyntax_build_type(Parser parser, inout Generator* generator) {
 
     return true;
 }
+/*
+static ParserMsg GlobalSyntax_build_function_defination(Parser parser, inout Generator* generator) {
+    
+}
+*/
+bool GlobalSyntax_build_function_definision(Parser parser, inout Generator* generator) {
+    // fn $name ( .. ) { .. }
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "fn"))) {
+        return false;
+    }
+/*
+    if(GlobalSyntax_resolve_parsermsg(GlobalSyntax_build_function_definision(parser, generator), generator)) {
+        return true;
+    }
+*/
+    TODO();
 
-
+    return true;
+}
 
 Generator GlobalSyntax_build(Parser parser) {
     static bool (*BUILDERS[])(Parser, inout Generator*) = {

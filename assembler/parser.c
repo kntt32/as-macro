@@ -406,8 +406,13 @@ bool ParserMsg_is_success(ParserMsg self) {
     return self.msg[0] == '\0';
 }
 
-
-
-
-
+ParserMsg ParserMsg_from_sresult(SResult sresult, u32 line) {
+    if(SRESULT_IS_OK(sresult)) {
+        return SUCCESS_PARSER_MSG;
+    }
+    ParserMsg msg;
+    msg.line = line;
+    strcpy(msg.msg, sresult.error);
+    return msg;
+}
 

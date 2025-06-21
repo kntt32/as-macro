@@ -28,6 +28,7 @@ int main() {
         imul x, y\n\
     };\n\
     as imul(x: u32@reg, y:u32@reg/mem): (double: 0x0f, 0xaf, /r);\n\
+    as mov(x: u32@reg, y: u32@imm): (double: 0xb8, rd, id);\n\
     ");
     Generator gen = GlobalSyntax_build(parser);
     Generator_print(&gen);

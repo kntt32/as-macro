@@ -59,3 +59,5 @@ ParserMsg Parser_parse_index(inout Parser* self, out Parser* parser);
 
 bool ParserMsg_is_success(ParserMsg self);
 
+ParserMsg ParserMsg_from_sresult(SResult sresult, u32 line);
+

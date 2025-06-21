@@ -5,8 +5,17 @@
 #include "gen.h"
 
 static Type TYPES[] = {
+    {"void", Type_Integer, {}, 0, 1},
+    {"u8",  Type_Integer, {}, 1, 1},
+    {"i8", Type_Integer, {}, 1, 1},
+    {"u16", Type_Integer, {}, 2, 2},
+    {"i16", Type_Integer, {}, 2, 2},
     {"u32", Type_Integer, {}, 4, 4},
-    {"i32", Type_Integer, {}, 4, 4}
+    {"i32", Type_Integer, {}, 4, 4},
+    {"u64", Type_Integer, {}, 8, 8},
+    {"i64", Type_Integer, {}, 8, 8},
+    {"f32", Type_Floating, {}, 4, 4},
+    {"f64", Type_Floating, {}, 8, 8},
 };
 
 static void Type_parse_ref(inout Parser* parser, inout Type* type) {
@@ -248,6 +257,8 @@ bool Type_cmp(in Type* self, in Type* other) {
                 return false;
             }
             break;
+        case Type_Floating:
+            break;
     }
     return true;
 }
@@ -273,6 +284,8 @@ Type Type_clone(in Type* self) {
             break;
         case Type_Enum:
             type.body.t_enum = Vec_clone(&self->body.t_enum, NULL);
+            break;
+        case Type_Floating:
             break;
     }
     return type;
@@ -301,6 +314,9 @@ void Type_print(in Type* self) {
             printf(".t_enum: ");
             Vec_print(&self->body.t_enum, EnumMember_print_for_vec);
             break;
+        case Type_Floating:
+            printf("none");
+            break;
     }
     printf(", size: %u, align: %lu }", self->size, self->align);
 }
@@ -327,6 +343,8 @@ void Type_free(Type self) {
             break;
         case Type_Enum:
             Vec_free(self.body.t_enum);
+            break;
+        case Type_Floating:
             break;
     }
 }
@@ -450,7 +468,46 @@ void EnumMember_print_for_vec(in void* ptr) {
     EnumMember_print(ptr);
 }
 
-ParserMsg ModRmType_parse(inout Parser* parser, out ModRmType* mod_rm_type) {
+SResult AsmArgSize_from(in Vec* arguments, out AsmArgSize* sizes) {
+    sizes->reg = 0;
+    sizes->regmem = 0;
+
+    for(u32 i=0; i<Vec_len(arguments); i++) {
+        Argument* argument = Vec_index(arguments, i);
+        switch(argument->storage_type) {
+            case Argument_Trait:
+                if(argument->storage.trait.mem_flag) {
+                    sizes->regmem = argument->type.size;
+                }else if(argument->storage.trait.reg_flag) {
+                    sizes->reg = argument->type.size;
+                }
+                break;
+            default:
+                Storage* storage = &argument->storage.storage;
+                switch(storage->type) {
+                    case StorageType_reg:
+                        sizes->reg = argument->type.size;
+                        break;
+                    case StorageType_mem:
+                        sizes->regmem = argument->type.size;
+                        break;
+                    case StorageType_imm:
+                        break;
+                    default:
+                        TODO();
+                }
+                break;
+        }
+    }
+
+    return SRESULT_OK;
+}
+
+void AsmArgSize_print(in AsmArgSize* self) {
+    printf("AsmArgSize { reg: %u, regmem: %u }", self->reg, self->regmem);
+}
+
+ParserMsg ModRmType_parse(inout Parser* parser, in AsmArgSize* sizes, out ModRmType* mod_rm_type) {
     Parser parser_copy = *parser;
 
     PARSERMSG_UNWRAP(
@@ -461,6 +518,11 @@ ParserMsg ModRmType_parse(inout Parser* parser, out ModRmType* mod_rm_type) {
     i64 value;
     if(ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "r"))) {
         mod_rm_type->type = ModRmType_R;
+        if(sizes->reg == 0) {
+            ParserMsg msg = {parser->line, "expected register argument"};
+            return msg;
+        }
+        mod_rm_type->body.r = sizes->reg;
     }else if(ParserMsg_is_success(Parser_parse_number(&parser_copy, &value))) {
         if(!(0 <= value && value < 8)) {
             ParserMsg msg = {parser_copy.line, "invlalid modrm encoding rule"};
@@ -470,6 +532,12 @@ ParserMsg ModRmType_parse(inout Parser* parser, out ModRmType* mod_rm_type) {
         mod_rm_type->body.dight = value;
     }
 
+    if(sizes->regmem == 0) {
+        ParserMsg msg = {parser->line, "expected reg/mem argument"};
+        return msg;
+    }
+    mod_rm_type->memsize = sizes->regmem;
+
     *parser = parser_copy;
     return SUCCESS_PARSER_MSG;
 }
@@ -478,13 +546,13 @@ void ModRmType_print(in ModRmType* self) {
     printf("ModRmReg { type: ");
     switch(self->type) {
         case ModRmType_R:
-            printf("ModRmType_R, body: none");
+            printf("ModRmType_R, body: .r: %u", self->body.r);
             break;
         case ModRmType_Dight:
             printf("ModRmType_Dight, body: .dight: %d", self->body.dight);
             break;
     }
-    printf(" }");
+    printf(", memsize: %u }", self->memsize);
 }
 
 static ParserMsg AsmEncodingElement_parse_imm_and_addreg(inout Parser* parser, out AsmEncodingElement* asm_encoding_element) {
@@ -525,14 +593,14 @@ static ParserMsg AsmEncodingElement_parse_imm_and_addreg(inout Parser* parser, o
     return msg;
 }
 
-ParserMsg AsmEncodingElement_parse(inout Parser* parser, out AsmEncodingElement* asm_encoding_element) {
+ParserMsg AsmEncodingElement_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmEncodingElement* asm_encoding_element) {
     Parser parser_copy = *parser;
 
     i64 value;
     if(Parser_start_with_symbol(&parser_copy, "/")) {
         asm_encoding_element->type = AsmEncodingElement_ModRm;
         PARSERMSG_UNWRAP(
-            ModRmType_parse(&parser_copy, &asm_encoding_element->body.mod_rm),
+            ModRmType_parse(&parser_copy, sizes, &asm_encoding_element->body.mod_rm),
             (void)NULL
         );
     }else if(ParserMsg_is_success(Parser_parse_number(&parser_copy, &value))) {
@@ -553,7 +621,7 @@ ParserMsg AsmEncodingElement_parse(inout Parser* parser, out AsmEncodingElement*
     return SUCCESS_PARSER_MSG;
 }
 
-static SResult ModRmType_encode_rex_prefix_reg(in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
+static SResult ModRmType_encode_rex_prefix_reg(in ModRmType* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
     if(!args->reg_flag) {
         SResult result = {false, "expected register argument"};
         return result;
@@ -568,7 +636,7 @@ static SResult ModRmType_encode_rex_prefix_reg(in AsmArgs* args, inout u8* rex_p
         *rex_prefix |= REX_R;
         *rex_prefix_needed_flag = true;
     }
-    if(modrmreg_code & MODRMREG_REX) {
+    if(self->memsize == 8 && (modrmreg_code & MODRMREG_REX) != 0) {
         *rex_prefix_needed_flag = true;
     }
 
@@ -588,7 +656,7 @@ SResult ModRmType_encode_rex_prefix(in ModRmType* self, in AsmArgs* args, inout 
     switch(self->type) {
         case ModRmType_R:
             SRESULT_UNWRAP(
-                ModRmType_encode_rex_prefix_reg(args, rex_prefix, rex_prefix_needed_flag),
+                ModRmType_encode_rex_prefix_reg(self, args, rex_prefix, rex_prefix_needed_flag),
                 (void)NULL
             );
             SRESULT_UNWRAP(
@@ -628,7 +696,7 @@ SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmA
             if((addreg_code & ADDREG_REX) || (addreg_code & ADDREG_REXB)) {
                 *rex_prefix_need_flag = true;
             }
-            if(addreg_code & ADDREG_REXB) {
+            if(self->body.add_reg == 8 && ((addreg_code & ADDREG_REXB) != 0)) {
                 *rex_prefix |= REX_B;
                 *rex_prefix_need_flag = true;
             }
@@ -685,6 +753,29 @@ static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in Asm
     return SRESULT_OK;
 }
 
+static SResult AsmEncodingElement_encode_addreg(in AsmArgs* args, inout Generator* generator) {
+    if(!args->reg_flag) {
+        SResult result = {false, "expected register argument"};
+        return result;
+    }
+
+    Register reg = args->reg;
+    u8 addreg_code;
+    SRESULT_UNWRAP(
+        Register_get_addreg_code(reg, &addreg_code),
+        (void)NULL
+    );
+
+    u8* byte;
+    SRESULT_UNWRAP(
+        Generator_last_binary(generator, "text", &byte),
+        (void)NULL
+    );
+    *byte += addreg_code & ADDREG_ADDCODE;
+
+    return SRESULT_OK;
+}
+
 SResult AsmEncodingElement_encode(in AsmEncodingElement* self, in AsmArgs* args, inout Generator* generator) {
     switch(self->type) {
         case AsmEncodingElement_Value:
@@ -703,13 +794,10 @@ SResult AsmEncodingElement_encode(in AsmEncodingElement* self, in AsmArgs* args,
             TODO();
             break;
         case AsmEncodingElement_AddReg:
-            TODO();
-        /*
             SRESULT_UNWRAP(
-                AsmEncodingElement_encode_addreg(self, generator),
+                AsmEncodingElement_encode_addreg(args, generator),
                 (void)NULL
             );
-        */
             break;
     }
 
@@ -740,7 +828,7 @@ void AsmEncodingElement_print_for_vec(in void* ptr) {
     AsmEncodingElement_print(ptr);
 }
 
-ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmEncoding* asm_encoding) {
+ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmEncoding* asm_encoding) {
     if(ParserMsg_is_success(Parser_parse_keyword(parser, "quad"))) {
         asm_encoding->default_operand_size = 64;
     }else {
@@ -759,7 +847,7 @@ ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmEncoding* asm_encoding) 
     while(!Parser_is_empty(parser)) {
         AsmEncodingElement encoding_element;
         PARSERMSG_UNWRAP(
-            AsmEncodingElement_parse(parser, &encoding_element),
+            AsmEncodingElement_parse(parser, sizes, &encoding_element),
             Vec_free(elements)
         );
         Vec_push(&elements, &encoding_element);
@@ -898,7 +986,15 @@ void Memory_print(in Memory* self) {
 
 ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* storage) {
     if(ParserMsg_is_success(Register_parse(parser, &storage->body.reg))) {
-        storage->type = StorageType_reg;
+        if(Register_is_integer(storage->body.reg)) {
+            storage->type = StorageType_reg;
+        }else if(Register_is_xmm(storage->body.reg)) {
+            storage->type = StorageType_xmm;
+            storage->body.xmm = storage->body.reg;
+        }
+    }else if(ParserMsg_is_success(Parser_parse_keyword(parser, "imm"))){
+        storage->type = StorageType_imm;
+        storage->body.imm = 0;
     }else if(ParserMsg_is_success(Parser_parse_keyword(parser, "stack"))) {
         storage->type = StorageType_mem;
         Memory* mem = &storage->body.mem;
@@ -1249,9 +1345,18 @@ static ParserMsg Asmacro_parse_encoding(inout Parser* parser, out Asmacro* asmac
         (void)NULL
     );
 
+    AsmArgSize sizes;
+    PARSERMSG_UNWRAP(
+        ParserMsg_from_sresult(
+            AsmArgSize_from(&asmacro->arguments, &sizes),
+            parser->line
+        ),
+        (void)NULL
+    );
+
     asmacro->type = Asmacro_AsmOperator;
     PARSERMSG_UNWRAP(
-        AsmEncoding_parse(&paren_parser, &asmacro->body.asm_operator),
+        AsmEncoding_parse(&paren_parser, &sizes, &asmacro->body.asm_operator),
         (void)NULL
     );
 

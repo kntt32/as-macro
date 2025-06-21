@@ -18,6 +18,7 @@ struct Type {
         Type_Array,
         Type_Struct,
         Type_Enum,
+        Type_Floating,
     } type;
     union {
         struct Type* t_ptr;
@@ -43,13 +44,20 @@ typedef struct {
 } EnumMember;
 
 typedef struct {
+    u8 reg;// 0, 8, 16, 32, 64
+    u8 regmem;// 0, 8, 16, 32, 64
+} AsmArgSize;
+
+typedef struct {
     enum {
         ModRmType_R,
         ModRmType_Dight,
     } type;
     union {
         u8 dight;// 0~7
+        u8 r;// 8, 16, 32, 64 size of reg field register
     } body;
+    u8 memsize;// 8, 16, 32, 64 size of regmem field operand
 } ModRmType;
 
 typedef struct {
@@ -223,17 +231,19 @@ bool EnumMember_cmp_for_vec(in void* self, in void* other);
 void EnumMember_print(in EnumMember* self);
 void EnumMember_print_for_vec(in void* ptr);
 
-ParserMsg ModRmType_parse(inout Parser* parser, out ModRmType* mod_rm_type);
+SResult AsmArgSize_from(in Vec* arguments, out AsmArgSize* sizes);
+
+ParserMsg ModRmType_parse(inout Parser* parser, in AsmArgSize* sizes, out ModRmType* mod_rm_type);
 SResult ModRmType_encode_rex_prefix(in ModRmType* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag);
 void ModRmType_print(in ModRmType* self);
 
-ParserMsg AsmEncodingElement_parse(inout Parser* parser, out AsmEncodingElement* asm_encoding_element);
+ParserMsg AsmEncodingElement_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmEncodingElement* asm_encoding_element);
 SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_need_flag);
 void AsmEncodingElement_print(in AsmEncodingElement* self);
 void AsmEncodingElement_print_for_vec(in void* ptr);
 
 
-ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmEncoding* asm_encoding);
+ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmEncoding* asm_encoding);
 SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generator* generator);
 void AsmEncoding_print(in AsmEncoding* self);
 void AsmEncoding_free(AsmEncoding self);

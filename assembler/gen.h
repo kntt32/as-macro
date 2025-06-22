@@ -78,6 +78,7 @@ typedef struct {
 typedef struct {
     Vec encoding_elements;// Vec<AsmEncodingElement>
     u8 default_operand_size;// 32, 64
+    u8 operand_size;// 8, 16, 32, 64
 } AsmEncoding;
 
 typedef enum {
@@ -252,6 +253,7 @@ bool Memory_cmp(in Memory* self, in Memory* other);
 void Memory_print(in Memory* self);
 
 ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* storage);
+bool Storage_cmp(in Storage* self, in Storage* other);
 void Storage_print(in Storage* self);
 
 ParserMsg Data_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Data* data);
@@ -261,6 +263,7 @@ void Data_free(Data self);
 
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Variable* variable);
 Variable Variable_clone(in Variable* self);
+void Variable_clone_for_vec(out void* dst, in void* src);
 SResult Variable_get_stack_offset(in Variable* self, out i32* rbp_offset);
 SResult Variable_set_stack_offset(inout Variable* self, i32 rbp_offset);
 Type* Variable_get_type(in Variable* self);

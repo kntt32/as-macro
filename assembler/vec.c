@@ -114,6 +114,14 @@ void Vec_append(Vec* self, void* src, u32 len) {
     return;
 }
 
+void Vec_remove(inout Vec* self, u32 index, out void* ptr) {
+    void* ptr_src = Vec_index(self, index);
+    memcpy(ptr, ptr_src, self->size);
+
+    memmove(ptr_src, ptr_src+self->size, self->size*(self->len-index-1));
+    self->len --;
+}
+
 u32 Vec_len(Vec* self) {
     return self->len;
 }

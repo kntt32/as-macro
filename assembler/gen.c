@@ -829,44 +829,99 @@ void AsmEncodingElement_print_for_vec(in void* ptr) {
 }
 
 ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmEncoding* asm_encoding) {
-    if(ParserMsg_is_success(Parser_parse_keyword(parser, "quad"))) {
+    Parser parser_copy = *parser;
+
+    if(ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "quad"))) {
         asm_encoding->default_operand_size = 64;
     }else {
         PARSERMSG_UNWRAP(
-            Parser_parse_keyword(parser, "double"),
+            Parser_parse_keyword(&parser_copy, "double"),
             (void)NULL
         );
         asm_encoding->default_operand_size = 32;
     }
     PARSERMSG_UNWRAP(
-        Parser_parse_symbol(parser, ":"),
+        Parser_parse_symbol(&parser_copy, ":"),
         (void)NULL
     );
     
     Vec elements = Vec_new(sizeof(AsmEncodingElement));
-    while(!Parser_is_empty(parser)) {
+    while(!Parser_is_empty(&parser_copy)) {
         AsmEncodingElement encoding_element;
         PARSERMSG_UNWRAP(
-            AsmEncodingElement_parse(parser, sizes, &encoding_element),
+            AsmEncodingElement_parse(&parser_copy, sizes, &encoding_element),
             Vec_free(elements)
         );
         Vec_push(&elements, &encoding_element);
 
-        if(!Parser_is_empty(parser)) {
+        if(!Parser_is_empty(&parser_copy)) {
             PARSERMSG_UNWRAP(
-                Parser_parse_symbol(parser, ","),
+                Parser_parse_symbol(&parser_copy, ","),
                 Vec_free(elements)
             );
         }
     }
+    
+    asm_encoding->operand_size = 32;
     asm_encoding->encoding_elements = elements;
 
+    *parser = parser_copy;
     return SUCCESS_PARSER_MSG;
 }
 
-SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generator* generator) {
+static SResult AsmEncoding_encode_prefix_set_needed_flag(in AsmEncoding* self, inout bool* x66_prefix_needed_flag, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
+    switch(self->default_operand_size) {
+        case 32:
+            switch(self->operand_size) {
+                case 16:
+                    *x66_prefix_needed_flag = true;
+                    break;
+                case 32:
+                    break;
+                case 64:
+                    *rex_prefix_needed_flag = true;
+                    *rex_prefix |= REX_W;
+                    break;
+                default: PANIC("unreachable");
+            }
+            break;
+        case 64:
+            switch(self->operand_size) {
+                case 16:
+                    *x66_prefix_needed_flag = true;
+                    break;
+                case 32:
+                    break;
+                case 64:
+                    *rex_prefix |= REX_W;
+                    break;
+                default: PANIC("unreachable");
+            }
+            break;
+        default: PANIC("unreachable");
+    }
+    
+    return SRESULT_OK;
+}
+
+static SResult AsmEncoding_encode_prefix(in AsmEncoding* self, in AsmArgs* args, inout Generator* generator) {
+    u8 x66_prefix = 0x66;
+    bool x66_prefix_needed_flag = false;
     u8 rex_prefix = 0x40;
     bool rex_prefix_needed_flag = false;
+
+
+    SRESULT_UNWRAP(
+        AsmEncoding_encode_prefix_set_needed_flag(self, &x66_prefix_needed_flag, &rex_prefix, &rex_prefix_needed_flag),
+        (void)NULL
+    );
+
+    if(x66_prefix_needed_flag) {
+        SRESULT_UNWRAP(
+            Generator_append_binary(generator, "text", x66_prefix),
+            (void)NULL
+        );
+    }
 
     for(u32 i=0; i<Vec_len(&self->encoding_elements); i++) {
         AsmEncodingElement* element = Vec_index(&self->encoding_elements, i);
@@ -882,6 +937,15 @@ SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generat
         );
     }
 
+    return SRESULT_OK;
+}
+
+SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generator* generator) {
+    SRESULT_UNWRAP(
+        AsmEncoding_encode_prefix(self, args, generator),
+        (void)NULL
+    );
+
     for(u32 i=0; i<Vec_len(&self->encoding_elements); i++) {
         AsmEncodingElement* element = Vec_index(&self->encoding_elements, i);
         SRESULT_UNWRAP(
@@ -889,8 +953,6 @@ SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generat
             (void)NULL
         );
     }
-
-    TODO();
 
     return SRESULT_OK;
 }
@@ -1120,6 +1182,11 @@ Variable Variable_clone(in Variable* self) {
     variable.data = Data_clone(&self->data);
 
     return variable;
+}
+
+void Variable_clone_for_vec(out void* dst, in void* src) {
+    Variable* dst_ptr = dst;
+    *dst_ptr = Variable_clone(src);
 }
 
 Type* Variable_get_type(in Variable* self) {
@@ -1359,6 +1426,22 @@ static ParserMsg Asmacro_parse_encoding(inout Parser* parser, out Asmacro* asmac
         AsmEncoding_parse(&paren_parser, &sizes, &asmacro->body.asm_operator),
         (void)NULL
     );
+
+    if(Vec_len(&asmacro->arguments) != 0) {
+        Argument* argument = Vec_index(&asmacro->arguments, 0);
+        switch(argument->type.size) {
+            case 1:
+            case 2:
+            case 4:
+            case 8:
+                break;
+            default:
+                AsmEncoding_free(asmacro->body.asm_operator);
+                ParserMsg msg = {parser->line, "operand size must be 1, 2, 4 or 8 byte"};
+                return msg;
+        }
+        asmacro->body.asm_operator.operand_size = argument->type.size * 8;
+    }
 
     *parser = parser_copy;
 

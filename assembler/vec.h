@@ -33,7 +33,9 @@ SResult Vec_last_ptr(Vec* self, void** ptr);
 
 Vec Vec_from(void* src, u32 len, u32 size);
 
-void Vec_append(Vec* self, void* src, u32 len); 
+void Vec_append(Vec* self, void* src, u32 len);
+
+void Vec_remove(inout Vec* self, u32 index, out void* ptr);
 
 u32 Vec_len(Vec* self);
 

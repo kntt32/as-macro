@@ -4,10 +4,7 @@
 #include "gen.h"
 #include "syntax.h"
 
-int main() {
-    printf("hello, world!\n");
-
-
+void test() {
     Parser parser = Parser_new("\n\
     struct Point {\n\
         x: u32,\n\
@@ -34,19 +31,13 @@ int main() {
     Generator_print(&gen);
     printf("\n");
     Generator_free(gen);
-/*
+}
 
-    Parser parser = Parser_new("as imul(x: u32@reg, y:u32@reg/mem): (double: 0x0f, 0xaf, /r)");
-    Generator generator = Generator_new();
-    Asmacro asmacro;
-    if(ParserMsg_is_success(Asmacro_parse(&parser, &generator, &asmacro))) {
-        Asmacro_print(&asmacro);
-        Asmacro_free(asmacro);
-    }else {
-printf("failed");
-    }
-    Generator_free(generator);
-    printf("\n");*/
+int main() {
+    printf("hello, world!\n");
+
+    test();
+
     return 0;
 }
 

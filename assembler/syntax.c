@@ -4,6 +4,67 @@
 #include "gen.h"
 #include "syntax.h"
 
+VariableManager VariableManager_new(i32 stack_offset) {
+    VariableManager variable_manager = {Vec_new(sizeof(Variable)), stack_offset};
+    return variable_manager;
+}
+
+i32* VariableManager_stack_offset(in VariableManager* self) {
+    return &self->stack_offset;
+}
+
+void VariableManager_push(inout VariableManager* self, Variable variable) {
+    for(u32 i=0; i<Vec_len(&self->variables); i++) {
+        Variable* ptr = Vec_index(&self->variables, i);
+        if(strcmp(ptr->name, variable.name) == 0 || Storage_cmp(&ptr->data.storage, &variable.data.storage)) {
+            Variable removed_var;
+            Vec_remove(&self->variables, i, &removed_var);
+            Variable_free(removed_var);
+            i--;
+        }
+    }
+    Vec_push(&self->variables, &variable);
+}
+
+SResult VariableManager_get(inout VariableManager* self, in char* name, out Variable* variable) {
+    for(u32 i=0; i<Vec_len(&self->variables); i++) {
+        Variable* ptr = Vec_index(&self->variables, i);
+        if(strcmp(ptr->name, name) == 0) {
+            *variable = Variable_clone(ptr);
+            return SRESULT_OK;
+        }
+    }
+    
+    SResult result;
+    result.ok_flag = false;
+    snprintf(result.error, 256, "variable \"%.10s\" is undefiend", name);
+    return result;
+}
+
+void VariableManager_print(in VariableManager* self) {
+    printf("VariableManager { variables: ");
+    Vec_print(&self->variables, Variable_print_for_vec);
+    printf(", stack_offset: %d }", self->stack_offset);
+}
+
+void VariableManager_print_for_vec(in void* ptr) {
+    VariableManager_print(ptr);
+}
+
+VariableManager VariableManager_clone(in VariableManager* self) {
+    VariableManager variable_manager = {Vec_clone(&self->variables, Variable_clone_for_vec), self->stack_offset};
+    return variable_manager;
+}
+
+void VariableManager_free(VariableManager self) {
+    Vec_free(self.variables);
+}
+
+void VariableManager_free_for_vec(inout void* ptr) {
+    VariableManager* variable_manager = ptr;
+    VariableManager_free(*variable_manager);
+}
+
 static void GlobalSyntax_check_parser(in Parser* parser, inout Generator* generator) {
     if(!Parser_is_empty(parser)) {
         Error error = {parser->line, "unexpected token"};
@@ -129,21 +190,67 @@ static bool GlobalSyntax_build_type(Parser parser, inout Generator* generator) {
 
     return true;
 }
-/*
-static ParserMsg GlobalSyntax_build_function_defination(Parser parser, inout Generator* generator) {
-    
+
+typedef struct {
+    char name[256];
+    Vec arguments;// Vec<Variable>
+    Parser proc_parser;
+} Function;
+
+static ParserMsg GlobalSyntax_build_function_definision_parse_arguments(Parser parser, inout Generator* generator, inout Vec* arguments) {
+    while(!Parser_is_empty(&parser)) {
+        Variable variable;
+        PARSERMSG_UNWRAP(
+            Variable_parse(&parser, generator, 16, &variable),
+            (void)NULL
+        );
+
+        Vec_push(arguments, &variable);
+        if(!Parser_is_empty(&parser)) {
+            PARSERMSG_UNWRAP(
+                Parser_parse_symbol(&parser, ","),
+                (void)NULL
+            );
+        }
+    }
+
+    return SUCCESS_PARSER_MSG;
 }
-*/
+
+static ParserMsg GlobalSyntax_build_function_definision_parse(Parser parser, inout Generator* generator, out Function* function) {
+    PARSERMSG_UNWRAP(
+        Parser_parse_ident(&parser, function->name),
+        (void)NULL
+    );
+    Parser paren_parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_paren(&parser, &paren_parser),
+        (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Parser_parse_block(&parser, &function->proc_parser),
+        (void)NULL
+    );
+
+    function->arguments = Vec_new(sizeof(Variable));
+    PARSERMSG_UNWRAP(
+        GlobalSyntax_build_function_definision_parse_arguments(paren_parser, generator, &function->arguments),
+        Vec_free_all(function->arguments, Variable_free_for_vec)
+    );
+
+    return SUCCESS_PARSER_MSG;
+}
+
 bool GlobalSyntax_build_function_definision(Parser parser, inout Generator* generator) {
     // fn $name ( .. ) { .. }
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "fn"))) {
         return false;
     }
-/*
-    if(GlobalSyntax_resolve_parsermsg(GlobalSyntax_build_function_definision(parser, generator), generator)) {
+
+    Function function;
+    if(GlobalSyntax_resolve_parsermsg(GlobalSyntax_build_function_definision_parse(parser, generator, &function), generator)) {
         return true;
     }
-*/
     TODO();
 
     return true;
@@ -154,6 +261,7 @@ Generator GlobalSyntax_build(Parser parser) {
         GlobalSyntax_build_struct,
         GlobalSyntax_build_enum,
         GlobalSyntax_build_define_asmacro,
+        GlobalSyntax_build_function_definision,
         GlobalSyntax_build_type,
     };
     Generator generator = Generator_new();

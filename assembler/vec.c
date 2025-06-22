@@ -56,7 +56,7 @@ void* Vec_as_ptr(Vec* self) {
 }
 
 void Vec_print(Vec* self, void (*f)(void*)) {
-    printf("Vec[");
+    printf("Vec [");
     for(u32 i=0; i<self->len; i++) {
         f(Vec_index(self, i));
         printf(", ");

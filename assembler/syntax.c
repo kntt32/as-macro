@@ -65,6 +65,10 @@ void VariableManager_free_for_vec(inout void* ptr) {
     VariableManager_free(*variable_manager);
 }
 
+void Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager) {
+    TODO();
+}
+
 static void GlobalSyntax_check_parser(in Parser* parser, inout Generator* generator) {
     if(!Parser_is_empty(parser)) {
         Error error = {parser->line, "unexpected token"};
@@ -75,6 +79,15 @@ static void GlobalSyntax_check_parser(in Parser* parser, inout Generator* genera
 static bool GlobalSyntax_resolve_parsermsg(ParserMsg msg, inout Generator* generator) {
     if(!ParserMsg_is_success(msg)) {
         Error error = Error_from_parsermsg(msg);
+        Generator_add_error(generator, error);
+        return true;
+    }
+    return false;
+}
+
+static bool GlobalSyntax_resolve_sresult(SResult result, u32 line, inout Generator* generator) {
+    if(!SRESULT_IS_OK(result)) {
+        Error error = Error_from_sresult(line, result);
         Generator_add_error(generator, error);
         return true;
     }
@@ -193,19 +206,35 @@ static bool GlobalSyntax_build_type(Parser parser, inout Generator* generator) {
 
 typedef struct {
     char name[256];
-    Vec arguments;// Vec<Variable>
+    VariableManager variable_manager;
     Parser proc_parser;
 } Function;
 
-static ParserMsg GlobalSyntax_build_function_definision_parse_arguments(Parser parser, inout Generator* generator, inout Vec* arguments) {
+static ParserMsg GlobalSyntax_build_function_definision_parse_arguments(Parser parser, inout Generator* generator, inout VariableManager* variable_manager) {
+    i32 stack_offset = 0;
     while(!Parser_is_empty(&parser)) {
         Variable variable;
+        
+        Parser parser_copy = parser;
+        i32 dummy = 0;
         PARSERMSG_UNWRAP(
-            Variable_parse(&parser, generator, 16, &variable),
+            Variable_parse(&parser_copy, generator, &dummy, &variable),
             (void)NULL
         );
+        if(variable.data.storage.type == StorageType_mem) {
+            stack_offset -= variable.data.type.size;
+            u64 align = variable.data.type.align;
+            stack_offset = (stack_offset - align + 1)/align*align;
+        }
+        Variable_free(variable);
 
-        Vec_push(arguments, &variable);
+        PARSERMSG_UNWRAP(
+            Variable_parse(&parser, generator, &stack_offset, &variable),
+            (void)NULL
+        );
+        stack_offset -= variable.data.type.size;
+
+        VariableManager_push(variable_manager, variable);
         if(!Parser_is_empty(&parser)) {
             PARSERMSG_UNWRAP(
                 Parser_parse_symbol(&parser, ","),
@@ -232,13 +261,31 @@ static ParserMsg GlobalSyntax_build_function_definision_parse(Parser parser, ino
         (void)NULL
     );
 
-    function->arguments = Vec_new(sizeof(Variable));
+    function->variable_manager = VariableManager_new(8);
     PARSERMSG_UNWRAP(
-        GlobalSyntax_build_function_definision_parse_arguments(paren_parser, generator, &function->arguments),
-        Vec_free_all(function->arguments, Variable_free_for_vec)
+        GlobalSyntax_build_function_definision_parse_arguments(paren_parser, generator, &function->variable_manager),
+        VariableManager_free(function->variable_manager)
     );
 
     return SUCCESS_PARSER_MSG;
+}
+
+static SResult GlobalSyntax_build_function_definision_set_label(in char* fn_name, inout Generator* generator) {
+    Label label;
+    strcpy(label.name, fn_name);
+    label.public_flag = true;
+    strcpy(label.section_name, "text");
+    SRESULT_UNWRAP(
+        Generator_binary_len(generator, "text", &label.offset),
+        (void)NULL
+    );
+    
+    SRESULT_UNWRAP(
+        Generator_new_label(generator, label),
+        (void)NULL
+    );
+
+    return SRESULT_OK;
 }
 
 bool GlobalSyntax_build_function_definision(Parser parser, inout Generator* generator) {
@@ -251,8 +298,15 @@ bool GlobalSyntax_build_function_definision(Parser parser, inout Generator* gene
     if(GlobalSyntax_resolve_parsermsg(GlobalSyntax_build_function_definision_parse(parser, generator, &function), generator)) {
         return true;
     }
-    TODO();
 
+    if(GlobalSyntax_resolve_sresult(GlobalSyntax_build_function_definision_set_label(function.name, generator), parser.line, generator)) {
+        VariableManager_free(function.variable_manager);
+        return false;
+    }
+
+    Syntax_build(function.proc_parser, generator, &function.variable_manager);
+
+    VariableManager_free(function.variable_manager);
     return true;
 }
 

@@ -180,7 +180,7 @@ typedef struct {
     pub char name[256];
     pub bool public_flag;
     pub char section_name[256];
-    pub u64 offset;
+    pub u32 offset;
 } Label;
 
 typedef struct {
@@ -252,16 +252,16 @@ void AsmEncoding_free(AsmEncoding self);
 bool Memory_cmp(in Memory* self, in Memory* other);
 void Memory_print(in Memory* self);
 
-ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* storage);
+ParserMsg Storage_parse(inout Parser* parser, in i32* rbp_offset, out Storage* storage);
 bool Storage_cmp(in Storage* self, in Storage* other);
 void Storage_print(in Storage* self);
 
-ParserMsg Data_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Data* data);
+ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Data* data);
 Data Data_clone(in Data* self);
 void Data_print(in Data* self);
 void Data_free(Data self);
 
-ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Variable* variable);
+ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable);
 Variable Variable_clone(in Variable* self);
 void Variable_clone_for_vec(out void* dst, in void* src);
 SResult Variable_get_stack_offset(in Variable* self, out i32* rbp_offset);

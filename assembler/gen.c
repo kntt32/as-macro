@@ -1046,7 +1046,7 @@ void Memory_print(in Memory* self) {
     printf(" }");
 }
 
-ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* storage) {
+ParserMsg Storage_parse(inout Parser* parser, in i32* rbp_offset, out Storage* storage) {
     if(ParserMsg_is_success(Register_parse(parser, &storage->body.reg))) {
         if(Register_is_integer(storage->body.reg)) {
             storage->type = StorageType_reg;
@@ -1063,7 +1063,7 @@ ParserMsg Storage_parse(inout Parser* parser, i32 rbp_offset, out Storage* stora
         mem->base = Rbp;
         mem->index.type = Index_None;
         mem->disp.type = Disp_Offset;
-        mem->disp.body.offset = rbp_offset;
+        mem->disp.body.offset = *rbp_offset;
     }else {
         ParserMsg msg = {parser->line, "expected storage"};
         return msg;
@@ -1111,7 +1111,7 @@ void Storage_print(in Storage* self) {
     printf(" }");
 }
 
-ParserMsg Data_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Data* data) {
+ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Data* data) {
     // Data @ Storage
     Parser parser_copy = *parser;
 
@@ -1123,10 +1123,12 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, i32 rbp_offs
         Parser_parse_symbol(&parser_copy, "@"),
         Type_free(data->type)
     );
+    *rbp_offset = (*rbp_offset + data->type.align - 1)/data->type.size*data->type.size;
     PARSERMSG_UNWRAP(
         Storage_parse(&parser_copy, rbp_offset, &data->storage),
         Type_free(data->type)
     );
+    *rbp_offset = data->type.size;
 
     *parser = parser_copy;
 
@@ -1154,7 +1156,7 @@ void Data_free(Data self) {
     Type_free(self.type);
 }
 
-ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, i32 rbp_offset, out Variable* variable) {
+ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable) {
     // name: Data
     Parser parser_copy = *parser;
 
@@ -1550,7 +1552,7 @@ void Section_free_for_vec(inout void* ptr) {
 }
 
 void Label_print(in Label* self) {
-    printf("Label { name: %s, public_flag: %s, section_name: %s, offset: %lu }",
+    printf("Label { name: %s, public_flag: %s, section_name: %s, offset: %u }",
         self->name,
         BOOL_TO_STR(self->public_flag),
         self->section_name,

@@ -4,6 +4,7 @@
 #include "gen.h"
 #include "syntax.h"
 
+/*
 void test() {
     Parser parser = Parser_new("\n\
     struct Point {\n\
@@ -32,11 +33,29 @@ void test() {
     printf("\n");
     Generator_free(gen);
 }
+*/
+void test2() {
+    Parser parser = Parser_new("\n\
+    struct Point {\n\
+        x: u32,\n\
+        y: u32\n\
+    }\n\
+    ");
+    Generator gen = Generator_new();
+    GlobalSyntax global_syntax;
+    ParserMsg msg = GlobalSyntax_parse(parser, &gen, &global_syntax);
+    if(ParserMsg_is_success(msg)) {
+        Generator_print(&gen);
+        GlobalSyntax_free(global_syntax);
+    }else {
+        printf("failed");
+    }
+    printf("\n");
+    Generator_free(gen);
+}
 
 int main() {
-    printf("hello, world!\n");
-
-    test();
+    test2();
 
     return 0;
 }

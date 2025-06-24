@@ -243,10 +243,10 @@ SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmA
 void AsmEncodingElement_print(in AsmEncodingElement* self);
 void AsmEncodingElement_print_for_vec(in void* ptr);
 
-
 ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmEncoding* asm_encoding);
 SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generator* generator);
 void AsmEncoding_print(in AsmEncoding* self);
+AsmEncoding AsmEncoding_clone(in AsmEncoding* self);
 void AsmEncoding_free(AsmEncoding self);
 
 bool Memory_cmp(in Memory* self, in Memory* other);
@@ -277,6 +277,8 @@ ParserMsg Argument_parse(inout Parser* parser, in Generator* generator, out Argu
 bool Argument_cmp(in Argument* self, out Argument* other);
 bool Argument_cmp_for_vec(in void* self, in void* other);
 void Argument_print(in Argument* self);
+Argument Argument_clone(in Argument* self);
+void Argument_clone_for_vec(in void* src, out void* dst);
 void Argument_free(Argument self);
 void Argument_free_for_vec(inout void* ptr);
 
@@ -284,6 +286,7 @@ ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmac
 bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other);
 void Asmacro_print(in Asmacro* self);
 void Asmacro_print_for_vec(in void* ptr);
+Asmacro Asmacro_clone(in Asmacro* self);
 void Asmacro_free(Asmacro self);
 void Asmacro_free_for_vec(inout void* ptr);
 

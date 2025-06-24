@@ -963,6 +963,16 @@ void AsmEncoding_print(in AsmEncoding* self) {
     printf(", default_operand_size: %u }", self->default_operand_size);
 }
 
+AsmEncoding AsmEncoding_clone(in AsmEncoding* self) {
+    AsmEncoding asm_encoding;
+
+    asm_encoding.encoding_elements = Vec_clone(&self->encoding_elements, NULL);
+    asm_encoding.default_operand_size = self->default_operand_size;
+    asm_encoding.operand_size = self->operand_size;
+
+    return asm_encoding;
+}
+
 void AsmEncoding_free(AsmEncoding self) {
     Vec_free(self.encoding_elements);
 }
@@ -1335,6 +1345,29 @@ void Argument_print_for_vec(in void* ptr) {
     Argument_print(ptr);
 }
 
+Argument Argument_clone(in Argument* self) {
+    Argument argument;
+
+    strcpy(argument.name, self->name);
+    argument.type = Type_clone(&self->type);
+    argument.storage_type = self->storage_type;
+    switch(self->storage_type) {
+        case Argument_Trait:
+            argument.storage.trait = self->storage.trait;
+            break;
+        case Argument_Storage:
+            argument.storage.storage = self->storage.storage;
+            break;
+    }
+
+    return argument;
+}
+
+void Argument_clone_for_vec(in void* src, out void* dst) {
+    Argument* src_ptr = src;
+    *src_ptr = Argument_clone(dst);
+}
+
 void Argument_free(Argument self) {
     Type_free(self.type);
 }
@@ -1501,6 +1534,23 @@ void Asmacro_print(in Asmacro* self) {
 
 void Asmacro_print_for_vec(in void* ptr) {
     Asmacro_print(ptr);
+}
+
+Asmacro Asmacro_clone(in Asmacro* self) {
+    Asmacro asmacro;
+    strcpy(asmacro.name, self->name);
+    asmacro.arguments = Vec_clone(&self->arguments, Argument_clone_for_vec);
+    asmacro.type = self->type;
+    switch(self->type) {
+        case Asmacro_AsmOperator:
+            asmacro.body.asm_operator = AsmEncoding_clone(&self->body.asm_operator);
+            break;
+        case Asmacro_UserOperator:
+            asmacro.body.user_operator.src = Parser_own(&self->body.user_operator.parser, &asmacro.body.user_operator.parser);
+            break;
+    }
+
+    return asmacro;
 }
 
 void Asmacro_free(Asmacro self) {

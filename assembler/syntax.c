@@ -65,6 +65,212 @@ void VariableManager_free_for_vec(inout void* ptr) {
     VariableManager_free(*variable_manager);
 }
 
+static bool resolve_parsermsg(ParserMsg msg, inout Generator* generator) {
+    if(!ParserMsg_is_success(msg)) {
+        Error error = Error_from_parsermsg(msg);
+        Generator_add_error(generator, error);
+        return true;
+    }
+    return false;
+}
+
+static bool resolve_sresult(SResult result, u32 line, inout Generator* generator) {
+    if(!SRESULT_IS_OK(result)) {
+        Error error = Error_from_sresult(line, result);
+        Generator_add_error(generator, error);
+        return true;
+    }
+    return false;
+}
+
+static void check_parser(in Parser* parser, inout Generator* generator) {
+    if(!Parser_is_empty(parser)) {
+        Error error = {parser->line, "unexpected token"};
+        Generator_add_error(generator, error);
+    }
+}
+
+static bool GlobalSyntax_parse_struct_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "struct"))) {
+        return false;
+    }
+    
+    global_syntax->line = parser.line;
+    global_syntax->type = GlobalSyntax_StructDefinision;
+    global_syntax->ok_flag = false;
+    
+    Type type;
+    if(resolve_parsermsg(Type_parse_struct(&parser, generator, &type), generator)) {
+        return true;
+    }
+    
+    if(resolve_sresult(Generator_add_type(generator, type), parser.line, generator)) {
+        return true;
+    }
+
+    global_syntax->ok_flag = true;
+
+    check_parser(&parser, generator);
+    return true;
+}
+
+static bool GlobalSyntax_parse_enum_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "enum"))) {
+        return false;
+    }
+    
+    global_syntax->line = parser.line;
+    global_syntax->type = GlobalSyntax_EnumDefinision;
+    global_syntax->ok_flag = false;
+    
+    Type type;
+    if(resolve_parsermsg(Type_parse_enum(&parser, &type), generator)) {
+        return true;
+    }
+    
+    if(resolve_sresult(Generator_add_type(generator, type), parser.line, generator)) {
+        return true;
+    }
+    
+    global_syntax->ok_flag = true;
+
+    check_parser(&parser, generator);
+    return true;
+}
+
+static bool GlobalSyntax_parse_asmacro_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    if(!Parser_start_with(&parser, "as")) {
+        return false;
+    }
+
+    global_syntax->line = parser.line;
+    global_syntax->type = GlobalSyntax_AsmacroDefinision;
+    global_syntax->ok_flag = false;
+
+    Asmacro asmacro;
+    if(resolve_parsermsg(Asmacro_parse(&parser, generator, &asmacro), generator)) {
+        return true;
+    }
+
+    global_syntax->body.asmacro_definision = Asmacro_clone(&asmacro);
+    global_syntax->ok_flag = true;
+
+    if(resolve_sresult(Generator_add_asmacro(generator, asmacro), parser.line, generator)) {
+        return true;
+    }
+
+    check_parser(&parser, generator);
+    return true;
+}
+
+static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "type"))) {
+        return false;
+    }
+
+    global_syntax->line = parser.line;
+    global_syntax->type = GlobalSyntax_TypeAlias;
+    global_syntax->ok_flag = false;
+
+    char name[256];
+    if(resolve_parsermsg(Parser_parse_ident(&parser, name), generator)) {
+        return true;
+    }
+
+    Type type;
+    if(resolve_parsermsg(Type_parse(&parser, generator, &type), generator)) {
+        return true;
+    }
+
+    if(resolve_sresult(Generator_add_type(generator, type), parser.line, generator)) {
+        return true;
+    }
+
+    global_syntax->ok_flag = true;
+    return true;
+}
+/*
+static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "fn"))) {
+        return false;
+    }
+
+    global_syntax->line = parser.line;
+    global_syntax->type = GlobalSyntax_FunctionDefinision;
+    global_syntax->ok_flag = false;
+
+    char name[256];
+    Parser paren_parser;
+    Vec arguments = Vec_new(sizeof(Variable));// Vec<Variable>
+    Parser block_parser;
+    if(resolve_parsermsg(Parser_parse_ident(&parser, name), generator)
+        || resolve_parsermsg(Parser_parse_paren(&parser, &paren_parser), generator)
+        || resolve_parsermsg(function_definision_parse_arguments(paren_parser, &arguments), generator)
+        || resolve_parsermsg(Parser_parse_block(&parser, &block_parser), generator)) {
+        Vec_free(arguments);
+        return false;
+    }
+
+    TODO();
+
+    global_syntax->ok_flag = true;
+    return true;
+}
+*/
+ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    bool (*BUILDERS[])(Parser, inout Generator*, out GlobalSyntax*) = {
+        GlobalSyntax_parse_struct_definision,
+        GlobalSyntax_parse_enum_definision,
+        GlobalSyntax_parse_asmacro_definision,
+        GlobalSyntax_parse_type_alias
+    };
+    
+    for(u32 i=0; i<LEN(BUILDERS); i++) {
+        if(BUILDERS[i](parser, generator, global_syntax)) {
+            return SUCCESS_PARSER_MSG;
+        }
+    }
+    
+    ParserMsg msg = {parser.line, "unknown global syntax"};
+    return msg;
+}
+
+void GlobalSyntax_print(in GlobalSyntax* self) {
+    printf("GlobalSyntax { line: %u, ok_flag: %s, type: %d, body: ",
+        self->line,
+        BOOL_TO_STR(self->ok_flag),
+        self->type
+    );
+    switch(self->type) {
+        case GlobalSyntax_StructDefinision:
+            printf(".none");
+            break;
+        case GlobalSyntax_EnumDefinision:
+            printf(".none");
+            break;
+        case GlobalSyntax_AsmacroDefinision:
+            printf(".asmacro_definision: ");
+            Asmacro_print(&self->body.asmacro_definision);
+            break;
+        case GlobalSyntax_TypeAlias:
+            printf(".none");
+            break;
+    }
+    printf(" }");
+}
+
+void GlobalSyntax_free(GlobalSyntax self) {
+    switch(self.type) {
+        case GlobalSyntax_StructDefinision:
+        case GlobalSyntax_EnumDefinision:
+        case GlobalSyntax_TypeAlias:
+            break;
+        case GlobalSyntax_AsmacroDefinision:
+            Asmacro_free(self.body.asmacro_definision);
+            break;
+    }
+}
+/*
 void Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager) {
     TODO();
 }
@@ -76,23 +282,6 @@ static void GlobalSyntax_check_parser(in Parser* parser, inout Generator* genera
     }
 }
 
-static bool GlobalSyntax_resolve_parsermsg(ParserMsg msg, inout Generator* generator) {
-    if(!ParserMsg_is_success(msg)) {
-        Error error = Error_from_parsermsg(msg);
-        Generator_add_error(generator, error);
-        return true;
-    }
-    return false;
-}
-
-static bool GlobalSyntax_resolve_sresult(SResult result, u32 line, inout Generator* generator) {
-    if(!SRESULT_IS_OK(result)) {
-        Error error = Error_from_sresult(line, result);
-        Generator_add_error(generator, error);
-        return true;
-    }
-    return false;
-}
 
 bool GlobalSyntax_build_struct(Parser parser, inout Generator* generator) {
     // struct $name { .. }
@@ -342,5 +531,5 @@ Generator GlobalSyntax_build(Parser parser) {
 }
 
 
-
+*/
 

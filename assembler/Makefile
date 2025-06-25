@@ -3,7 +3,7 @@ RELEASE ?= 0
 
 CC := gcc
 
-CFLAGS := -Wall -Wextra -g -fsanitize=undefined -fsanitize=address
+CFLAGS := -Wall -Wextra -g -fsanitize=undefined -fsanitize=address -fsanitize=leak
 ifeq ($(FSANITIZE), 0)
     CFLAGS := -Wall -Wextra -g
 endif
@@ -44,3 +44,4 @@ debug: asm.elf
 
 clean:
 	rm -f *.elf *.o
+

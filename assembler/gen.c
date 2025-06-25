@@ -491,8 +491,6 @@ SResult AsmArgSize_from(in Vec* arguments, out AsmArgSize* sizes) {
                     case StorageType_mem:
                         sizes->regmem = argument->type.size;
                         break;
-                    case StorageType_imm:
-                        break;
                     default:
                         TODO();
                 }
@@ -1094,7 +1092,7 @@ bool Storage_cmp(in Storage* self, in Storage* other) {
         case StorageType_xmm:
             return self->body.xmm == other->body.xmm;
         case StorageType_imm:
-            return true;
+            return self->body.imm == other->body.imm;
     }
     return false;
 }
@@ -1239,29 +1237,22 @@ static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argume
     if(ParserMsg_is_success(Storage_parse(&parser_copy, 0, &argument->storage.storage))) {
         argument->storage_type = Argument_Storage;
     }else {
-        bool reg_flag = ParserMsg_is_success(
-            Parser_parse_keyword(&parser_copy, "reg")
-        );
-        bool slash_flag = ParserMsg_is_success(
-            Parser_parse_symbol(&parser_copy, "/")
-        );
-        bool mem_flag = ParserMsg_is_success(
-            Parser_parse_keyword(&parser_copy, "mem")
-        );
-
-        if((reg_flag && slash_flag && !slash_flag)
-            || ((!reg_flag || !slash_flag) && slash_flag)) {
-            ParserMsg msg = {parser_copy.line, "invalid usage of \"/\""};
-            return msg;
-        }
-        if(!reg_flag && !mem_flag) {
-            ParserMsg msg = {parser_copy.line, "expected storage bound"};
-            return msg;
-        }
+        struct { char* keyword; bool* flag;} bounds[] = {
+            {"reg", &argument->storage.trait.reg_flag},
+            {"mem", &argument->storage.trait.mem_flag},
+            {"imm", &argument->storage.trait.imm_flag}
+        };
+        
+        do {
+            for(u32 i=0; i<LEN(bounds); i++) {
+                if(ParserMsg_is_success(Parser_parse_keyword(parser, bounds[i].keyword))) {
+                    *bounds[i].flag = true;
+                    break;
+                }
+            }
+        } while(ParserMsg_is_success(Parser_parse_symbol(parser, "+")));
 
         argument->storage_type = Argument_Trait;
-        argument->storage.trait.reg_flag = reg_flag;
-        argument->storage.trait.mem_flag = mem_flag;
     }
 
     *parser = parser_copy;
@@ -1321,6 +1312,98 @@ bool Argument_cmp(in Argument* self, out Argument* other) {
 
 bool Argument_cmp_for_vec(in void* self, in void* other) {
     return Argument_cmp(self, other);
+}
+
+Argument Argument_from(in Variable* variable) {
+    Argument argument;
+    strcpy(argument.name, variable->name);
+    argument.type = Type_clone(&variable->data.type);
+    argument.storage_type = Argument_Trait;
+    switch(argument.type.type) {
+        case Type_Floating:
+            argument.storage.trait.reg_flag = false;
+            argument.storage.trait.mem_flag = true;
+            argument.storage.trait.imm_flag = true;
+            argument.storage.trait.xmm_flag = true;
+            break;
+        default:
+            argument.storage.trait.reg_flag = true;
+            argument.storage.trait.mem_flag = true;
+            argument.storage.trait.imm_flag = true;
+            argument.storage.trait.xmm_flag = false;
+            break;
+    }
+
+    return argument;
+}
+
+bool Argument_match_with(in Argument* self, in Data* data) {
+    if(!Type_cmp(&self->type, &data->type)) {
+        return false;
+    }
+
+    Storage storage = data->storage;
+    switch(self->storage_type) {
+        case Argument_Trait:
+            if(!((self->storage.trait.reg_flag && storage.type == StorageType_reg)
+                || (self->storage.trait.mem_flag && storage.type == StorageType_mem)
+                || (self->storage.trait.imm_flag && storage.type == StorageType_imm)
+                || (self->storage.trait.xmm_flag && storage.type == StorageType_xmm))) {
+                return false;
+            }
+            break;
+        case Argument_Storage:
+            if(!Storage_cmp(&storage, &self->storage.storage)) {
+                return false;
+            }
+            break;
+    }
+    return true;
+}
+
+bool Argument_match_self(in Argument* self, in Argument* other) {
+    if(!Type_cmp(&self->type, &other->type)) {
+        return false;
+    }
+
+    switch(self->storage_type) {
+        case Argument_Trait:
+            switch(other->storage_type) {
+            case Argument_Trait:
+                if((!self->storage.trait.reg_flag && other->storage.trait.reg_flag)
+                    || (!self->storage.trait.mem_flag && other->storage.trait.mem_flag)
+                    || (!self->storage.trait.imm_flag && other->storage.trait.imm_flag)
+                    || (!self->storage.trait.xmm_flag && other->storage.trait.xmm_flag)) {
+                    return false;
+                }
+                break;
+            case Argument_Storage:
+            {
+                Storage storage = other->storage.storage;
+                if((!self->storage.trait.reg_flag && storage.type == StorageType_reg)
+                    || (!self->storage.trait.mem_flag && storage.type == StorageType_mem)
+                    || (!self->storage.trait.imm_flag && storage.type == StorageType_imm)
+                    || (!self->storage.trait.xmm_flag && storage.type == StorageType_xmm)) {
+                    return false;
+                }
+            }
+                break;
+            }
+            break;
+        case Argument_Storage:
+            switch(other->storage_type) {
+            case Argument_Trait:
+                return false;
+            case Argument_Storage:
+                if(!Storage_cmp(&self->storage.storage, &other->storage.storage)) {
+                    return false;
+                }
+                break;
+            }
+            break;
+    }
+
+    return true;
 }
 
 void Argument_print(in Argument* self) {
@@ -1507,6 +1590,25 @@ ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmac
 
     *parser = parser_copy;
     return SUCCESS_PARSER_MSG;
+}
+
+SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes) {
+    if(Vec_len(&self->arguments) != Vec_len(dataes)) {
+        SResult result = {false, "mismatching the number of arguments"};
+        return result;
+    }
+    
+    for(u32 i=0; i<Vec_len(&self->arguments); i++) {
+        Argument* argument = Vec_index(&self->arguments, i);
+        Data* data = Vec_index(dataes, i);
+        if(!Argument_match_with(argument, data)) {
+            SResult result = {false, ""};
+            snprintf(result.error, 256, "mismatchig argument%u", i+1);
+            return result;
+        }
+    }
+
+    return SRESULT_OK;
 }
 
 bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other) {
@@ -1728,6 +1830,29 @@ SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro) {
     }
 
     Vec_push(&self->asmacroes, &asmacro);
+    return SRESULT_OK;
+}
+
+SResult Generator_get_asmacro(in Generator* self, in char* name, out Vec* asmacroes) {
+    *asmacroes = Vec_new(sizeof(Asmacro));
+
+    for(u32 i=0; i<Vec_len(&self->asmacroes); i++) {
+        Asmacro* asmacro_ptr = Vec_index(&self->asmacroes, i);
+
+        if(strcmp(asmacro_ptr->name, name)) {
+            Asmacro asmacro = Asmacro_clone(asmacro_ptr);
+            Vec_push(asmacroes, &asmacro);
+        }
+    }
+
+    if(Vec_len(asmacroes) == 0) {
+        Vec_free(*asmacroes);
+        SResult result;
+        result.ok_flag = false;
+        snprintf(result.error, 256, "asmacro \"%.10s\" is undefined", name);
+        return result;
+    }
+
     return SRESULT_OK;
 }
 

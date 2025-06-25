@@ -85,7 +85,7 @@ typedef enum {
     StorageType_reg,
     StorageType_mem,
     StorageType_xmm,
-    StorageType_imm,
+    StorageType_imm
 } StorageType;
 
 typedef struct {
@@ -144,6 +144,8 @@ typedef struct {
         struct {
             bool reg_flag;
             bool mem_flag;
+            bool imm_flag;
+            bool xmm_flag;
         } trait;
         Storage storage;
     } storage;
@@ -276,6 +278,9 @@ void Variable_free_for_vec(inout void* ptr);
 ParserMsg Argument_parse(inout Parser* parser, in Generator* generator, out Argument* argument);
 bool Argument_cmp(in Argument* self, out Argument* other);
 bool Argument_cmp_for_vec(in void* self, in void* other);
+Argument Argument_from(in Variable* variable);
+bool Argument_match_with(in Argument* self, in Data* data);
+bool Argument_match_self(in Argument* self, in Argument* other);
 void Argument_print(in Argument* self);
 Argument Argument_clone(in Argument* self);
 void Argument_clone_for_vec(in void* src, out void* dst);
@@ -284,6 +289,7 @@ void Argument_free_for_vec(inout void* ptr);
 
 ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmacro* asmacro);
 bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other);
+SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes);
 void Asmacro_print(in Asmacro* self);
 void Asmacro_print_for_vec(in void* ptr);
 Asmacro Asmacro_clone(in Asmacro* self);
@@ -312,6 +318,7 @@ SResult Generator_add_type(inout Generator* self, Type type);
 SResult Generator_get_type(in Generator* self, in char* name, out Type* type);
 SResult Generator_add_global_variable(inout Generator* self, Variable variable);
 SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro);
+SResult Generator_get_asmacro(in Generator* self, in char* name, out Vec* asmacroes);
 void Generator_add_error(inout Generator* self, Error error);
 SResult Generator_new_section(inout Generator* self, in char* name);
 SResult Generator_new_label(inout Generator* self, Label label);

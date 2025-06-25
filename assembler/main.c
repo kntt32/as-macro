@@ -36,9 +36,8 @@ void test() {
 */
 void test2() {
     Parser parser = Parser_new("\n\
-    struct Point {\n\
-        x: u32,\n\
-        y: u32\n\
+    fn add(x: u32@rax, y: u32@rdi) {\n\
+        add(x, y);\n\
     }\n\
     ");
     Generator gen = Generator_new();
@@ -46,6 +45,8 @@ void test2() {
     ParserMsg msg = GlobalSyntax_parse(parser, &gen, &global_syntax);
     if(ParserMsg_is_success(msg)) {
         Generator_print(&gen);
+        printf("\n\n");
+        GlobalSyntax_print(&global_syntax);
         GlobalSyntax_free(global_syntax);
     }else {
         printf("failed");

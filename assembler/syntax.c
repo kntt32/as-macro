@@ -189,7 +189,42 @@ static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* genera
     global_syntax->ok_flag = true;
     return true;
 }
-/*
+
+static ParserMsg function_definision_parse_arguments(Parser parser, in Generator* generator, inout VariableManager* variable_manager) {
+    i32 stack_offset = 0;
+    
+    while(!Parser_is_empty(&parser)) {
+        Parser parser_copy = parser;
+        i32 dummy = 0;
+        Variable variable;
+        PARSERMSG_UNWRAP(
+            Variable_parse(&parser_copy, generator, &dummy, &variable),
+            (void)NULL
+        );
+        u32 size = variable.data.type.size;
+        u32 align = variable.data.type.align;
+        stack_offset -= size;
+        stack_offset = (stack_offset - align + 1)/align*align;
+        
+        Variable_free(variable);
+        
+        PARSERMSG_UNWRAP(
+            Variable_parse(&parser, generator, &stack_offset, &variable),
+            (void)NULL
+        );
+        VariableManager_push(variable_manager, variable);
+        
+        if(!Parser_is_empty(&parser)) {
+            PARSERMSG_UNWRAP(
+                Parser_parse_symbol(&parser, ","),
+                (void)NULL
+            );
+        }
+    }
+    
+    return SUCCESS_PARSER_MSG;
+}
+
 static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "fn"))) {
         return false;
@@ -201,28 +236,32 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
 
     char name[256];
     Parser paren_parser;
-    Vec arguments = Vec_new(sizeof(Variable));// Vec<Variable>
+    VariableManager variable_manager = VariableManager_new(8);
     Parser block_parser;
     if(resolve_parsermsg(Parser_parse_ident(&parser, name), generator)
         || resolve_parsermsg(Parser_parse_paren(&parser, &paren_parser), generator)
-        || resolve_parsermsg(function_definision_parse_arguments(paren_parser, &arguments), generator)
+        || resolve_parsermsg(function_definision_parse_arguments(paren_parser, generator, &variable_manager), generator)
         || resolve_parsermsg(Parser_parse_block(&parser, &block_parser), generator)) {
-        Vec_free(arguments);
+            
+        VariableManager_free(variable_manager);
         return false;
     }
-
-    TODO();
+    
+    strcpy(global_syntax->body.function_definision.name, name);
+    global_syntax->body.function_definision.variable_manager = variable_manager;
+    global_syntax->body.function_definision.proc_parser = block_parser;
 
     global_syntax->ok_flag = true;
     return true;
 }
-*/
+
 ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
     bool (*BUILDERS[])(Parser, inout Generator*, out GlobalSyntax*) = {
         GlobalSyntax_parse_struct_definision,
         GlobalSyntax_parse_enum_definision,
         GlobalSyntax_parse_asmacro_definision,
-        GlobalSyntax_parse_type_alias
+        GlobalSyntax_parse_type_alias,
+        GlobalSyntax_parse_function_definision,
     };
     
     for(u32 i=0; i<LEN(BUILDERS); i++) {
@@ -233,6 +272,11 @@ ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out Glob
     
     ParserMsg msg = {parser.line, "unknown global syntax"};
     return msg;
+}
+
+ParserMsg GlobalSyntax_check_asmacro(inout GlobalSyntax* global_syntax, inout Generator* generator) {
+    TODO();
+    return SUCCESS_PARSER_MSG;
 }
 
 void GlobalSyntax_print(in GlobalSyntax* self) {
@@ -255,6 +299,10 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
         case GlobalSyntax_TypeAlias:
             printf(".none");
             break;
+        case GlobalSyntax_FunctionDefinision:
+            printf(".function_definision: name: %s, variable_manager: ", self->body.function_definision.name);
+            VariableManager_print(&self->body.function_definision.variable_manager);
+            break;
     }
     printf(" }");
 }
@@ -267,6 +315,9 @@ void GlobalSyntax_free(GlobalSyntax self) {
             break;
         case GlobalSyntax_AsmacroDefinision:
             Asmacro_free(self.body.asmacro_definision);
+            break;
+        case GlobalSyntax_FunctionDefinision:
+            VariableManager_free(self.body.function_definision.variable_manager);
             break;
     }
 }

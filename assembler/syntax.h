@@ -23,6 +23,11 @@ typedef struct {
     } body;
 } GlobalSyntax;
 
+typedef struct {
+    Generator generator;
+    Vec global_syntaxes;// Vec<GlobalSyntax>
+} GlobalSyntaxTree;
+
 VariableManager VariableManager_new(i32 stack_offset);
 i32* VariableManager_stack_offset(in VariableManager* self);
 void VariableManager_push(inout VariableManager* self, Variable variable);
@@ -34,13 +39,17 @@ void VariableManager_free(VariableManager self);
 void VariableManager_free_for_vec(inout void* ptr);
 
 ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax);
+void GlobalSyntax_check_asmacro(inout GlobalSyntax* self, inout Generator* generator);
 void GlobalSyntax_print(in GlobalSyntax* self);
 void GlobalSyntax_free(GlobalSyntax self);
+void GlobalSyntax_free_for_vec(inout void* ptr);
 
-Generator GlobalSyntax_build(Parser parser);
-bool GlobalSyntax_build_struct(Parser parser, inout Generator* generator);
-bool GlobalSyntax_build_enum(Parser parser, inout Generator* generator);
-bool GlobalSyntax_build_define_asmacro(Parser parser, inout Generator* generator);
-ParserMsg GlobalSyntax_build_type_parse(Parser parser, inout Generator* generator, out Type* type);
-bool GlobalSyntax_build_function_definision(Parser parser, inout Generator* generator);
+GlobalSyntaxTree GlobalSyntaxTree_new();
+void GlobalSyntaxTree_parse(inout GlobalSyntaxTree* self, Parser parser);
+void GlobalSyntaxTree_check_asmacro(inout GlobalSyntaxTree* self);
+void GlobalSyntaxTree_print(in GlobalSyntaxTree* self);
+void GlobalSyntaxTree_free(GlobalSyntaxTree self);
+
+
+
 

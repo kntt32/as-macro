@@ -190,7 +190,7 @@ static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* genera
     return true;
 }
 
-static ParserMsg function_definision_parse_arguments(Parser parser, in Generator* generator, inout VariableManager* variable_manager) {
+static ParserMsg function_definision_parse_arguments(Parser parser, in Generator* generator, inout VariableManager* variable_manager, inout Vec* arguments) {
     i32 stack_offset = 0;
     
     while(!Parser_is_empty(&parser)) {
@@ -212,7 +212,8 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
             Variable_parse(&parser, generator, &stack_offset, &variable),
             (void)NULL
         );
-        VariableManager_push(variable_manager, variable);
+        VariableManager_push(variable_manager, Variable_clone(&variable));
+        Vec_push(arguments, &variable);
         
         if(!Parser_is_empty(&parser)) {
             PARSERMSG_UNWRAP(
@@ -237,14 +238,23 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
     char name[256];
     Parser paren_parser;
     VariableManager variable_manager = VariableManager_new(8);
+    Vec arguments = Vec_new(sizeof(Variable));
     Parser block_parser;
+
     if(resolve_parsermsg(Parser_parse_ident(&parser, name), generator)
         || resolve_parsermsg(Parser_parse_paren(&parser, &paren_parser), generator)
-        || resolve_parsermsg(function_definision_parse_arguments(paren_parser, generator, &variable_manager), generator)
+        || resolve_parsermsg(function_definision_parse_arguments(paren_parser, generator, &variable_manager, &arguments), generator)
         || resolve_parsermsg(Parser_parse_block(&parser, &block_parser), generator)) {
             
         VariableManager_free(variable_manager);
-        return false;
+        Vec_free_all(arguments, Variable_free_for_vec);
+        PANIC("AAAAA");
+        return true;
+    }
+
+    Asmacro wrapper_asmacro = Asmacro_new_fn_wrapper(name, arguments);
+    if(resolve_sresult(Generator_add_asmacro(generator, wrapper_asmacro), parser.line, generator)) {
+        return true;
     }
     
     strcpy(global_syntax->body.function_definision.name, name);
@@ -274,9 +284,15 @@ ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out Glob
     return msg;
 }
 
-ParserMsg GlobalSyntax_check_asmacro(inout GlobalSyntax* global_syntax, inout Generator* generator) {
-    TODO();
-    return SUCCESS_PARSER_MSG;
+void GlobalSyntax_check_asmacro(inout GlobalSyntax* self, inout Generator* generator) {
+    (void)generator;
+    if(self->type != GlobalSyntax_AsmacroDefinision) {
+        return;
+    }
+
+    if(self->body.asmacro_definision.type == Asmacro_UserOperator) {
+        TODO();
+    }
 }
 
 void GlobalSyntax_print(in GlobalSyntax* self) {
@@ -307,6 +323,10 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
     printf(" }");
 }
 
+void GlobalSyntax_print_for_vec(in void* ptr) {
+    GlobalSyntax_print(ptr);
+}
+
 void GlobalSyntax_free(GlobalSyntax self) {
     switch(self.type) {
         case GlobalSyntax_StructDefinision:
@@ -321,266 +341,46 @@ void GlobalSyntax_free(GlobalSyntax self) {
             break;
     }
 }
-/*
-void Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager) {
-    TODO();
+
+void GlobalSyntax_free_for_vec(inout void* ptr) {
+    GlobalSyntax* global_syntax = ptr;
+    GlobalSyntax_free(*global_syntax);
 }
 
-static void GlobalSyntax_check_parser(in Parser* parser, inout Generator* generator) {
-    if(!Parser_is_empty(parser)) {
-        Error error = {parser->line, "unexpected token"};
-        Generator_add_error(generator, error);
-    }
+GlobalSyntaxTree GlobalSyntaxTree_new() {
+    GlobalSyntaxTree tree = {Generator_new(), Vec_new(sizeof(GlobalSyntax))};
+    return tree;
 }
 
-
-bool GlobalSyntax_build_struct(Parser parser, inout Generator* generator) {
-    // struct $name { .. }
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "struct"))) {
-        return false;
-    }
-
-    Type type;
-    ParserMsg msg = Type_parse_struct(&parser, generator, &type);
-    if(!ParserMsg_is_success(msg)) {
-        Generator_add_error(generator, Error_from_parsermsg(msg));
-        return true;
-    }
-
-    SResult result = Generator_add_type(generator, type);
-    if(!SRESULT_IS_OK(result)) {
-        Generator_add_error(generator, Error_from_sresult(parser.line, result));
-        return true;
-    }
-
-    GlobalSyntax_check_parser(&parser, generator);
-
-    return true;
-}
-
-bool GlobalSyntax_build_enum(Parser parser, inout Generator* generator) {
-    // enum $name { .. }
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "enum"))) {
-        return false;
-    }
-
-    Type type;
-    ParserMsg msg = Type_parse_enum(&parser, &type);
-    if(!ParserMsg_is_success(msg)) {
-        Generator_add_error(generator, Error_from_parsermsg(msg));
-        return true;
-    }
-
-    SResult result = Generator_add_type(generator, type);
-    if(!SRESULT_IS_OK(result)) {
-        Generator_add_error(generator, Error_from_sresult(parser.line, result));
-        return true;
-    }
-
-    GlobalSyntax_check_parser(&parser, generator);
-
-    return true;
-}
-
-bool GlobalSyntax_build_define_asmacro(Parser parser, inout Generator* generator) {
-    // as $name ( .. ) { .. }
-    // as $name ( .. ) : ( .. )
-    if(!Parser_start_with(&parser, "as")) {
-        return false;
-    }
-
-    Asmacro asmacro;
-    ParserMsg msg = Asmacro_parse(&parser, generator, &asmacro);
-    if(!ParserMsg_is_success(msg)) {
-        Generator_add_error(generator, Error_from_parsermsg(msg));
-        return true;
-    }
-    Generator_add_asmacro(generator, asmacro);
-
-    GlobalSyntax_check_parser(&parser, generator);
-
-    return true;
-}
-
-ParserMsg GlobalSyntax_build_type_parse(Parser parser, inout Generator* generator, out Type* type) {
-    char alias[256];
-    PARSERMSG_UNWRAP(
-        Parser_parse_ident(&parser, alias), (void)NULL
-    );
-
-    PARSERMSG_UNWRAP(
-        Parser_parse_symbol(&parser, "="), (void)NULL
-    );
-
-    PARSERMSG_UNWRAP(
-        Type_parse(&parser, generator, type), (void)NULL
-    );
-
-    strcpy(type->name, alias);
-
-    return SUCCESS_PARSER_MSG;
-}
-
-static bool GlobalSyntax_build_type(Parser parser, inout Generator* generator) {
-    // type $alias = $type;
-    if(GlobalSyntax_resolve_parsermsg(
-        Parser_parse_keyword(&parser, "type"), generator
-    )) {
-        return false;
-    }
-
-    Type type;
-    if(GlobalSyntax_resolve_parsermsg(GlobalSyntax_build_type_parse(parser, generator, &type), generator)) {
-        return true;
-    }
-
-    SResult result = Generator_add_type(generator, type);
-    if(!SRESULT_IS_OK(result)) {
-        Error error = Error_from_sresult(parser.line, result);
-        Generator_add_error(generator, error);
-        return true;
-    }
-
-    return true;
-}
-
-typedef struct {
-    char name[256];
-    VariableManager variable_manager;
-    Parser proc_parser;
-} Function;
-
-static ParserMsg GlobalSyntax_build_function_definision_parse_arguments(Parser parser, inout Generator* generator, inout VariableManager* variable_manager) {
-    i32 stack_offset = 0;
+void GlobalSyntaxTree_parse(inout GlobalSyntaxTree* self, Parser parser) {
     while(!Parser_is_empty(&parser)) {
-        Variable variable;
+        Parser syntax_parser = Parser_split(&parser, ";");
         
-        Parser parser_copy = parser;
-        i32 dummy = 0;
-        PARSERMSG_UNWRAP(
-            Variable_parse(&parser_copy, generator, &dummy, &variable),
-            (void)NULL
-        );
-        if(variable.data.storage.type == StorageType_mem) {
-            stack_offset -= variable.data.type.size;
-            u64 align = variable.data.type.align;
-            stack_offset = (stack_offset - align + 1)/align*align;
-        }
-        Variable_free(variable);
-
-        PARSERMSG_UNWRAP(
-            Variable_parse(&parser, generator, &stack_offset, &variable),
-            (void)NULL
-        );
-        stack_offset -= variable.data.type.size;
-
-        VariableManager_push(variable_manager, variable);
-        if(!Parser_is_empty(&parser)) {
-            PARSERMSG_UNWRAP(
-                Parser_parse_symbol(&parser, ","),
-                (void)NULL
-            );
+        GlobalSyntax global_syntax;
+        if(!resolve_parsermsg(GlobalSyntax_parse(syntax_parser, &self->generator, &global_syntax), &self->generator)) {
+            Vec_push(&self->global_syntaxes, &global_syntax);
         }
     }
-
-    return SUCCESS_PARSER_MSG;
 }
 
-static ParserMsg GlobalSyntax_build_function_definision_parse(Parser parser, inout Generator* generator, out Function* function) {
-    PARSERMSG_UNWRAP(
-        Parser_parse_ident(&parser, function->name),
-        (void)NULL
-    );
-    Parser paren_parser;
-    PARSERMSG_UNWRAP(
-        Parser_parse_paren(&parser, &paren_parser),
-        (void)NULL
-    );
-    PARSERMSG_UNWRAP(
-        Parser_parse_block(&parser, &function->proc_parser),
-        (void)NULL
-    );
-
-    function->variable_manager = VariableManager_new(8);
-    PARSERMSG_UNWRAP(
-        GlobalSyntax_build_function_definision_parse_arguments(paren_parser, generator, &function->variable_manager),
-        VariableManager_free(function->variable_manager)
-    );
-
-    return SUCCESS_PARSER_MSG;
-}
-
-static SResult GlobalSyntax_build_function_definision_set_label(in char* fn_name, inout Generator* generator) {
-    Label label;
-    strcpy(label.name, fn_name);
-    label.public_flag = true;
-    strcpy(label.section_name, "text");
-    SRESULT_UNWRAP(
-        Generator_binary_len(generator, "text", &label.offset),
-        (void)NULL
-    );
-    
-    SRESULT_UNWRAP(
-        Generator_new_label(generator, label),
-        (void)NULL
-    );
-
-    return SRESULT_OK;
-}
-
-bool GlobalSyntax_build_function_definision(Parser parser, inout Generator* generator) {
-    // fn $name ( .. ) { .. }
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "fn"))) {
-        return false;
+void GlobalSyntaxTree_check_asmacro(inout GlobalSyntaxTree* self) {
+    for(u32 i=0; i<Vec_len(&self->global_syntaxes); i++) {
+        GlobalSyntax* global_syntax = Vec_index(&self->global_syntaxes, i);
+        GlobalSyntax_check_asmacro(global_syntax, &self->generator);
     }
-
-    Function function;
-    if(GlobalSyntax_resolve_parsermsg(GlobalSyntax_build_function_definision_parse(parser, generator, &function), generator)) {
-        return true;
-    }
-
-    if(GlobalSyntax_resolve_sresult(GlobalSyntax_build_function_definision_set_label(function.name, generator), parser.line, generator)) {
-        VariableManager_free(function.variable_manager);
-        return false;
-    }
-
-    Syntax_build(function.proc_parser, generator, &function.variable_manager);
-
-    VariableManager_free(function.variable_manager);
-    return true;
 }
 
-Generator GlobalSyntax_build(Parser parser) {
-    static bool (*BUILDERS[])(Parser, inout Generator*) = {
-        GlobalSyntax_build_struct,
-        GlobalSyntax_build_enum,
-        GlobalSyntax_build_define_asmacro,
-        GlobalSyntax_build_function_definision,
-        GlobalSyntax_build_type,
-    };
-    Generator generator = Generator_new();
-
-    bool matched_flag;
-    while(!Parser_is_empty(&parser)) {
-        matched_flag = false;
-        Parser syntax_parser;
-        Parser_split(&parser, ";", &syntax_parser);
-
-        for(u32 i=0; i<LEN(BUILDERS); i++) {
-            if(BUILDERS[i](syntax_parser, &generator)) {
-                matched_flag = true;
-                break;
-            }
-        }
-        if(!matched_flag) {
-            Error error =  {parser.line, "unknown syntax"};
-            Generator_add_error(&generator, error);
-        }
-    }
-
-    return generator;
+void GlobalSyntaxTree_print(in GlobalSyntaxTree* self) {
+    printf("GlobalSyntaxTree { generator: ");
+    Generator_print(&self->generator);
+    printf(", global_syntaxes: ");
+    Vec_print(&self->global_syntaxes, GlobalSyntax_print_for_vec);
+    printf(" }");
 }
 
+void GlobalSyntaxTree_free(GlobalSyntaxTree self) {
+    Generator_free(self.generator);
+    Vec_free_all(self.global_syntaxes, GlobalSyntax_free_for_vec);
+}
 
-*/
 

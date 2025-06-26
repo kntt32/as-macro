@@ -143,19 +143,14 @@ bool Parser_start_with_symbol(inout Parser* self, in char* symbol) {
     return ParserMsg_is_success(Parser_parse_symbol(&self_copy, symbol));
 }
 
-void Parser_split(inout Parser* self, in char* symbol, out optional Parser* parser) {
+Parser Parser_split(inout Parser* self, in char* symbol) {
     Parser self_copy = *self;
+    Parser parser = *self;
 
     if(Parser_is_empty(self)) {
-        if(parser != NULL) {
-            *parser = *self;
-        }
-        return;
+        return parser;
     }
 
-    if(parser != NULL) {
-        *parser = *self;
-    }
     while(!ParserMsg_is_success(Parser_parse_symbol(&self_copy, symbol))) {
         if(!Parser_skip(&self_copy)) {
             if(Parser_is_empty(&self_copy)) {
@@ -164,14 +159,13 @@ void Parser_split(inout Parser* self, in char* symbol, out optional Parser* pars
                 PANIC("unknown token");
             }
         }
-        if(parser != NULL) {
-            parser->len = self->len - self_copy.len;
-        }
+        
+        parser.len = self->len - self_copy.len;
     }
 
     *self = self_copy;
 
-    return;
+    return parser;
 }
 
 char* Parser_own(in Parser* parser, out Parser* owned_parser) {

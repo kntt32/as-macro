@@ -166,10 +166,11 @@ typedef struct {
 typedef struct {
     char name[256];
     Vec arguments;// Vec<Argument>
-    enum { Asmacro_AsmOperator, Asmacro_UserOperator } type;
+    enum { Asmacro_AsmOperator, Asmacro_UserOperator, Asmacro_FnWrapper } type;
     union {
         AsmEncoding asm_operator;
         struct { Parser parser; char* src; } user_operator;
+        Vec fn_wrapper;// Vec<Variable>
     } body;
 } Asmacro;
 
@@ -289,6 +290,7 @@ void Argument_free_for_vec(inout void* ptr);
 
 ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmacro* asmacro);
 bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other);
+Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */);
 SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes);
 void Asmacro_print(in Asmacro* self);
 void Asmacro_print_for_vec(in void* ptr);

@@ -482,7 +482,7 @@ SResult AsmArgSize_from(in Vec* arguments, out AsmArgSize* sizes) {
                     sizes->reg = argument->type.size;
                 }
                 break;
-            default:
+            case Argument_Storage:
                 Storage* storage = &argument->storage.storage;
                 switch(storage->type) {
                     case StorageType_reg:
@@ -1229,11 +1229,6 @@ void Variable_free_for_vec(inout void* ptr) {
 static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argument* argument) {
     Parser parser_copy = *parser;
 
-    PARSERMSG_UNWRAP(
-        Parser_parse_symbol(&parser_copy, "@"),
-        (void)NULL
-    );
-
     if(ParserMsg_is_success(Storage_parse(&parser_copy, 0, &argument->storage.storage))) {
         argument->storage_type = Argument_Storage;
     }else {
@@ -1243,14 +1238,24 @@ static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argume
             {"imm", &argument->storage.trait.imm_flag}
         };
         
+        for(u32 i=0; i<3; i++) {
+            *bounds[i].flag = false;
+        }
+
         do {
+            bool flag = false;
             for(u32 i=0; i<LEN(bounds); i++) {
-                if(ParserMsg_is_success(Parser_parse_keyword(parser, bounds[i].keyword))) {
+                if(ParserMsg_is_success(Parser_parse_keyword(&parser_copy, bounds[i].keyword))) {
                     *bounds[i].flag = true;
+                    flag = true;
                     break;
                 }
             }
-        } while(ParserMsg_is_success(Parser_parse_symbol(parser, "+")));
+            if(!flag) {
+                ParserMsg msg = {parser->line, "expected storage bound"};
+                return msg;
+            }
+        } while(ParserMsg_is_success(Parser_parse_symbol(&parser_copy, "+")));
 
         argument->storage_type = Argument_Trait;
     }
@@ -1260,7 +1265,7 @@ static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argume
 }
 
 ParserMsg Argument_parse(inout Parser* parser, in Generator* generator, out Argument* argument) {
-    // (in)(out) name (: Type) @ [reg | mem | xmm | imm]
+    // (in)(out) name : Type @ [reg | mem | xmm | imm]
     Parser parser_copy = *parser;
 
     PARSERMSG_UNWRAP(
@@ -1277,6 +1282,10 @@ ParserMsg Argument_parse(inout Parser* parser, in Generator* generator, out Argu
         (void)NULL
     );
 
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, "@"),
+        Argument_free(*argument)
+    );
     PARSERMSG_UNWRAP(
         Argument_parse_storage_bound(&parser_copy, argument),
         Argument_free(*argument)
@@ -1412,9 +1421,10 @@ void Argument_print(in Argument* self) {
     printf(", storage_type: %d, storage: ", self->storage_type);
     switch(self->storage_type) {
         case Argument_Trait:
-            printf(".trait: { reg_flag: %s, mem_flag: %s }",
+            printf(".trait: { reg_flag: %s, mem_flag: %s, imm_flag: %s }",
                 BOOL_TO_STR(self->storage.trait.reg_flag),
-                BOOL_TO_STR(self->storage.trait.mem_flag));
+                BOOL_TO_STR(self->storage.trait.mem_flag),
+                BOOL_TO_STR(self->storage.trait.imm_flag));
             break;
         case Argument_Storage:
             printf(".storage: ");
@@ -1468,7 +1478,7 @@ static ParserMsg Asmacro_parse_header_arguments(Parser parser, in Generator* gen
             (void)NULL
         );
         Vec_push(arguments, &argument);
-        
+
         if(!Parser_is_empty(&parser)) {
             if(!ParserMsg_is_success(Parser_parse_symbol(&parser, ","))) {
                 ParserMsg msg = {parser.line, "expected symbol \",\""};
@@ -1592,6 +1602,24 @@ ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmac
     return SUCCESS_PARSER_MSG;
 }
 
+Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */) {
+    Asmacro asmacro;
+
+    strcpy(asmacro.name, name);
+    
+    asmacro.arguments = Vec_new(sizeof(Argument));
+    for(u32 i=0; i<Vec_len(&arguments); i++) {
+        Variable* variable = Vec_index(&arguments, i);
+        Argument arg = Argument_from(variable);
+        Vec_push(&asmacro.arguments, &arg);
+    }
+    
+    asmacro.type = Asmacro_FnWrapper;
+    asmacro.body.fn_wrapper = arguments;
+
+    return asmacro;
+}
+
 SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes) {
     if(Vec_len(&self->arguments) != Vec_len(dataes)) {
         SResult result = {false, "mismatching the number of arguments"};
@@ -1629,6 +1657,10 @@ void Asmacro_print(in Asmacro* self) {
         case Asmacro_UserOperator:
             printf(".user_operator: \"%s\"", self->body.user_operator.src);
             break;
+        case Asmacro_FnWrapper:
+            printf(".fn_wrapper: ");
+            Vec_print(&self->body.fn_wrapper, Variable_print_for_vec);
+            break;
     }
     
     printf(" }");
@@ -1640,15 +1672,20 @@ void Asmacro_print_for_vec(in void* ptr) {
 
 Asmacro Asmacro_clone(in Asmacro* self) {
     Asmacro asmacro;
+
     strcpy(asmacro.name, self->name);
     asmacro.arguments = Vec_clone(&self->arguments, Argument_clone_for_vec);
     asmacro.type = self->type;
+
     switch(self->type) {
         case Asmacro_AsmOperator:
             asmacro.body.asm_operator = AsmEncoding_clone(&self->body.asm_operator);
             break;
         case Asmacro_UserOperator:
             asmacro.body.user_operator.src = Parser_own(&self->body.user_operator.parser, &asmacro.body.user_operator.parser);
+            break;
+        case Asmacro_FnWrapper:
+            asmacro.body.fn_wrapper = Vec_clone(&self->body.fn_wrapper, Variable_clone_for_vec);
             break;
     }
 
@@ -1663,6 +1700,9 @@ void Asmacro_free(Asmacro self) {
             break;
         case Asmacro_UserOperator:
             free(self.body.user_operator.src);
+            break;
+        case Asmacro_FnWrapper:
+            Vec_free_all(self.body.fn_wrapper, Variable_free_for_vec);
             break;
     }
 }

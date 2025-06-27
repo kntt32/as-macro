@@ -295,6 +295,24 @@ void GlobalSyntax_check_asmacro(inout GlobalSyntax* self, inout Generator* gener
     }
 }
 
+static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, inout Generator* generator) {
+    TODO();
+}
+
+void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
+    (void)self;(void)generator;
+    switch(self->type) {
+        case GlobalSyntax_StructDefinision:
+        case GlobalSyntax_EnumDefinision:
+        case GlobalSyntax_TypeAlias:
+        case GlobalSyntax_AsmacroDefinision:
+            break;
+        case GlobalSyntax_FunctionDefinision:
+            GlobalSyntax_build_function_definision(self, generator);
+            break;
+    }
+}
+
 void GlobalSyntax_print(in GlobalSyntax* self) {
     printf("GlobalSyntax { line: %u, ok_flag: %s, type: %d, body: ",
         self->line,
@@ -370,6 +388,16 @@ void GlobalSyntaxTree_check_asmacro(inout GlobalSyntaxTree* self) {
     }
 }
 
+Generator GlobalSyntaxTree_build(inout GlobalSyntaxTree self) {
+    for(u32 i=0; i<Vec_len(&self.global_syntaxes); i++) {
+        GlobalSyntax* global_syntax = Vec_index(&self.global_syntaxes, i);
+        GlobalSyntax_build(global_syntax, &self.generator);
+    }
+    
+    Vec_free_all(self.global_syntaxes, GlobalSyntax_free_for_vec);
+    return self.generator;
+}
+
 void GlobalSyntaxTree_print(in GlobalSyntaxTree* self) {
     printf("GlobalSyntaxTree { generator: ");
     Generator_print(&self->generator);
@@ -382,5 +410,88 @@ void GlobalSyntaxTree_free(GlobalSyntaxTree self) {
     Generator_free(self.generator);
     Vec_free_all(self.global_syntaxes, GlobalSyntax_free_for_vec);
 }
+
+bool Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    bool (*BUILDERS[])(Parser, inout Generator*, inout VariableManager* variable_manager, out Data*) = {
+        Syntax_build_register_expression,
+        Syntax_build_imm_expression,
+        Syntax_build_variable_expression,
+    };
+    
+    for(u32 i=0; i<LEN(BUILDERS); i++) {
+        if(BUILDERS[i](parser, generator, variable_manager, data)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "let"))) {
+        return false;
+    }
+    
+    *data = DATA_VOID;
+    
+    Variable variable;
+    if(resolve_parsermsg(Variable_parse(&parser, generator, &variable_manager->stack_offset, &variable), generator)) {
+        return true;
+    }
+    VariableManager_push(variable_manager, variable);
+    
+    check_parser(&parser, generator);
+    return true;
+}
+
+bool Syntax_build_register_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    (void)generator;(void)variable_manager;
+    Register reg;
+    
+    if(!ParserMsg_is_success(Register_parse(&parser, &reg))) {
+        return false;
+    }
+    
+    *data = Data_from_register(reg);
+    
+    check_parser(&parser, generator);
+    return true;
+}
+
+bool Syntax_build_imm_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    u64 imm;
+    if(!ParserMsg_is_success(Parser_parse_number(&parser, &imm))) {
+        return false;
+    }
+    
+    *data = Data_from_imm(imm);
+    
+    check_parser(&parser, generator);
+    return true;
+}
+
+bool Syntax_build_variable_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    (void)generator;
+    
+    char name[256];
+    if(!ParserMsg_is_success(Parser_parse_ident(&parser, name))) {
+        return false;
+    }
+    
+    *data = DATA_VOID;
+    
+    Variable variable;
+    if(resolve_sresult(VariableManager_get(variable_manager, name, &variable), parser.line, generator)) {
+        return true;
+    }
+    
+    *data = variable.data;
+    
+    check_parser(&parser, generator);
+    return true;
+}
+
+
+
 
 

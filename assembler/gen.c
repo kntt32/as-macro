@@ -6,16 +6,18 @@
 
 static Type TYPES[] = {
     {"void", Type_Integer, {}, 0, 1},
-    {"u8",  Type_Integer, {}, 1, 1},
-    {"i8", Type_Integer, {}, 1, 1},
-    {"u16", Type_Integer, {}, 2, 2},
+    {"bool", Type_Integer, {}, 1, 1},
+    {"i8",  Type_Integer, {}, 1, 1},
     {"i16", Type_Integer, {}, 2, 2},
-    {"u32", Type_Integer, {}, 4, 4},
     {"i32", Type_Integer, {}, 4, 4},
-    {"u64", Type_Integer, {}, 8, 8},
     {"i64", Type_Integer, {}, 8, 8},
     {"f32", Type_Floating, {}, 4, 4},
     {"f64", Type_Floating, {}, 8, 8},
+};
+
+Data DATA_VOID = {
+    {"void", Type_Integer, {}, 0, 1},
+    {StorageType_imm, {.imm = 0}}
 };
 
 static void Type_parse_ref(inout Parser* parser, inout Type* type) {
@@ -139,12 +141,12 @@ static ParserMsg Type_parse_array_get_args(Parser parser, in Generator* generato
         Type_free(*type)
     );
 
-    i64 value;
+    u64 value;
     PARSERMSG_UNWRAP(
         Parser_parse_number(&parser, &value),
         (void)NULL
     );
-    if(value <= 0) {
+    if((i64)value <= 0) {
         ParserMsg msg = {parser.line, "array length must be natural number"};
         return msg;
     }
@@ -436,12 +438,12 @@ ParserMsg EnumMember_parse(inout Parser* parser, inout i32* value, out EnumMembe
         (void)NULL
     );
     if(ParserMsg_is_success(Parser_parse_symbol(&parser_copy, "="))) {
-        i64 value_i64;
+        u64 value_u64;
         PARSERMSG_UNWRAP(
-            Parser_parse_number(&parser_copy, &value_i64),
+            Parser_parse_number(&parser_copy, &value_u64),
             (void)NULL
         );
-        *value = value_i64;
+        *value = value_u64;
     }
 
     enum_member->value = *value;
@@ -513,7 +515,7 @@ ParserMsg ModRmType_parse(inout Parser* parser, in AsmArgSize* sizes, out ModRmT
         (void)NULL
     );
 
-    i64 value;
+    u64 value;
     if(ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "r"))) {
         mod_rm_type->type = ModRmType_R;
         if(sizes->reg == 0) {
@@ -522,7 +524,7 @@ ParserMsg ModRmType_parse(inout Parser* parser, in AsmArgSize* sizes, out ModRmT
         }
         mod_rm_type->body.r = sizes->reg;
     }else if(ParserMsg_is_success(Parser_parse_number(&parser_copy, &value))) {
-        if(!(0 <= value && value < 8)) {
+        if(!(value < 8)) {
             ParserMsg msg = {parser_copy.line, "invlalid modrm encoding rule"};
             return msg;
         }
@@ -594,7 +596,7 @@ static ParserMsg AsmEncodingElement_parse_imm_and_addreg(inout Parser* parser, o
 ParserMsg AsmEncodingElement_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmEncodingElement* asm_encoding_element) {
     Parser parser_copy = *parser;
 
-    i64 value;
+    u64 value;
     if(Parser_start_with_symbol(&parser_copy, "/")) {
         asm_encoding_element->type = AsmEncodingElement_ModRm;
         PARSERMSG_UNWRAP(
@@ -602,7 +604,7 @@ ParserMsg AsmEncodingElement_parse(inout Parser* parser, in AsmArgSize* sizes, o
             (void)NULL
         );
     }else if(ParserMsg_is_success(Parser_parse_number(&parser_copy, &value))) {
-        if(!(0 <= value && value < 256)) {
+        if(!(value < 256)) {
             ParserMsg msg = {parser_copy.line, "invalid number"};
             return msg;
         }
@@ -1141,6 +1143,34 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* r
     *parser = parser_copy;
 
     return SUCCESS_PARSER_MSG;
+}
+
+Data Data_from_register(Register reg) {
+    if(Register_is_integer(reg)) {
+        Data data = {
+            {"i64", Type_Integer, {}, 8, 8},
+            {StorageType_reg, {.reg = reg}}
+        };
+        return data;
+    }else if(Register_is_xmm(reg)) {
+        Data data = {
+            {"f64", Type_Floating, {}, 8, 8},
+            {StorageType_reg, {.reg = reg}}
+        };
+        return data;
+    }
+    
+    PANIC("unreachable");
+    Data uninit;
+    return uninit;
+}
+
+Data Data_from_imm(u64 imm) {
+    Data data = {
+        {"i64", Type_Integer, {}, 8, 8},
+        {StorageType_imm, {.imm = imm}}
+    };
+    return data;
 }
 
 Data Data_clone(in Data* self) {

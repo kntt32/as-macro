@@ -65,5 +65,3 @@ void Register_print(in Register self);
 bool Register_is_integer(Register self);
 
 bool Register_is_xmm(Register self);
-
-

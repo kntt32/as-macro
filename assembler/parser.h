@@ -35,7 +35,7 @@ ParserMsg Parser_parse_keyword(inout Parser* self, in char* keyword);
 
 ParserMsg Parser_parse_symbol(inout Parser* self, in char* symbol);
 
-ParserMsg Parser_parse_number(inout Parser* self, out i64* value);
+ParserMsg Parser_parse_number(inout Parser* self, out u64* value);
 
 ParserMsg Parser_parse_number_raw(inout Parser* self, out char value[256]);
 

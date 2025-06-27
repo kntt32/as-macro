@@ -209,6 +209,8 @@ typedef struct {
     Vec rels;
 } Generator;
 
+extern Data DATA_VOID;
+
 ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_parse_enum(inout Parser* parser, out Type* type);
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type);
@@ -260,6 +262,8 @@ bool Storage_cmp(in Storage* self, in Storage* other);
 void Storage_print(in Storage* self);
 
 ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Data* data);
+Data Data_from_register(Register reg);
+Data Data_from_imm(u64 imm);
 Data Data_clone(in Data* self);
 void Data_print(in Data* self);
 void Data_free(Data self);

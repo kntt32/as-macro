@@ -50,6 +50,7 @@ void GlobalSyntaxTree_check_asmacro(inout GlobalSyntaxTree* self);
 void GlobalSyntaxTree_print(in GlobalSyntaxTree* self);
 void GlobalSyntaxTree_free(GlobalSyntaxTree self);
 
-
-
-
+bool Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+bool Syntax_build_register_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+bool Syntax_build_imm_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+bool Syntax_build_variable_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);

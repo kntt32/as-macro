@@ -17,7 +17,7 @@ static Type TYPES[] = {
 
 Data DATA_VOID = {
     {"void", Type_Integer, {}, 0, 1},
-    {StorageType_imm, {.imm = 0}}
+    {StorageType_imm, {.imm = {Imm_Value, {.value = 0}}}}
 };
 
 static void Type_parse_ref(inout Parser* parser, inout Type* type) {
@@ -722,8 +722,8 @@ static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in Asm
     u64 value = 0;
     Imm* imm = &args->imm;
     switch(imm->type) {
-        case Imm_Imm:
-            value = imm->body.imm;
+        case Imm_Value:
+            value = imm->body.value;
             break;
         case Imm_Label:
             value = 0;
@@ -1056,6 +1056,40 @@ void Memory_print(in Memory* self) {
     printf(" }");
 }
 
+void Imm_print(in Imm* self) {
+    printf("Imm { type: %d, body: ", self->type);
+    switch(self->type) {
+        case Imm_Value:
+            printf(".value: %lu", self->body.value);
+            break;
+        case Imm_Label:
+            printf(".label: %s", self->body.label);
+            break;
+    }
+    printf(" }");
+}
+
+bool Imm_cmp(in Imm* self, in Imm* other) {
+    if(self->type != other->type) {
+        return false;
+    }
+
+    switch(self->type) {
+        case Imm_Value:
+            if(self->body.value != other->body.value) {
+                return false;
+            }
+            break;
+        case Imm_Label:
+            if(strcmp(self->body.label, other->body.label) != 0) {
+                return false;
+            }
+            break;
+    }
+
+    return true;
+}
+
 ParserMsg Storage_parse(inout Parser* parser, in i32* rbp_offset, out Storage* storage) {
     if(ParserMsg_is_success(Register_parse(parser, &storage->body.reg))) {
         if(Register_is_integer(storage->body.reg)) {
@@ -1066,7 +1100,8 @@ ParserMsg Storage_parse(inout Parser* parser, in i32* rbp_offset, out Storage* s
         }
     }else if(ParserMsg_is_success(Parser_parse_keyword(parser, "imm"))){
         storage->type = StorageType_imm;
-        storage->body.imm = 0;
+        storage->body.imm.type = Imm_Value;
+        storage->body.imm.body.value = 0;
     }else if(ParserMsg_is_success(Parser_parse_keyword(parser, "stack"))) {
         storage->type = StorageType_mem;
         Memory* mem = &storage->body.mem;
@@ -1094,7 +1129,7 @@ bool Storage_cmp(in Storage* self, in Storage* other) {
         case StorageType_xmm:
             return self->body.xmm == other->body.xmm;
         case StorageType_imm:
-            return self->body.imm == other->body.imm;
+            return Imm_cmp(&self->body.imm, &other->body.imm);
     }
     return false;
 }
@@ -1115,7 +1150,8 @@ void Storage_print(in Storage* self) {
             Register_print(self->body.xmm);
             break;
         case StorageType_imm:
-            printf(".imm: %lu", self->body.imm);
+            printf(".imm: ");
+            Imm_print(&self->body.imm);
             break;
     }
     printf(" }");
@@ -1168,7 +1204,7 @@ Data Data_from_register(Register reg) {
 Data Data_from_imm(u64 imm) {
     Data data = {
         {"i64", Type_Integer, {}, 8, 8},
-        {StorageType_imm, {.imm = imm}}
+        {StorageType_imm, {.imm = {Imm_Value, {.value = imm}}}}
     };
     return data;
 }
@@ -1192,6 +1228,11 @@ void Data_print(in Data* self) {
 
 void Data_free(Data self) {
     Type_free(self.type);
+}
+
+void Data_free_for_vec(inout void* ptr) {
+    Data* data = ptr;
+    Data_free(*data);
 }
 
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable) {
@@ -1499,7 +1540,44 @@ void Argument_free_for_vec(inout void* ptr) {
     Argument* argument = ptr;
     Argument_free(*argument);
 }
+/*
+AsmArgs AsmArgs_from_dataes(in Vec* dataes, in Vec* arguments) {
+    AsmArgs asm_args = {false, {}, false, {}, {}, false {}};
 
+    for(u32 i=0; i<Vec_len(arguments); i++) {
+        Data* data = Vec_index(dataes, i);
+        Argument* arg = Vec_index(arguments, i);
+
+        switch(arg->storage_type) {
+            case Argument_Trait:
+                if(arg->storage.trait.mem_flag) {
+                    asm_args.regmem_flag = true;
+                    switch(data->storage.type) {
+                        case StorageType_reg:
+                            asm_args.regmem_type = AsmArgs_Rm_Reg;
+                            asm_args.regmem.reg = data->storage.body.reg;
+                            break;
+                        case StorageType_mem:
+                            asm_args.regmem_type = AsmArgs_Rm_Mem;
+                            asm_args.regmem_mem = data->storage.body.mem;
+                            break;
+                        case StorageType_xmm:
+                            asm_args.regmem_type = AsmArgs_Rm_Xmm;
+                            asm_args.regmem_xmm = data->storage.body.xmm;
+                            break;
+                        case StorageType_imm:
+                            PANIC("unreachable");
+                            break;
+                    }
+                }else if(arg->storage.trait.reg_flag) {
+                    
+                }
+            case Argument_Storage:
+
+        }
+    }
+}
+*/
 static ParserMsg Asmacro_parse_header_arguments(Parser parser, in Generator* generator, inout Vec* arguments) {
     while(!Parser_is_empty(&parser)) {
         Argument argument;

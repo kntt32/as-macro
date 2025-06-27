@@ -411,7 +411,7 @@ void GlobalSyntaxTree_free(GlobalSyntaxTree self) {
     Vec_free_all(self.global_syntaxes, GlobalSyntax_free_for_vec);
 }
 
-bool Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     bool (*BUILDERS[])(Parser, inout Generator*, inout VariableManager* variable_manager, out Data*) = {
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
@@ -420,11 +420,114 @@ bool Syntax_build(Parser parser, inout Generator* generator, inout VariableManag
     
     for(u32 i=0; i<LEN(BUILDERS); i++) {
         if(BUILDERS[i](parser, generator, variable_manager, data)) {
-            return true;
+            return SRESULT_OK;
         }
     }
-    
+
+    SResult result = {false, "unknown expression"};
+    return result;
+}
+
+static SResult Syntax_build_asmacro_expansion_get_arguments(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Vec* arguments) {
+    *arguments = Vec_new(sizeof(Data));
+
+    while(!Parser_is_empty(&parser)) {
+        Parser arg_parser = Parser_split(&parser, ",");
+        
+        Data arg;
+        SRESULT_UNWRAP(
+            Syntax_build(arg_parser, generator, variable_manager, &arg),
+            Vec_free_all(*arguments, Data_free_for_vec)
+        );
+
+        Vec_push(arguments, &arg);
+    }
+
+    return SRESULT_OK;
+}
+
+static SResult Syntax_build_asmacro_expansion_search_asmacro(in Vec* asmacroes, in Vec* arguments, out Asmacro* asmacro) {
+    for(u32 i=0; i<Vec_len(asmacroes); i++) {
+        Asmacro* ptr = Vec_index(asmacroes, i);
+        if(SRESULT_IS_OK(Asmacro_match_with(ptr, arguments))) {
+            *asmacro = Asmacro_clone(ptr);
+            return SRESULT_OK;
+        }
+    }
+
+    SResult result = {false, "mismatching asmacro"};
+    return result;
+}
+
+static bool Syntax_build_asmacro_expansion_get_info(
+    in char* name,
+    Parser args_parser,
+    inout Generator* generator,
+    inout VariableManager* variable_manager,
+    out Asmacro* asmacro,
+    out Vec* arguments
+) {
+    Vec asmacroes;
+    if(resolve_sresult(Generator_get_asmacro(generator, name, &asmacroes), args_parser.line, generator)) {
+        return true;
+    }
+
+    if(resolve_sresult(Syntax_build_asmacro_expansion_get_arguments(args_parser, generator, variable_manager, arguments), args_parser.line, generator)) {
+        Vec_free_all(asmacroes, Asmacro_free_for_vec);
+        return true;
+    }
+
+    if(resolve_sresult(Syntax_build_asmacro_expansion_search_asmacro(&asmacroes, arguments, asmacro), args_parser.line, generator)) {
+        Vec_free_all(asmacroes, Asmacro_free_for_vec);
+        Vec_free_all(*arguments, Data_free_for_vec);
+        return true;
+    }
+
+    Vec_free_all(asmacroes, Asmacro_free_for_vec);
+
     return false;
+}
+
+bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    char name[256];
+    if(!ParserMsg_is_success(Parser_parse_ident(&parser, name))) {
+        return false;
+    }
+    Parser args_parser;
+    if(!ParserMsg_is_success(Parser_parse_paren(&parser, &args_parser))) {
+        return false;
+    }
+
+    Asmacro asmacro;
+    Vec arguments;
+    if(Syntax_build_asmacro_expansion_get_info(
+        name,
+        args_parser,
+        generator,
+        variable_manager,
+        &asmacro,
+        &arguments)) {
+        return true;
+    }
+
+    if(Vec_len(&arguments) != 0) {
+        *data = Data_clone(Vec_index(&arguments, Vec_len(&arguments)-1));
+    }else {
+        *data = DATA_VOID;
+    }
+
+    switch(asmacro.type) {
+        case Asmacro_AsmOperator:
+            break;
+        case Asmacro_UserOperator:
+            break;
+        case Asmacro_FnWrapper:
+            break;
+    }
+    TODO();
+
+    check_parser(&parser, generator);
+    return true;
 }
 
 bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
@@ -459,6 +562,7 @@ bool Syntax_build_register_expression(Parser parser, inout Generator* generator,
 }
 
 bool Syntax_build_imm_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    (void)variable_manager;
     u64 imm;
     if(!ParserMsg_is_success(Parser_parse_number(&parser, &imm))) {
         return false;

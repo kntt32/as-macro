@@ -109,9 +109,9 @@ typedef struct {
 } Memory;
 
 typedef struct {
-    enum { Imm_Imm, Imm_Label} type;
+    enum { Imm_Value, Imm_Label} type;
     union {
-        u64 imm;
+        u64 value;
         char label[256];
     } body;
 } Imm;
@@ -122,7 +122,7 @@ typedef struct {
         Register reg;
         Memory mem;
         Register xmm;
-        u64 imm;
+        Imm imm;
     } body;
 } Storage;
 
@@ -154,10 +154,12 @@ typedef struct {
 typedef struct {
     bool reg_flag;
     optional Register reg;
-    enum {AsmArgs_Rm_Reg, AsmArgs_Rm_Mem} regmem_type;
+    bool regmem_flag;
+    enum {AsmArgs_Rm_Reg, AsmArgs_Rm_Mem, AsmArgs_Rm_Xmm} regmem_type;
     union {
         Register reg;
         Memory mem;
+        Register xmm;
     } regmem;
     bool imm_flag;
     optional Imm imm;
@@ -257,6 +259,9 @@ void AsmEncoding_free(AsmEncoding self);
 bool Memory_cmp(in Memory* self, in Memory* other);
 void Memory_print(in Memory* self);
 
+void Imm_print(in Imm* self);
+bool Imm_cmp(in Imm* self, in Imm* other);
+
 ParserMsg Storage_parse(inout Parser* parser, in i32* rbp_offset, out Storage* storage);
 bool Storage_cmp(in Storage* self, in Storage* other);
 void Storage_print(in Storage* self);
@@ -267,6 +272,7 @@ Data Data_from_imm(u64 imm);
 Data Data_clone(in Data* self);
 void Data_print(in Data* self);
 void Data_free(Data self);
+void Data_free_for_vec(inout void* ptr);
 
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable);
 Variable Variable_clone(in Variable* self);
@@ -291,6 +297,8 @@ Argument Argument_clone(in Argument* self);
 void Argument_clone_for_vec(in void* src, out void* dst);
 void Argument_free(Argument self);
 void Argument_free_for_vec(inout void* ptr);
+
+AsmArgs AsmArgs_from_dataes(in Vec* dataes);
 
 ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmacro* asmacro);
 bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other);

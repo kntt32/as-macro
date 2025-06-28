@@ -296,7 +296,19 @@ void GlobalSyntax_check_asmacro(inout GlobalSyntax* self, inout Generator* gener
 }
 
 static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, inout Generator* generator) {
-    TODO();
+    Parser parser = self->body.function_definision.proc_parser;
+    VariableManager* variable_manager = &self->body.function_definision.variable_manager;
+
+    while(!Parser_is_empty(&parser)) {
+        Parser syntax_parser = Parser_split(&parser, ";");
+        Data data;
+        
+        resolve_sresult(
+            Syntax_build(syntax_parser, generator, variable_manager, &data), parser.line, generator
+        );
+
+        Data_free(data);
+    }
 }
 
 void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
@@ -413,13 +425,15 @@ void GlobalSyntaxTree_free(GlobalSyntaxTree self) {
 
 SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     bool (*BUILDERS[])(Parser, inout Generator*, inout VariableManager* variable_manager, out Data*) = {
+        Syntax_build_asmacro_expansion,
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
         Syntax_build_variable_expression,
     };
     
     for(u32 i=0; i<LEN(BUILDERS); i++) {
-        if(BUILDERS[i](parser, generator, variable_manager, data)) {
+        Parser parser_copy = parser;
+        if(BUILDERS[i](parser_copy, generator, variable_manager, data)) {
             return SRESULT_OK;
         }
     }
@@ -488,6 +502,21 @@ static bool Syntax_build_asmacro_expansion_get_info(
     return false;
 }
 
+static SResult Syntax_build_asmacro_expansion_asmoperator(in Asmacro* asmacro, in Vec* arguments, inout Generator* generator) {
+    AsmArgs asm_args;
+
+    SRESULT_UNWRAP(
+        AsmArgs_from(arguments, &asmacro->arguments, &asm_args),
+        (void)NULL
+    );
+    SRESULT_UNWRAP(
+        AsmEncoding_encode(&asmacro->body.asm_operator, &asm_args, generator),
+        (void)NULL
+    );
+    
+    return SRESULT_OK;
+}
+
 bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     char name[256];
     if(!ParserMsg_is_success(Parser_parse_ident(&parser, name))) {
@@ -518,13 +547,22 @@ bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, i
 
     switch(asmacro.type) {
         case Asmacro_AsmOperator:
+            resolve_sresult(
+                Syntax_build_asmacro_expansion_asmoperator(&asmacro, &arguments, generator),
+                parser.line,
+                generator
+            );
             break;
         case Asmacro_UserOperator:
+            TODO();
             break;
         case Asmacro_FnWrapper:
+            TODO();
             break;
     }
-    TODO();
+
+    Asmacro_free(asmacro);
+    Vec_free_all(arguments, Data_free_for_vec);
 
     check_parser(&parser, generator);
     return true;

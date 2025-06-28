@@ -40,6 +40,7 @@ void VariableManager_free_for_vec(inout void* ptr);
 
 ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax);
 void GlobalSyntax_check_asmacro(inout GlobalSyntax* self, inout Generator* generator);
+void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator);
 void GlobalSyntax_print(in GlobalSyntax* self);
 void GlobalSyntax_free(GlobalSyntax self);
 void GlobalSyntax_free_for_vec(inout void* ptr);
@@ -47,10 +48,12 @@ void GlobalSyntax_free_for_vec(inout void* ptr);
 GlobalSyntaxTree GlobalSyntaxTree_new();
 void GlobalSyntaxTree_parse(inout GlobalSyntaxTree* self, Parser parser);
 void GlobalSyntaxTree_check_asmacro(inout GlobalSyntaxTree* self);
+Generator GlobalSyntaxTree_build(inout GlobalSyntaxTree self);
 void GlobalSyntaxTree_print(in GlobalSyntaxTree* self);
 void GlobalSyntaxTree_free(GlobalSyntaxTree self);
 
 SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_register_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_imm_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_variable_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);

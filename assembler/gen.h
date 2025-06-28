@@ -153,7 +153,11 @@ typedef struct {
 
 typedef struct {
     bool reg_flag;
-    optional Register reg;
+    enum {AsmArgs_Reg_Reg, AsmArgs_Reg_Xmm} reg_type;
+    union {
+        Register reg;
+        Register xmm;
+    } reg;
     bool regmem_flag;
     enum {AsmArgs_Rm_Reg, AsmArgs_Rm_Mem, AsmArgs_Rm_Xmm} regmem_type;
     union {
@@ -271,6 +275,7 @@ Data Data_from_register(Register reg);
 Data Data_from_imm(u64 imm);
 Data Data_clone(in Data* self);
 void Data_print(in Data* self);
+void Data_print_for_vec(in void* ptr);
 void Data_free(Data self);
 void Data_free_for_vec(inout void* ptr);
 
@@ -298,7 +303,7 @@ void Argument_clone_for_vec(in void* src, out void* dst);
 void Argument_free(Argument self);
 void Argument_free_for_vec(inout void* ptr);
 
-AsmArgs AsmArgs_from_dataes(in Vec* dataes);
+SResult AsmArgs_from(in Vec* dataes, in Vec* arguments, out AsmArgs* asm_args);
 
 ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmacro* asmacro);
 bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other);

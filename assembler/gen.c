@@ -485,17 +485,6 @@ SResult AsmArgSize_from(in Vec* arguments, out AsmArgSize* sizes) {
                 }
                 break;
             case Argument_Storage:
-                Storage* storage = &argument->storage.storage;
-                switch(storage->type) {
-                    case StorageType_reg:
-                        sizes->reg = argument->type.size;
-                        break;
-                    case StorageType_mem:
-                        sizes->regmem = argument->type.size;
-                        break;
-                    default:
-                        TODO();
-                }
                 break;
         }
     }
@@ -626,12 +615,20 @@ static SResult ModRmType_encode_rex_prefix_reg(in ModRmType* self, in AsmArgs* a
         SResult result = {false, "expected register argument"};
         return result;
     }
-    u8 modrmreg_code;
-    SRESULT_UNWRAP(
-        Register_get_modrmreg_code(args->reg, &modrmreg_code),
-        (void)NULL
-    );
 
+    u8 modrmreg_code;
+    switch(args->reg_type) {
+        case AsmArgs_Reg_Reg:
+            SRESULT_UNWRAP(
+                Register_get_modrmreg_code(args->reg.reg, &modrmreg_code),
+                (void)NULL
+            );
+            break;
+        case AsmArgs_Reg_Xmm:
+            TODO();
+            break;
+    }
+    
     if(modrmreg_code & MODRMREG_REXR) {
         *rex_prefix |= REX_R;
         *rex_prefix_needed_flag = true;
@@ -688,9 +685,13 @@ SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmA
             );
             break;
         case AsmEncodingElement_AddReg:
+            if(args->reg_type != AsmArgs_Reg_Reg) {
+                SResult result = {false, "expecting integer register argument"};
+                return result;
+            }
             u8 addreg_code;
             SRESULT_UNWRAP(
-                Register_get_addreg_code(args->reg, &addreg_code),
+                Register_get_addreg_code(args->reg.reg, &addreg_code),
                 (void)NULL
             );
             if((addreg_code & ADDREG_REX) || (addreg_code & ADDREG_REXB)) {
@@ -754,15 +755,14 @@ static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in Asm
 }
 
 static SResult AsmEncodingElement_encode_addreg(in AsmArgs* args, inout Generator* generator) {
-    if(!args->reg_flag) {
+    if(!args->reg_flag || args->reg_type != AsmArgs_Reg_Reg) {
         SResult result = {false, "expected register argument"};
         return result;
     }
 
-    Register reg = args->reg;
     u8 addreg_code;
     SRESULT_UNWRAP(
-        Register_get_addreg_code(reg, &addreg_code),
+        Register_get_addreg_code(args->reg.reg, &addreg_code),
         (void)NULL
     );
 
@@ -869,7 +869,7 @@ ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmE
     return SUCCESS_PARSER_MSG;
 }
 
-static SResult AsmEncoding_encode_prefix_set_needed_flag(in AsmEncoding* self, inout bool* x66_prefix_needed_flag, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
+static SResult AsmEncoding_encode_prefix_set_defaults(in AsmEncoding* self, inout bool* x66_prefix_needed_flag, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
     switch(self->default_operand_size) {
         case 32:
             switch(self->operand_size) {
@@ -912,7 +912,7 @@ static SResult AsmEncoding_encode_prefix(in AsmEncoding* self, in AsmArgs* args,
 
 
     SRESULT_UNWRAP(
-        AsmEncoding_encode_prefix_set_needed_flag(self, &x66_prefix_needed_flag, &rex_prefix, &rex_prefix_needed_flag),
+        AsmEncoding_encode_prefix_set_defaults(self, &x66_prefix_needed_flag, &rex_prefix, &rex_prefix_needed_flag),
         (void)NULL
     );
 
@@ -1226,6 +1226,10 @@ void Data_print(in Data* self) {
     printf(" }");
 }
 
+void Data_print_for_vec(in void* ptr) {
+    Data_print(ptr);
+}
+
 void Data_free(Data self) {
     Type_free(self.type);
 }
@@ -1300,7 +1304,7 @@ void Variable_free_for_vec(inout void* ptr) {
 static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argument* argument) {
     Parser parser_copy = *parser;
 
-    if(ParserMsg_is_success(Storage_parse(&parser_copy, 0, &argument->storage.storage))) {
+    if(!Parser_start_with(parser, "imm") && ParserMsg_is_success(Storage_parse(&parser_copy, 0, &argument->storage.storage))) {
         argument->storage_type = Argument_Storage;
     }else {
         struct { char* keyword; bool* flag;} bounds[] = {
@@ -1418,10 +1422,6 @@ Argument Argument_from(in Variable* variable) {
 }
 
 bool Argument_match_with(in Argument* self, in Data* data) {
-    if(!Type_cmp(&self->type, &data->type)) {
-        return false;
-    }
-
     Storage storage = data->storage;
     switch(self->storage_type) {
         case Argument_Trait:
@@ -1431,6 +1431,9 @@ bool Argument_match_with(in Argument* self, in Data* data) {
                 || (self->storage.trait.xmm_flag && storage.type == StorageType_xmm))) {
                 return false;
             }
+            if(self->storage.trait.imm_flag && (self->type.type == Type_Integer || self->type.type == Type_Floating) && self->type.type == data->type.type) {
+                return true;
+            }
             break;
         case Argument_Storage:
             if(!Storage_cmp(&storage, &self->storage.storage)) {
@@ -1438,7 +1441,12 @@ bool Argument_match_with(in Argument* self, in Data* data) {
             }
             break;
     }
-    return true;
+
+    if(!Type_cmp(&self->type, &data->type)) {
+        return false;
+    }
+
+   return true;
 }
 
 bool Argument_match_self(in Argument* self, in Argument* other) {
@@ -1540,44 +1548,95 @@ void Argument_free_for_vec(inout void* ptr) {
     Argument* argument = ptr;
     Argument_free(*argument);
 }
-/*
-AsmArgs AsmArgs_from_dataes(in Vec* dataes, in Vec* arguments) {
-    AsmArgs asm_args = {false, {}, false, {}, {}, false {}};
+
+static SResult AsmArgs_from_trait(in Data* data, in Argument* arg, inout AsmArgs* asm_args) {
+    static SResult result = {false, "unsupported storage bound found"};
+
+    bool reg_flag = arg->storage.trait.reg_flag;
+    bool mem_flag = arg->storage.trait.mem_flag;
+    bool imm_flag = arg->storage.trait.imm_flag;
+    bool xmm_flag = arg->storage.trait.xmm_flag;
+
+    switch(data->storage.type) {
+        case StorageType_reg:
+            if(reg_flag && mem_flag && !imm_flag && !xmm_flag) {
+                asm_args->regmem_flag = true;
+                asm_args->regmem_type = AsmArgs_Rm_Reg;
+                asm_args->regmem.reg = data->storage.body.reg;
+            }else if(reg_flag && !mem_flag && !imm_flag && !xmm_flag) {
+                asm_args->reg_flag = true;
+                asm_args->reg_type = AsmArgs_Reg_Reg;
+                asm_args->reg.reg = data->storage.body.reg;
+            }else {
+                return result;
+            }
+            break;
+        case StorageType_mem:
+            asm_args->regmem_flag = true;
+            asm_args->regmem_type = AsmArgs_Rm_Mem;
+            if((reg_flag && mem_flag && !imm_flag && !xmm_flag)
+                || (!reg_flag && mem_flag && !imm_flag && xmm_flag)
+                || (!reg_flag && mem_flag && !imm_flag && !xmm_flag)) {
+                asm_args->regmem_flag = true;
+                asm_args->regmem_type = AsmArgs_Rm_Mem;
+                asm_args->regmem.mem = data->storage.body.mem;
+            }else {
+                return result;
+            }
+            break;
+        case StorageType_xmm:
+            if(!reg_flag && mem_flag && !imm_flag && xmm_flag) {
+                asm_args->regmem_flag = true;
+                asm_args->regmem_type = AsmArgs_Rm_Xmm;
+                asm_args->regmem.xmm = data->storage.body.xmm;
+            }else if(!reg_flag && !mem_flag && !imm_flag && xmm_flag) {
+                asm_args->reg_flag = true;
+                asm_args->reg_type = AsmArgs_Reg_Xmm;
+                asm_args->reg.xmm = data->storage.body.xmm;
+            }else {
+                return result;
+            }
+            break;
+        case StorageType_imm:
+            if(!reg_flag && !mem_flag && imm_flag && !xmm_flag) {
+                asm_args->imm_flag = true;
+                asm_args->imm = data->storage.body.imm;
+            }else {
+                return result;
+            }
+            break;
+    }
+    
+    return SRESULT_OK;
+}
+
+SResult AsmArgs_from(in Vec* dataes, in Vec* arguments, out AsmArgs* asm_args) {
+    asm_args->reg_flag = false;
+    asm_args->regmem_flag = false;
+    asm_args->imm_flag = false;
 
     for(u32 i=0; i<Vec_len(arguments); i++) {
-        Data* data = Vec_index(dataes, i);
         Argument* arg = Vec_index(arguments, i);
+        Data* data = Vec_index(dataes, i);
 
+        if(!Argument_match_with(arg, data)) {
+            PANIC("mismatch with dataes and arguments");
+        }
         switch(arg->storage_type) {
             case Argument_Trait:
-                if(arg->storage.trait.mem_flag) {
-                    asm_args.regmem_flag = true;
-                    switch(data->storage.type) {
-                        case StorageType_reg:
-                            asm_args.regmem_type = AsmArgs_Rm_Reg;
-                            asm_args.regmem.reg = data->storage.body.reg;
-                            break;
-                        case StorageType_mem:
-                            asm_args.regmem_type = AsmArgs_Rm_Mem;
-                            asm_args.regmem_mem = data->storage.body.mem;
-                            break;
-                        case StorageType_xmm:
-                            asm_args.regmem_type = AsmArgs_Rm_Xmm;
-                            asm_args.regmem_xmm = data->storage.body.xmm;
-                            break;
-                        case StorageType_imm:
-                            PANIC("unreachable");
-                            break;
-                    }
-                }else if(arg->storage.trait.reg_flag) {
-                    
-                }
+                SRESULT_UNWRAP(
+                    AsmArgs_from_trait(data, arg, asm_args),
+                    (void)NULL
+                );
+                break;
             case Argument_Storage:
-
+                break;
         }
     }
+
+    return SRESULT_OK;
 }
-*/
+
 static ParserMsg Asmacro_parse_header_arguments(Parser parser, in Generator* generator, inout Vec* arguments) {
     while(!Parser_is_empty(&parser)) {
         Argument argument;
@@ -1987,7 +2046,7 @@ SResult Generator_get_asmacro(in Generator* self, in char* name, out Vec* asmacr
     for(u32 i=0; i<Vec_len(&self->asmacroes); i++) {
         Asmacro* asmacro_ptr = Vec_index(&self->asmacroes, i);
 
-        if(strcmp(asmacro_ptr->name, name)) {
+        if(strcmp(asmacro_ptr->name, name) == 0) {
             Asmacro asmacro = Asmacro_clone(asmacro_ptr);
             Vec_push(asmacroes, &asmacro);
         }

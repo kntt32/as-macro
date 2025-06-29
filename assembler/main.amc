@@ -1,0 +1,17 @@
+as mov(x: i64@reg, y: i64@imm) : (double: 0xb8, rq, iq);
+
+as nop() : (double: 0x90);
+
+as NOP() {
+    nop();
+};
+
+fn f() {
+    NOP();
+};
+
+fn main(x: i64@r15) {
+    mov(x, 10);
+    nop();
+};
+

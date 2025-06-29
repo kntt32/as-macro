@@ -30,7 +30,7 @@ static char Parser_read(inout Parser* self) {
 }
 
 static void Parser_skip_space(inout Parser* self) {
-    while(isspace(self->src[0]) && self->src[0] != '\0') {
+    while(isspace(self->src[0]) && self->len != 0) {
         Parser_read(self);
     }
 }
@@ -318,12 +318,14 @@ ParserMsg Parser_parse_stringliteral(inout Parser* self, out char** ptr) {
                     return msg;
                 }
             case '"':
+            {
                 u32 len = self->len - self_copy.len - 2;
                 *ptr = malloc(sizeof(char) * (len + 1));
                 UNWRAP_NULL(*ptr);
                 memcpy(*ptr, self->src + 1, len);
                 (*ptr)[len] = '\0';
                 *self = self_copy;
+            }
                 return SUCCESS_PARSER_MSG;
             case '\\':
                 escape_flag = true;

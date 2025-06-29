@@ -3,12 +3,21 @@
 #include "parser.h"
 #include "gen.h"
 #include "syntax.h"
+#include "cmd.h"
 
 void test2() {
     Parser parser = Parser_new("\
-    as add(x: i32@reg+mem, y: i32@imm) : (double: 0x81, /0, id);\n\
-    fn ADD(x: i32@rax) {\n\
-        add(x, 10);\n\
+    as mov(x: i64@reg, y: i64@imm) : (double: 0xb8, rq, iq);\n\
+    as nop() : (double: 0x90);\n\
+    as NOP() {\n\
+        nop();\n\
+    };\n\
+    fn f() {\n\
+        NOP();\n\
+    };\n\
+    fn main(x: i64@r15) {\n\
+        mov(x, 10);\n\
+        nop();\n\
     }\n\
     ");
     GlobalSyntaxTree tree = GlobalSyntaxTree_new();
@@ -22,8 +31,9 @@ void test2() {
     printf("\n");
 }
 
-int main() {
-    test2();
+int main(int argc, char* argv[]) {
+    // test2();
+    Cmd_interpreter(argc, argv);
 
     return 0;
 }

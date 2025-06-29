@@ -610,7 +610,7 @@ ParserMsg AsmEncodingElement_parse(inout Parser* parser, in AsmArgSize* sizes, o
     return SUCCESS_PARSER_MSG;
 }
 
-static SResult ModRmType_encode_rex_prefix_reg(in ModRmType* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
+static SResult ModRmType_encode_rex_prefix_reg(in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
     if(!args->reg_flag) {
         SResult result = {false, "expected register argument"};
         return result;
@@ -633,7 +633,7 @@ static SResult ModRmType_encode_rex_prefix_reg(in ModRmType* self, in AsmArgs* a
         *rex_prefix |= REX_R;
         *rex_prefix_needed_flag = true;
     }
-    if(self->memsize == 8 && (modrmreg_code & MODRMREG_REX) != 0) {
+    if(modrmreg_code & MODRMREG_REX) {
         *rex_prefix_needed_flag = true;
     }
 
@@ -653,7 +653,7 @@ SResult ModRmType_encode_rex_prefix(in ModRmType* self, in AsmArgs* args, inout 
     switch(self->type) {
         case ModRmType_R:
             SRESULT_UNWRAP(
-                ModRmType_encode_rex_prefix_reg(self, args, rex_prefix, rex_prefix_needed_flag),
+                ModRmType_encode_rex_prefix_reg(args, rex_prefix, rex_prefix_needed_flag),
                 (void)NULL
             );
             SRESULT_UNWRAP(
@@ -694,10 +694,10 @@ SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmA
                 Register_get_addreg_code(args->reg.reg, &addreg_code),
                 (void)NULL
             );
-            if((addreg_code & ADDREG_REX) || (addreg_code & ADDREG_REXB)) {
+            if(addreg_code & ADDREG_REX) {
                 *rex_prefix_need_flag = true;
             }
-            if(self->body.add_reg == 8 && ((addreg_code & ADDREG_REXB) != 0)) {
+            if(addreg_code & ADDREG_REXB) {
                 *rex_prefix |= REX_B;
                 *rex_prefix_need_flag = true;
             }
@@ -745,7 +745,7 @@ static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in Asm
     }
     
     for(u32 i=0; i<self->body.imm/8; i++) {
-        u8 byte = (value >> (64 - 8*i)) & 0xff;
+        u8 byte = (value >> (8*i)) & 0xff;
         SRESULT_UNWRAP(
             Generator_append_binary(generator, "text", byte),
             (void)NULL
@@ -873,6 +873,8 @@ static SResult AsmEncoding_encode_prefix_set_defaults(in AsmEncoding* self, inou
     switch(self->default_operand_size) {
         case 32:
             switch(self->operand_size) {
+                case 8:
+                    break;
                 case 16:
                     *x66_prefix_needed_flag = true;
                     break;

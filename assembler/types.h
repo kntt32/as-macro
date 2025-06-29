@@ -41,7 +41,7 @@ extern SResult SRESULT_OK;
     }\
     exit(-1);\
 }
-#define TODO() (PANIC("not implemented"))
+#define TODO() PANIC("not implemented")
 #define LEN(arr) (sizeof(arr)/sizeof(arr[0]))
 #define OWN_STR(str) (\
     char* ptr = malloc((strlen(str) + 1) * sizeof(char));\

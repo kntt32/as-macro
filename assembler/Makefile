@@ -1,9 +1,9 @@
 FSANITIZE ?= 1
 RELEASE ?= 0
 
-CC := gcc
+CC ?= gcc
 
-CFLAGS := -Wall -Wextra -g -fsanitize=undefined -fsanitize=address
+CFLAGS := -Wall -Wextra -g -fsanitize=undefined -fsanitize=address -fsanitize=leak
 ifeq ($(FSANITIZE), 0)
     CFLAGS := -Wall -Wextra -g
 endif
@@ -11,10 +11,10 @@ ifeq ($(RELEASE),1)
 	CFLAGS := -Wall -Wextra -Ofast
 endif
 
-asm.elf: main.o types.o vec.o str.o parser.o util.o register.o gen.o syntax.o
+asm.elf: main.o types.o vec.o str.o parser.o util.o register.o gen.o syntax.o cmd.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-main.o: main.c types.h parser.h syntax.h
+main.o: main.c types.h parser.h syntax.h cmd.h
 types.o: types.h
 parser.o: parser.c parser.h util.h
 vec.o: vec.c vec.h types.h
@@ -23,6 +23,7 @@ util.o: util.c util.h types.h
 register.o: register.c register.h types.h
 gen.o: gen.c types.h parser.h gen.h
 syntax.o: syntax.c types.h gen.h syntax.h
+cmd.o: cmd.c types.h cmd.h
 
 types.h:
 parser.h: types.h
@@ -32,12 +33,13 @@ util.h: types.h
 register.h: types.h parser.h
 gen.h: types.h register.h vec.h
 syntax.h: types.h gen.h
+cmd.h: types.h
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 run: asm.elf
-	./asm.elf
+	./asm.elf $(ARGS)
 
 debug: asm.elf
 	gdb asm.elf

@@ -256,6 +256,8 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
     if(resolve_sresult(Generator_add_asmacro(generator, wrapper_asmacro), parser.line, generator)) {
         return true;
     }
+
+    check_parser(&parser, generator);
     
     strcpy(global_syntax->body.function_definision.name, name);
     global_syntax->body.function_definision.variable_manager = variable_manager;
@@ -298,6 +300,21 @@ void GlobalSyntax_check_asmacro(inout GlobalSyntax* self, inout Generator* gener
 static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, inout Generator* generator) {
     Parser parser = self->body.function_definision.proc_parser;
     VariableManager* variable_manager = &self->body.function_definision.variable_manager;
+    
+    Label label;
+    strcpy(label.name, self->body.function_definision.name);
+    label.public_flag = true;
+    strcpy(label.section_name, "text");
+    resolve_sresult(
+        Generator_binary_len(generator, "text", &label.offset),
+        parser.line,
+        generator
+    );
+    resolve_sresult(
+        Generator_new_label(generator, label),
+        parser.line,
+        generator
+    );
 
     while(!Parser_is_empty(&parser)) {
         Parser syntax_parser = Parser_split(&parser, ";");
@@ -379,6 +396,7 @@ void GlobalSyntax_free_for_vec(inout void* ptr) {
 
 GlobalSyntaxTree GlobalSyntaxTree_new() {
     GlobalSyntaxTree tree = {Generator_new(), Vec_new(sizeof(GlobalSyntax))};
+    Generator_new_section(&tree.generator, "text");
     return tree;
 }
 
@@ -517,6 +535,32 @@ static SResult Syntax_build_asmacro_expansion_asmoperator(in Asmacro* asmacro, i
     return SRESULT_OK;
 }
 
+static void Syntax_build_asmacro_expansion_useroperator(in Asmacro* asmacro, in Vec* dataes, inout Generator* generator, inout VariableManager* variable_manager) {
+    Parser proc_parser = asmacro->body.user_operator.parser;
+    
+    for(u32 i=0; i<Vec_len(dataes); i++) {
+        Argument* arg = Vec_index(&asmacro->arguments, i);
+        Data* data = Vec_index(dataes, i);
+
+        Variable variable;
+        strcpy(variable.name, arg->name);
+        variable.data = Data_clone(data);
+
+        VariableManager_push(variable_manager, variable);
+    }
+
+    while(!Parser_is_empty(&proc_parser)) {
+        Parser syntax_parser = Parser_split(&proc_parser, ";");
+        
+        Data data;
+        resolve_sresult(
+            Syntax_build(syntax_parser, generator, variable_manager, &data),
+            syntax_parser.line, generator
+        );
+        Data_free(data);
+    }
+}
+
 bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     char name[256];
     if(!ParserMsg_is_success(Parser_parse_ident(&parser, name))) {
@@ -554,7 +598,7 @@ bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, i
             );
             break;
         case Asmacro_UserOperator:
-            TODO();
+            Syntax_build_asmacro_expansion_useroperator(&asmacro, &arguments, generator, variable_manager);
             break;
         case Asmacro_FnWrapper:
             TODO();

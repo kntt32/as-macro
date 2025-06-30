@@ -94,11 +94,10 @@ void Vec_last(Vec* self, void* restrict ptr) {
 
 SResult Vec_last_ptr(Vec* self, void** ptr) {
     if(self->len == 0) {
-        SResult result = {false, "vec length is zero"};
-        return result;
+        return SResult_new("vec length is zero");
     }
     *ptr = self->ptr + self->size * (self->len - 1);
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 Vec Vec_from(void* src, u32 len, u32 size) {

@@ -20,11 +20,8 @@ typedef float f32;
 typedef double f64;
 
 typedef struct {
-    bool ok_flag;
     char error[256];
 } SResult;
-
-extern SResult SRESULT_OK;
 
 #define in
 #define out
@@ -50,10 +47,9 @@ extern SResult SRESULT_OK;
 )
 #define MAX(x, y) (x > y)?(x):(y)
 #define BOOL_TO_STR(b) (b)?("true"):("false")
-#define SRESULT_IS_OK(r) (r.ok_flag)
 #define SRESULT_UNWRAP(r, catch_proc) {\
     SResult result = r;\
-    if(!SRESULT_IS_OK(result)) {\
+    if(!SResult_is_success(result)) {\
         catch_proc;\
         return result;\
     }\
@@ -64,6 +60,9 @@ extern SResult SRESULT_OK;
     }\
 }
 #define loop while(true)
+
+SResult SResult_new(optional char* error);
+bool SResult_is_success(SResult self);
 
 void u8_print_for_vec(in void* ptr);
 

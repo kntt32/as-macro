@@ -61,12 +61,16 @@ static char Parser_read(inout Parser* self) {
 }
 
 static void Parser_skip_space(inout Parser* self) {
-    while(isspace(self->src[0]) && self->len != 0) {
+    while(self->len != 0 && isspace(self->src[0])) {
         Parser_read(self);
     }
 }
 
 static bool Parser_is_gap(in Parser* self) {
+    if(self->len == 0) {
+        return true;
+    }
+
     char c = self->src[0];
     return self->src[0] != '\0' && (isspace(c) || (ispunct(c) && c != '_'));
 }
@@ -75,7 +79,7 @@ static void Parser_run_for_gap(inout Parser* self, out char token[256]) {
     Parser_skip_space(self);
     u32 len = 0;
     
-    while(isascii(self->src[0]) && !Parser_is_gap(self) && len < 256 - 1) {
+    while(!Parser_is_gap(self) && isascii(self->src[0]) && len < 256 - 1) {
         token[len] = Parser_read(self);
         len ++;
     }
@@ -111,7 +115,7 @@ static bool Parser_skip(inout Parser* self) {
         }
     }
 
-    if(ispunct(self->src[0])) {
+    if(self->len != 0 && ispunct(self->src[0])) {
         Parser_read(self);
         return true;
     }
@@ -340,6 +344,7 @@ ParserMsg ParserMsg_new(Offset offset, optional char* msg) {
         parser_msg.msg[0] = '\0';
     }else {
         strncpy(parser_msg.msg, msg, 256);
+        parser_msg.msg[255] = '\0';
     }
 
     return parser_msg;
@@ -350,7 +355,7 @@ bool ParserMsg_is_success(ParserMsg self) {
 }
 
 ParserMsg ParserMsg_from_sresult(SResult sresult, Offset offset) {
-    if(SRESULT_IS_OK(sresult)) {
+    if(SResult_is_success(sresult)) {
         return ParserMsg_new(offset, NULL);
     }
 

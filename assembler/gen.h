@@ -200,7 +200,7 @@ typedef struct {
 } Rel;
 
 typedef struct {
-    u32 line;
+    Offset offset;
     char msg[256];
 } Error;
 
@@ -327,8 +327,9 @@ void Label_print_for_vec(in void* ptr);
 void Rel_print(in Rel* self);
 void Rel_print_for_vec(in void* ptr);
 
+Error Error_new(Offset offset, in char* msg);
 Error Error_from_parsermsg(ParserMsg parser_msg);
-Error Error_from_sresult(u32 line, SResult result);
+Error Error_from_sresult(Offset offset, SResult result);
 void Error_print(in Error* self);
 void Error_print_for_vec(in void* ptr);
 

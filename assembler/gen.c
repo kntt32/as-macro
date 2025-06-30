@@ -211,7 +211,7 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
         );
     }else {
         SResult result = Generator_get_type(generator, token, type);
-        if(!SRESULT_IS_OK(result)) {
+        if(!SResult_is_success(result)) {
             return ParserMsg_from_sresult(result, parser->offset);
         }
     }
@@ -484,7 +484,7 @@ SResult AsmArgSize_from(in Vec* arguments, out AsmArgSize* sizes) {
         }
     }
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 void AsmArgSize_print(in AsmArgSize* self) {
@@ -602,8 +602,7 @@ ParserMsg AsmEncodingElement_parse(inout Parser* parser, in AsmArgSize* sizes, o
 
 static SResult ModRmType_encode_rex_prefix_reg(in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
     if(!args->reg_flag) {
-        SResult result = {false, "expected register argument"};
-        return result;
+        return SResult_new("expected register argument");
     }
 
     u8 modrmreg_code;
@@ -627,7 +626,7 @@ static SResult ModRmType_encode_rex_prefix_reg(in AsmArgs* args, inout u8* rex_p
         *rex_prefix_needed_flag = true;
     }
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 static SResult ModRmType_encode_rex_prefix_regmem(in ModRmType* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
@@ -636,7 +635,7 @@ static SResult ModRmType_encode_rex_prefix_regmem(in ModRmType* self, in AsmArgs
     (void)rex_prefix;
     (void)rex_prefix_needed_flag;
     TODO();
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 SResult ModRmType_encode_rex_prefix(in ModRmType* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
@@ -659,7 +658,7 @@ SResult ModRmType_encode_rex_prefix(in ModRmType* self, in AsmArgs* args, inout 
             break;
     }
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_need_flag) {
@@ -676,8 +675,7 @@ SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmA
             break;
         case AsmEncodingElement_AddReg:
             if(args->reg_type != AsmArgs_Reg_Reg) {
-                SResult result = {false, "expecting integer register argument"};
-                return result;
+                return SResult_new("expecting integer register argument");
             }
             u8 addreg_code;
             SRESULT_UNWRAP(
@@ -694,7 +692,7 @@ SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmA
             break;
     }
     
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 static SResult AsmEncodingElement_encode_value(in AsmEncodingElement* self, inout Generator* generator) {
@@ -702,13 +700,12 @@ static SResult AsmEncodingElement_encode_value(in AsmEncodingElement* self, inou
         Generator_append_binary(generator, "text", self->body.value),
         (void)NULL
     );
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in AsmArgs* args, inout Generator* generator) {
     if(!args->imm_flag) {
-        SResult result = {false, "expected imm argument"};
-        return result;
+        return SResult_new("expected imm argument");
     }
     u64 value = 0;
     Imm* imm = &args->imm;
@@ -741,13 +738,12 @@ static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in Asm
             (void)NULL
         );
     }
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 static SResult AsmEncodingElement_encode_addreg(in AsmArgs* args, inout Generator* generator) {
     if(!args->reg_flag || args->reg_type != AsmArgs_Reg_Reg) {
-        SResult result = {false, "expected register argument"};
-        return result;
+        return SResult_new("expected register argument");
     }
 
     u8 addreg_code;
@@ -763,7 +759,7 @@ static SResult AsmEncodingElement_encode_addreg(in AsmArgs* args, inout Generato
     );
     *byte += addreg_code & ADDREG_ADDCODE;
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 SResult AsmEncodingElement_encode(in AsmEncodingElement* self, in AsmArgs* args, inout Generator* generator) {
@@ -791,7 +787,7 @@ SResult AsmEncodingElement_encode(in AsmEncodingElement* self, in AsmArgs* args,
             break;
     }
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 void AsmEncodingElement_print(in AsmEncodingElement* self) {
@@ -893,7 +889,7 @@ static SResult AsmEncoding_encode_prefix_set_defaults(in AsmEncoding* self, inou
         default: PANIC("unreachable");
     }
     
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 static SResult AsmEncoding_encode_prefix(in AsmEncoding* self, in AsmArgs* args, inout Generator* generator) {
@@ -929,7 +925,7 @@ static SResult AsmEncoding_encode_prefix(in AsmEncoding* self, in AsmArgs* args,
         );
     }
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generator* generator) {
@@ -946,7 +942,7 @@ SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generat
         );
     }
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 void AsmEncoding_print(in AsmEncoding* self) {
@@ -1540,7 +1536,7 @@ void Argument_free_for_vec(inout void* ptr) {
 }
 
 static SResult AsmArgs_from_trait(in Data* data, in Argument* arg, inout AsmArgs* asm_args) {
-    static SResult result = {false, "unsupported storage bound found"};
+    SResult result = SResult_new("found unsupported storage bound");
 
     bool reg_flag = arg->storage.trait.reg_flag;
     bool mem_flag = arg->storage.trait.mem_flag;
@@ -1597,7 +1593,7 @@ static SResult AsmArgs_from_trait(in Data* data, in Argument* arg, inout AsmArgs
             break;
     }
     
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 SResult AsmArgs_from(in Vec* dataes, in Vec* arguments, out AsmArgs* asm_args) {
@@ -1624,7 +1620,7 @@ SResult AsmArgs_from(in Vec* dataes, in Vec* arguments, out AsmArgs* asm_args) {
         }
     }
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 static ParserMsg Asmacro_parse_header_arguments(Parser parser, in Generator* generator, inout Vec* arguments) {
@@ -1777,21 +1773,20 @@ Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */) 
 
 SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes) {
     if(Vec_len(&self->arguments) != Vec_len(dataes)) {
-        SResult result = {false, "mismatching the number of arguments"};
-        return result;
+        return SResult_new("mismatching the number of arguments");
     }
     
     for(u32 i=0; i<Vec_len(&self->arguments); i++) {
         Argument* argument = Vec_index(&self->arguments, i);
         Data* data = Vec_index(dataes, i);
         if(!Argument_match_with(argument, data)) {
-            SResult result = {false, ""};
-            snprintf(result.error, 256, "mismatchig argument%u", i+1);
-            return result;
+            char msg[256];
+            snprintf(msg, 256, "mismatchig argument%u", i+1);
+            return SResult_new(msg);
         }
     }
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other) {
@@ -1869,14 +1864,13 @@ void Asmacro_free_for_vec(inout void* ptr) {
 
 SResult Section_new(in char* name, out Section* section) {
     if(!(strlen(name) < 256)) {
-        SResult result = {false, "section name must be shorter than 256 bytes"};
-        return result;
+        return SResult_new("section name must be shorter than 256 bytes");
     }
 
     strcpy(section->name, name);
     section->binary = Vec_new(sizeof(u8));
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 void Section_print(in Section* self) {
@@ -1924,24 +1918,27 @@ void Rel_print_for_vec(in void* ptr) {
     Rel_print(ptr);
 }
 
-Error Error_from_parsermsg(ParserMsg parser_msg) {
+Error Error_new(Offset offset, in char* msg) {
     Error error;
-    error.line = parser_msg.offset.line;
-    strcpy(error.msg, parser_msg.msg);
+    error.offset = offset;
+    strncpy(error.msg, msg, 256);
+    error.msg[255] = '\0';
 
     return error;
 }
 
-Error Error_from_sresult(u32 line, SResult result) {
-    Error error;
-    error.line = line;
-    strcpy(error.msg, result.error);
+Error Error_from_parsermsg(ParserMsg parser_msg) {
+    return Error_new(parser_msg.offset, parser_msg.msg);
+}
 
-    return error;
+Error Error_from_sresult(Offset offset, SResult result) {
+    return Error_new(offset, result.error);
 }
 
 void Error_print(in Error* self) {
-    printf("Error { line: %u, msg: %s }", self->line, self->msg);
+    printf("Error { Offset: ");
+    Offset_print(&self->offset);
+    printf(", msg: %s }", self->msg);
 }
 
 void Error_print_for_vec(in void* ptr) {
@@ -1965,17 +1962,16 @@ SResult Generator_add_type(inout Generator* self, Type type) {
     for(u32 i=0; i<Vec_len(&self->types); i++) {
         Type* ptr = Vec_index(&self->types, i);
         if(strcmp(ptr->name, type.name) == 0) {
-            SResult result;
-            result.ok_flag = false;
-            snprintf(result.error, 256, "type \"%.10s\" has been already defined", type.name);
             Type_free(type);
-            return result;
+            char msg[256];
+            snprintf(msg, 256, "type \"%.10s\" has been already defined", type.name);
+            return SResult_new(msg);
         }
     }
 
     Vec_push(&self->types, &type);
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 SResult Generator_get_type(in Generator* self, in char* name, out Type* type) {
@@ -1984,48 +1980,44 @@ SResult Generator_get_type(in Generator* self, in char* name, out Type* type) {
         ptr = Vec_index(&self->types, i);
         if(strcmp(ptr->name, name) == 0) {
             *type = Type_clone(ptr);
-            return SRESULT_OK;
+            return SResult_new(NULL);
         }
     }
 
-    SResult result;
-    result.ok_flag = false;
-    snprintf(result.error, 255, "type \"%.10s\" is undefined", name);
-
-    return result;
+    char msg[256];
+    snprintf(msg, 255, "type \"%.10s\" is undefined", name);
+    return SResult_new(msg);
 }
 
 SResult Generator_add_global_variable(inout Generator* self, Variable variable) {
     for(u32 i=0; i<Vec_len(&self->global_variables); i++) {
         Variable* ptr = Vec_index(&self->global_variables, i);
         if(strcmp(ptr->name, variable.name) == 0) {
-            SResult result;
-            result.ok_flag = false;
-            snprintf(result.error, 256, "variable \"%.10s\" has been already defined", variable.name);
             Variable_free(variable);
-            return result;
+            char msg[256];
+            snprintf(msg, 256, "variable \"%.10s\" has been already defined", variable.name);
+            return SResult_new(msg);
         }
     }
 
     Vec_push(&self->global_variables, &variable);
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro) {
     for(u32 i=0; i<Vec_len(&self->asmacroes); i++) {
         Asmacro* ptr = Vec_index(&self->asmacroes, i);
         if(Asmacro_cmp_signature(ptr, &asmacro)) {
-            SResult result;
-            result.ok_flag = false;
-            snprintf(result.error, 256, "asmacro \"%.10s\" has been already defined in same signature", asmacro.name);
             Asmacro_free(asmacro);
-            return result;
+            char msg[256];
+            snprintf(msg, 256, "asmacro \"%.10s\" has been already defined in same signature", asmacro.name);
+            return SResult_new(msg);
         }
     }
 
     Vec_push(&self->asmacroes, &asmacro);
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 SResult Generator_get_asmacro(in Generator* self, in char* name, out Vec* asmacroes) {
@@ -2042,13 +2034,12 @@ SResult Generator_get_asmacro(in Generator* self, in char* name, out Vec* asmacr
 
     if(Vec_len(asmacroes) == 0) {
         Vec_free(*asmacroes);
-        SResult result;
-        result.ok_flag = false;
-        snprintf(result.error, 256, "asmacro \"%.10s\" is undefined", name);
-        return result;
+        char msg[256];
+        snprintf(msg, 256, "asmacro \"%.10s\" is undefined", name);
+        return SResult_new(msg);
     }
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 void Generator_add_error(inout Generator* self, Error error) {
@@ -2059,10 +2050,9 @@ SResult Generator_new_section(inout Generator* self, in char* name) {
     for(u32 i=0; i<Vec_len(&self->sections); i++) {
         Section* section = Vec_index(&self->sections, i);
         if(strcmp(section->name, name) == 0) {
-            SResult result;
-            result.ok_flag = true;
-            snprintf(result.error, 256, "section \"%.10s\" has been already defined", name);
-            return result;
+            char msg[256];
+            snprintf(msg, 256, "section \"%.10s\" has been already defined", name);
+            return SResult_new(msg);
         }
     }
 
@@ -2073,31 +2063,30 @@ SResult Generator_new_section(inout Generator* self, in char* name) {
 
     Vec_push(&self->sections, &section);
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 SResult Generator_new_label(inout Generator* self, Label label) {
     Vec_push(&self->labels, &label);
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 SResult Generator_new_rel(inout Generator* self, Rel rel) {
     Vec_push(&self->rels, &rel);
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 static SResult Generator_get_section(in Generator* self, in char* name, out Section** section) {
     for(u32 i=0; i<Vec_len(&self->sections); i++) {
         *section = Vec_index(&self->sections, i);
         if(strcmp((*section)->name, name) == 0) {
-            return SRESULT_OK;
+            return SResult_new(NULL);
         }
     }
 
-    SResult result;
-    result.ok_flag = false;
-    snprintf(result.error, 256, "section \"%.10s\" is undefined", name);
-    return result;
+    char msg[256];
+    snprintf(msg, 256, "section \"%.10s\" is undefined", name);
+    return SResult_new(msg);
 }
 
 SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte) {
@@ -2107,7 +2096,7 @@ SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte) {
         (void)NULL
     );
     Vec_push(&section->binary, &byte);
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte) {
@@ -2120,7 +2109,7 @@ SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte) 
         Vec_last_ptr(&section->binary, (void**)byte),
         (void)NULL
     );
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 SResult Generator_binary_len(in Generator* self, in char* name, out u32* len) {
@@ -2132,7 +2121,7 @@ SResult Generator_binary_len(in Generator* self, in char* name, out u32* len) {
 
     *len = Vec_len(&section->binary);
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 void Generator_print(in Generator* self) {

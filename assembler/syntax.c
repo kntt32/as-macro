@@ -31,14 +31,13 @@ SResult VariableManager_get(inout VariableManager* self, in char* name, out Vari
         Variable* ptr = Vec_index(&self->variables, i);
         if(strcmp(ptr->name, name) == 0) {
             *variable = Variable_clone(ptr);
-            return SRESULT_OK;
+            return SResult_new(NULL);
         }
     }
     
-    SResult result;
-    result.ok_flag = false;
-    snprintf(result.error, 256, "variable \"%.10s\" is undefiend", name);
-    return result;
+    char msg[256];
+    snprintf(msg, 256, "variable \"%.10s\" is undefiend", name);
+    return SResult_new(msg);
 }
 
 void VariableManager_print(in VariableManager* self) {
@@ -75,9 +74,8 @@ static bool resolve_parsermsg(ParserMsg msg, inout Generator* generator) {
 }
 
 static bool resolve_sresult(SResult result, Offset offset, inout Generator* generator) {
-    if(!SRESULT_IS_OK(result)) {
-        Error error = Error_from_sresult(offset.line, result);
-        Generator_add_error(generator, error);
+    if(!SResult_is_success(result)) {
+        Generator_add_error(generator, Error_from_sresult(offset, result));
         return true;
     }
     return false;
@@ -85,8 +83,7 @@ static bool resolve_sresult(SResult result, Offset offset, inout Generator* gene
 
 static void check_parser(in Parser* parser, inout Generator* generator) {
     if(!Parser_is_empty(parser)) {
-        Error error = {parser->offset.line, "unexpected token"};
-        Generator_add_error(generator, error);
+        Generator_add_error(generator, Error_new(parser->offset, "unexpected token"));
     }
 }
 
@@ -248,7 +245,6 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
             
         VariableManager_free(variable_manager);
         Vec_free_all(arguments, Variable_free_for_vec);
-        PANIC("AAAAA");
         return true;
     }
 
@@ -343,7 +339,7 @@ void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
 
 void GlobalSyntax_print(in GlobalSyntax* self) {
     printf("GlobalSyntax { offset: ");
-    Offset_print(self->offset);
+    Offset_print(&self->offset);
     printf("ok_flag: %s, type: %d, body: ",
         BOOL_TO_STR(self->ok_flag),
         self->type
@@ -453,12 +449,11 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
     for(u32 i=0; i<LEN(BUILDERS); i++) {
         Parser parser_copy = parser;
         if(BUILDERS[i](parser_copy, generator, variable_manager, data)) {
-            return SRESULT_OK;
+            return SResult_new(NULL);
         }
     }
 
-    SResult result = {false, "unknown expression"};
-    return result;
+    return SResult_new("unknown expression");
 }
 
 static SResult Syntax_build_asmacro_expansion_get_arguments(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Vec* arguments) {
@@ -476,20 +471,19 @@ static SResult Syntax_build_asmacro_expansion_get_arguments(Parser parser, inout
         Vec_push(arguments, &arg);
     }
 
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 static SResult Syntax_build_asmacro_expansion_search_asmacro(in Vec* asmacroes, in Vec* arguments, out Asmacro* asmacro) {
     for(u32 i=0; i<Vec_len(asmacroes); i++) {
         Asmacro* ptr = Vec_index(asmacroes, i);
-        if(SRESULT_IS_OK(Asmacro_match_with(ptr, arguments))) {
+        if(SResult_is_success(Asmacro_match_with(ptr, arguments))) {
             *asmacro = Asmacro_clone(ptr);
-            return SRESULT_OK;
+            return SResult_new(NULL);
         }
     }
 
-    SResult result = {false, "mismatching asmacro"};
-    return result;
+    return SResult_new("mismatching asmacro");
 }
 
 static bool Syntax_build_asmacro_expansion_get_info(
@@ -533,7 +527,7 @@ static SResult Syntax_build_asmacro_expansion_asmoperator(in Asmacro* asmacro, i
         (void)NULL
     );
     
-    return SRESULT_OK;
+    return SResult_new(NULL);
 }
 
 static void Syntax_build_asmacro_expansion_useroperator(in Asmacro* asmacro, in Vec* dataes, inout Generator* generator, inout VariableManager* variable_manager) {

@@ -51,36 +51,33 @@ SResult Register_get_addreg_code(Register self, out u8* value) {
     for(u32 i=0; i<LEN(REGISTER_TABLE); i++) {
         if(REGISTER_TABLE[i].reg == self) {
             *value = REGISTER_TABLE[i].addreg_code;
-            return SRESULT_OK;
+            return SResult_new(NULL);
         }
     }
 
-    SResult result = {false, "unexpected register"};
-    return result;
+    return SResult_new("unexpected register");
 }
 
 SResult Register_get_modrmreg_code(Register self, out u8* value) {
     for(u32 i=0; i<LEN(REGISTER_TABLE); i++) {
         if(REGISTER_TABLE[i].reg == self) {
             *value = REGISTER_TABLE[i].modrmreg_code;
-            return SRESULT_OK;
+            return SResult_new(NULL);
         }
     }
     
-    SResult result = {false, "unexpected register"};
-    return result;
+    return SResult_new("unexpected register");
 }
 
 SResult Register_get_modrmregmem_base_code(Register self, out u8* value) {
     for(u32 i=0; i<LEN(REGISTER_TABLE); i++) {
         if(REGISTER_TABLE[i].reg == self) {
             *value = REGISTER_TABLE[i].modrmregmem_reg_code;
-            return SRESULT_OK;
+            return SResult_new(NULL);
         }
     }
 
-    SResult result = {false, "unexpected register"};
-    return result;
+    return SResult_new("unexpected register");
 }
 
 ParserMsg Register_parse(Parser* parser, Register* restrict ptr) {

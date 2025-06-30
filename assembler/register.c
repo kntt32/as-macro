@@ -90,7 +90,7 @@ ParserMsg Register_parse(Parser* parser, Register* restrict ptr) {
 
         if(Parser_parse_keyword(parser, rtable_str).msg[0] == '\0') {
             *ptr = rtable_reg;
-            return SUCCESS_PARSER_MSG;
+            return ParserMsg_new(parser->offset, NULL);
         }
     }
 
@@ -100,12 +100,11 @@ ParserMsg Register_parse(Parser* parser, Register* restrict ptr) {
 
         if(Parser_parse_keyword(parser, rtable_str).msg[0] == '\0') {
             *ptr = rtable_reg;
-            return SUCCESS_PARSER_MSG;
+            return ParserMsg_new(parser->offset, NULL);
         } 
     }
 
-    ParserMsg msg = {parser->line, "expected keyword"};
-    return msg;
+    return ParserMsg_new(parser->offset, "expected keyword");
 }
 
 bool Register_is_integer(Register self) {

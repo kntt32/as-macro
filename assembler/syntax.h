@@ -9,7 +9,7 @@ typedef struct {
 
 typedef struct {
     bool ok_flag;
-    u32 line;
+    Offset offset;
     enum {
         GlobalSyntax_StructDefinision,
         GlobalSyntax_EnumDefinision,

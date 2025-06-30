@@ -54,7 +54,7 @@ static ParserMsg Type_parse_struct_members(Parser parser, in Generator* generato
 
     type->size = (type->size + type->align - 1)/type->align*type->align;
 
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser.offset, NULL);
 }
 
 ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out Type* type) {
@@ -79,7 +79,7 @@ ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out T
     );
 
     *parser = parser_copy;
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 static ParserMsg Type_parse_enum_members(Parser parser, out Type* type) {
@@ -102,7 +102,7 @@ static ParserMsg Type_parse_enum_members(Parser parser, out Type* type) {
         }
     }
 
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser.offset, NULL);
 }
 
 ParserMsg Type_parse_enum(inout Parser* parser, out Type* type) {
@@ -127,7 +127,7 @@ ParserMsg Type_parse_enum(inout Parser* parser, out Type* type) {
     );
 
     *parser = parser_copy;
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 static ParserMsg Type_parse_array_get_args(Parser parser, in Generator* generator, out Type* type, out u32* len) {
@@ -147,18 +147,16 @@ static ParserMsg Type_parse_array_get_args(Parser parser, in Generator* generato
         (void)NULL
     );
     if((i64)value <= 0) {
-        ParserMsg msg = {parser.line, "array length must be natural number"};
-        return msg;
+        return ParserMsg_new(parser.offset, "array length must be natural number");
     }
     *len = value;
 
     if(!Parser_is_empty(&parser)) {
         Type_free(*type);
-        ParserMsg msg = {parser.line, "unexpected token"};
-        return msg;
+        return ParserMsg_new(parser.offset, "unexpected token");
     }
 
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser.offset, NULL);
 }
 
 ParserMsg Type_parse_array(inout Parser* parser, in Generator* generator, out Type* type) {
@@ -189,7 +187,7 @@ ParserMsg Type_parse_array(inout Parser* parser, in Generator* generator, out Ty
     type->align = child_type->align;
 
     *parser = parser_copy;
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type) {
@@ -214,10 +212,7 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
     }else {
         SResult result = Generator_get_type(generator, token, type);
         if(!SRESULT_IS_OK(result)) {
-            ParserMsg msg;
-            msg.line = parser_copy.line;
-            strcpy(msg.msg, result.error);
-            return msg;
+            return ParserMsg_from_sresult(result, parser->offset);
         }
     }
 
@@ -225,7 +220,7 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
 
     *parser = parser_copy;
 
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 bool Type_cmp(in Type* self, in Type* other) {
@@ -381,7 +376,7 @@ ParserMsg StructMember_parse(inout Parser* parser, in Generator* generator, inou
     *size = struct_member->offset + type->size;
 
     *parser = parser_copy;
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 StructMember StructMember_clone(in StructMember* self) {
@@ -451,7 +446,7 @@ ParserMsg EnumMember_parse(inout Parser* parser, inout i32* value, out EnumMembe
 
     *parser = parser_copy;
 
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 bool EnumMember_cmp(in EnumMember* self, in EnumMember* other) {
@@ -508,27 +503,24 @@ ParserMsg ModRmType_parse(inout Parser* parser, in AsmArgSize* sizes, out ModRmT
     if(ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "r"))) {
         mod_rm_type->type = ModRmType_R;
         if(sizes->reg == 0) {
-            ParserMsg msg = {parser->line, "expected register argument"};
-            return msg;
+            return ParserMsg_new(parser->offset, "expected register argument");
         }
         mod_rm_type->body.r = sizes->reg;
     }else if(ParserMsg_is_success(Parser_parse_number(&parser_copy, &value))) {
         if(!(value < 8)) {
-            ParserMsg msg = {parser_copy.line, "invlalid modrm encoding rule"};
-            return msg;
+            return ParserMsg_new(parser->offset, "invalid modrm encoding rule");
         }
         mod_rm_type->type = ModRmType_Dight;
         mod_rm_type->body.dight = value;
     }
 
     if(sizes->regmem == 0) {
-        ParserMsg msg = {parser->line, "expected reg/mem argument"};
-        return msg;
+        return ParserMsg_new(parser->offset, "expected reg/mem argument");
     }
     mod_rm_type->memsize = sizes->regmem;
 
     *parser = parser_copy;
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 void ModRmType_print(in ModRmType* self) {
@@ -565,7 +557,7 @@ static ParserMsg AsmEncodingElement_parse_imm_and_addreg(inout Parser* parser, o
             asm_encoding_element->body.imm = IMMS[i].imm_field;
             
             *parser = parser_copy;
-            return SUCCESS_PARSER_MSG;
+            return ParserMsg_new(parser->offset, NULL);
         }
     }
     for(u32 i=0; i<4; i++) {
@@ -574,12 +566,11 @@ static ParserMsg AsmEncodingElement_parse_imm_and_addreg(inout Parser* parser, o
             asm_encoding_element->body.add_reg = ADD_REGS[i].add_reg_field;
             
             *parser = parser_copy;
-            return SUCCESS_PARSER_MSG;
+            return ParserMsg_new(parser->offset, NULL);
         }
     }
 
-    ParserMsg msg = {parser_copy.line, "found invalid ssm encoding rule"};
-    return msg;
+    return ParserMsg_new(parser->offset, "invalid asm encoding rule");
 }
 
 ParserMsg AsmEncodingElement_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmEncodingElement* asm_encoding_element) {
@@ -594,8 +585,7 @@ ParserMsg AsmEncodingElement_parse(inout Parser* parser, in AsmArgSize* sizes, o
         );
     }else if(ParserMsg_is_success(Parser_parse_number(&parser_copy, &value))) {
         if(!(value < 256)) {
-            ParserMsg msg = {parser_copy.line, "invalid number"};
-            return msg;
+            return ParserMsg_new(parser_copy.offset, "invalid number");
         }
         asm_encoding_element->type = AsmEncodingElement_Value;
         asm_encoding_element->body.value = value;
@@ -607,7 +597,7 @@ ParserMsg AsmEncodingElement_parse(inout Parser* parser, in AsmArgSize* sizes, o
     }
 
     *parser = parser_copy;
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 static SResult ModRmType_encode_rex_prefix_reg(in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
@@ -866,7 +856,7 @@ ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmE
     asm_encoding->encoding_elements = elements;
 
     *parser = parser_copy;
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 static SResult AsmEncoding_encode_prefix_set_defaults(in AsmEncoding* self, inout bool* x66_prefix_needed_flag, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
@@ -1112,11 +1102,10 @@ ParserMsg Storage_parse(inout Parser* parser, in i32* rbp_offset, out Storage* s
         mem->disp.type = Disp_Offset;
         mem->disp.body.offset = *rbp_offset;
     }else {
-        ParserMsg msg = {parser->line, "expected storage"};
-        return msg;
+        return ParserMsg_new(parser->offset, "expected storage");
     }
 
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 bool Storage_cmp(in Storage* self, in Storage* other) {
@@ -1180,7 +1169,7 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* r
 
     *parser = parser_copy;
 
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 Data Data_from_register(Register reg) {
@@ -1259,7 +1248,7 @@ ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i3
     );
 
     *parser = parser_copy;
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 Variable Variable_clone(in Variable* self) {
@@ -1329,8 +1318,7 @@ static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argume
                 }
             }
             if(!flag) {
-                ParserMsg msg = {parser->line, "expected storage bound"};
-                return msg;
+                return ParserMsg_new(parser->offset, "expected storage bound");
             }
         } while(ParserMsg_is_success(Parser_parse_symbol(&parser_copy, "+")));
 
@@ -1338,7 +1326,7 @@ static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argume
     }
 
     *parser = parser_copy;
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 ParserMsg Argument_parse(inout Parser* parser, in Generator* generator, out Argument* argument) {
@@ -1369,7 +1357,7 @@ ParserMsg Argument_parse(inout Parser* parser, in Generator* generator, out Argu
     );
 
     *parser = parser_copy;
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 bool Argument_cmp(in Argument* self, out Argument* other) {
@@ -1650,13 +1638,12 @@ static ParserMsg Asmacro_parse_header_arguments(Parser parser, in Generator* gen
 
         if(!Parser_is_empty(&parser)) {
             if(!ParserMsg_is_success(Parser_parse_symbol(&parser, ","))) {
-                ParserMsg msg = {parser.line, "expected symbol \",\""};
-                return msg;
+                return ParserMsg_new(parser.offset, "expected symbol \",\"");
             }
         }
     }
 
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser.offset, NULL);
 }
 
 static ParserMsg Asmacro_parse_header(inout Parser* parser, in Generator* generator, out Asmacro* asmacro) {
@@ -1684,7 +1671,7 @@ static ParserMsg Asmacro_parse_header(inout Parser* parser, in Generator* genera
     );
 
     *parser = parser_copy;
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 static ParserMsg Asmacro_parse_proc(inout Parser* parser, out Asmacro* asmacro) {
@@ -1697,7 +1684,7 @@ static ParserMsg Asmacro_parse_proc(inout Parser* parser, out Asmacro* asmacro) 
     asmacro->type = Asmacro_UserOperator;
     asmacro->body.user_operator.src = Parser_own(&block_parser, &asmacro->body.user_operator.parser);
 
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 static ParserMsg Asmacro_parse_encoding(inout Parser* parser, out Asmacro* asmacro) {
@@ -1713,7 +1700,7 @@ static ParserMsg Asmacro_parse_encoding(inout Parser* parser, out Asmacro* asmac
     PARSERMSG_UNWRAP(
         ParserMsg_from_sresult(
             AsmArgSize_from(&asmacro->arguments, &sizes),
-            parser->line
+            parser->offset
         ),
         (void)NULL
     );
@@ -1734,15 +1721,14 @@ static ParserMsg Asmacro_parse_encoding(inout Parser* parser, out Asmacro* asmac
                 break;
             default:
                 AsmEncoding_free(asmacro->body.asm_operator);
-                ParserMsg msg = {parser->line, "operand size must be 1, 2, 4 or 8 byte"};
-                return msg;
+                return ParserMsg_new(parser->offset, "operand size must be 1, 2, 4 or 8 byte");
         }
         asmacro->body.asm_operator.operand_size = argument->type.size * 8;
     }
 
     *parser = parser_copy;
 
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmacro* asmacro) {
@@ -1768,7 +1754,7 @@ ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmac
     }
 
     *parser = parser_copy;
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */) {
@@ -1940,7 +1926,7 @@ void Rel_print_for_vec(in void* ptr) {
 
 Error Error_from_parsermsg(ParserMsg parser_msg) {
     Error error;
-    error.line = parser_msg.line;
+    error.line = parser_msg.offset.line;
     strcpy(error.msg, parser_msg.msg);
 
     return error;

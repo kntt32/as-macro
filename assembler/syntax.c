@@ -74,9 +74,9 @@ static bool resolve_parsermsg(ParserMsg msg, inout Generator* generator) {
     return false;
 }
 
-static bool resolve_sresult(SResult result, u32 line, inout Generator* generator) {
+static bool resolve_sresult(SResult result, Offset offset, inout Generator* generator) {
     if(!SRESULT_IS_OK(result)) {
-        Error error = Error_from_sresult(line, result);
+        Error error = Error_from_sresult(offset.line, result);
         Generator_add_error(generator, error);
         return true;
     }
@@ -85,7 +85,7 @@ static bool resolve_sresult(SResult result, u32 line, inout Generator* generator
 
 static void check_parser(in Parser* parser, inout Generator* generator) {
     if(!Parser_is_empty(parser)) {
-        Error error = {parser->line, "unexpected token"};
+        Error error = {parser->offset.line, "unexpected token"};
         Generator_add_error(generator, error);
     }
 }
@@ -95,7 +95,7 @@ static bool GlobalSyntax_parse_struct_definision(Parser parser, inout Generator*
         return false;
     }
     
-    global_syntax->line = parser.line;
+    global_syntax->offset = parser.offset;
     global_syntax->type = GlobalSyntax_StructDefinision;
     global_syntax->ok_flag = false;
     
@@ -104,7 +104,7 @@ static bool GlobalSyntax_parse_struct_definision(Parser parser, inout Generator*
         return true;
     }
     
-    if(resolve_sresult(Generator_add_type(generator, type), parser.line, generator)) {
+    if(resolve_sresult(Generator_add_type(generator, type), parser.offset, generator)) {
         return true;
     }
 
@@ -119,7 +119,7 @@ static bool GlobalSyntax_parse_enum_definision(Parser parser, inout Generator* g
         return false;
     }
     
-    global_syntax->line = parser.line;
+    global_syntax->offset = parser.offset;
     global_syntax->type = GlobalSyntax_EnumDefinision;
     global_syntax->ok_flag = false;
     
@@ -128,7 +128,7 @@ static bool GlobalSyntax_parse_enum_definision(Parser parser, inout Generator* g
         return true;
     }
     
-    if(resolve_sresult(Generator_add_type(generator, type), parser.line, generator)) {
+    if(resolve_sresult(Generator_add_type(generator, type), parser.offset, generator)) {
         return true;
     }
     
@@ -143,7 +143,7 @@ static bool GlobalSyntax_parse_asmacro_definision(Parser parser, inout Generator
         return false;
     }
 
-    global_syntax->line = parser.line;
+    global_syntax->offset = parser.offset;
     global_syntax->type = GlobalSyntax_AsmacroDefinision;
     global_syntax->ok_flag = false;
 
@@ -155,7 +155,7 @@ static bool GlobalSyntax_parse_asmacro_definision(Parser parser, inout Generator
     global_syntax->body.asmacro_definision = Asmacro_clone(&asmacro);
     global_syntax->ok_flag = true;
 
-    if(resolve_sresult(Generator_add_asmacro(generator, asmacro), parser.line, generator)) {
+    if(resolve_sresult(Generator_add_asmacro(generator, asmacro), parser.offset, generator)) {
         return true;
     }
 
@@ -168,7 +168,7 @@ static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* genera
         return false;
     }
 
-    global_syntax->line = parser.line;
+    global_syntax->offset = parser.offset;
     global_syntax->type = GlobalSyntax_TypeAlias;
     global_syntax->ok_flag = false;
 
@@ -182,7 +182,7 @@ static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* genera
         return true;
     }
 
-    if(resolve_sresult(Generator_add_type(generator, type), parser.line, generator)) {
+    if(resolve_sresult(Generator_add_type(generator, type), parser.offset, generator)) {
         return true;
     }
 
@@ -223,7 +223,7 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
         }
     }
     
-    return SUCCESS_PARSER_MSG;
+    return ParserMsg_new(parser.offset, NULL);
 }
 
 static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
@@ -231,7 +231,7 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
         return false;
     }
 
-    global_syntax->line = parser.line;
+    global_syntax->offset = parser.offset;
     global_syntax->type = GlobalSyntax_FunctionDefinision;
     global_syntax->ok_flag = false;
 
@@ -253,7 +253,7 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
     }
 
     Asmacro wrapper_asmacro = Asmacro_new_fn_wrapper(name, arguments);
-    if(resolve_sresult(Generator_add_asmacro(generator, wrapper_asmacro), parser.line, generator)) {
+    if(resolve_sresult(Generator_add_asmacro(generator, wrapper_asmacro), parser.offset, generator)) {
         return true;
     }
 
@@ -278,12 +278,11 @@ ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out Glob
     
     for(u32 i=0; i<LEN(BUILDERS); i++) {
         if(BUILDERS[i](parser, generator, global_syntax)) {
-            return SUCCESS_PARSER_MSG;
+            return ParserMsg_new(parser.offset, NULL);
         }
     }
     
-    ParserMsg msg = {parser.line, "unknown global syntax"};
-    return msg;
+    return ParserMsg_new(parser.offset, "unknown global syntax");
 }
 
 void GlobalSyntax_check_asmacro(inout GlobalSyntax* self, inout Generator* generator) {
@@ -307,12 +306,12 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
     strcpy(label.section_name, "text");
     resolve_sresult(
         Generator_binary_len(generator, "text", &label.offset),
-        parser.line,
+        parser.offset,
         generator
     );
     resolve_sresult(
         Generator_new_label(generator, label),
-        parser.line,
+        parser.offset,
         generator
     );
 
@@ -321,7 +320,7 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
         Data data;
         
         resolve_sresult(
-            Syntax_build(syntax_parser, generator, variable_manager, &data), parser.line, generator
+            Syntax_build(syntax_parser, generator, variable_manager, &data), parser.offset, generator
         );
 
         Data_free(data);
@@ -343,11 +342,13 @@ void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
 }
 
 void GlobalSyntax_print(in GlobalSyntax* self) {
-    printf("GlobalSyntax { line: %u, ok_flag: %s, type: %d, body: ",
-        self->line,
+    printf("GlobalSyntax { offset: ");
+    Offset_print(self->offset);
+    printf("ok_flag: %s, type: %d, body: ",
         BOOL_TO_STR(self->ok_flag),
         self->type
     );
+
     switch(self->type) {
         case GlobalSyntax_StructDefinision:
             printf(".none");
@@ -500,16 +501,16 @@ static bool Syntax_build_asmacro_expansion_get_info(
     out Vec* arguments
 ) {
     Vec asmacroes;
-    if(resolve_sresult(Generator_get_asmacro(generator, name, &asmacroes), args_parser.line, generator)) {
+    if(resolve_sresult(Generator_get_asmacro(generator, name, &asmacroes), args_parser.offset, generator)) {
         return true;
     }
 
-    if(resolve_sresult(Syntax_build_asmacro_expansion_get_arguments(args_parser, generator, variable_manager, arguments), args_parser.line, generator)) {
+    if(resolve_sresult(Syntax_build_asmacro_expansion_get_arguments(args_parser, generator, variable_manager, arguments), args_parser.offset, generator)) {
         Vec_free_all(asmacroes, Asmacro_free_for_vec);
         return true;
     }
 
-    if(resolve_sresult(Syntax_build_asmacro_expansion_search_asmacro(&asmacroes, arguments, asmacro), args_parser.line, generator)) {
+    if(resolve_sresult(Syntax_build_asmacro_expansion_search_asmacro(&asmacroes, arguments, asmacro), args_parser.offset, generator)) {
         Vec_free_all(asmacroes, Asmacro_free_for_vec);
         Vec_free_all(*arguments, Data_free_for_vec);
         return true;
@@ -555,7 +556,7 @@ static void Syntax_build_asmacro_expansion_useroperator(in Asmacro* asmacro, in 
         Data data;
         resolve_sresult(
             Syntax_build(syntax_parser, generator, variable_manager, &data),
-            syntax_parser.line, generator
+            syntax_parser.offset, generator
         );
         Data_free(data);
     }
@@ -593,7 +594,7 @@ bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, i
         case Asmacro_AsmOperator:
             resolve_sresult(
                 Syntax_build_asmacro_expansion_asmoperator(&asmacro, &arguments, generator),
-                parser.line,
+                parser.offset,
                 generator
             );
             break;
@@ -667,7 +668,7 @@ bool Syntax_build_variable_expression(Parser parser, inout Generator* generator,
     *data = DATA_VOID;
     
     Variable variable;
-    if(resolve_sresult(VariableManager_get(variable_manager, name, &variable), parser.line, generator)) {
+    if(resolve_sresult(VariableManager_get(variable_manager, name, &variable), parser.offset, generator)) {
         return true;
     }
     

@@ -3,9 +3,9 @@ RELEASE ?= 0
 
 CC ?= gcc
 
-CFLAGS := -Wall -Wextra -g -fsanitize=undefined -fsanitize=address -fsanitize=leak
+CFLAGS := -Wall -Wextra -O0 -g -fsanitize=undefined -fsanitize=address -fsanitize=leak
 ifeq ($(FSANITIZE), 0)
-    CFLAGS := -Wall -Wextra -g
+    CFLAGS := -Wall -Wextra -O0 -g
 endif
 ifeq ($(RELEASE),1)
 	CFLAGS := -Wall -Wextra -Ofast

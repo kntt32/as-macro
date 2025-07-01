@@ -175,7 +175,7 @@ typedef struct {
     enum { Asmacro_AsmOperator, Asmacro_UserOperator, Asmacro_FnWrapper } type;
     union {
         AsmEncoding asm_operator;
-        struct { Parser parser; char* src; } user_operator;
+        Parser user_operator;
         Vec fn_wrapper;// Vec<Variable>
     } body;
 } Asmacro;

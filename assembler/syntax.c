@@ -265,11 +265,11 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
 
 ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
     bool (*BUILDERS[])(Parser, inout Generator*, out GlobalSyntax*) = {
+        GlobalSyntax_parse_asmacro_definision,
         GlobalSyntax_parse_struct_definision,
         GlobalSyntax_parse_enum_definision,
-        GlobalSyntax_parse_asmacro_definision,
         GlobalSyntax_parse_type_alias,
-        GlobalSyntax_parse_function_definision,
+        GlobalSyntax_parse_function_definision
     };
     
     for(u32 i=0; i<LEN(BUILDERS); i++) {
@@ -531,7 +531,7 @@ static SResult Syntax_build_asmacro_expansion_asmoperator(in Asmacro* asmacro, i
 }
 
 static void Syntax_build_asmacro_expansion_useroperator(in Asmacro* asmacro, in Vec* dataes, inout Generator* generator, inout VariableManager* variable_manager) {
-    Parser proc_parser = asmacro->body.user_operator.parser;
+    Parser proc_parser = asmacro->body.user_operator;
     
     for(u32 i=0; i<Vec_len(dataes); i++) {
         Argument* arg = Vec_index(&asmacro->arguments, i);

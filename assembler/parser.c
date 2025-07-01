@@ -2,8 +2,9 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <assert.h>
+#include <errno.h>
 #include "parser.h"
-#include "util.h"
 
 Offset Offset_new(in char* path) {
     Offset offset;
@@ -44,15 +45,35 @@ void Offset_print(in Offset* self) {
 
 Parser Parser_new(in char* src, in char* path) {
     Parser parser = {src, strlen(src), Offset_new(path)};
+    Parser_skip_space(&parser);
     return parser;
 }
 
-static char Parser_read(inout Parser* self) {
+void Parser_print(in Parser* self) {
+    printf("Parser { src: \"");
+    for(u32 i=0; i<self->len; i++) {
+        printf("%c", self->src[i]);
+    }
+    printf("\", len: %lu, offset: ", self->len);
+    Offset_print(&self->offset);
+    printf(" }");
+}
+
+static char Parser_look(in Parser* self) {
+    assert(self->src != NULL);
     if(self->len == 0) {
         return '\0';
     }
 
-    char c = self->src[0];
+    return self->src[0];
+}
+
+static char Parser_read(inout Parser* self) {
+    char c = Parser_look(self);
+    if(c == '\0') {
+        return c;
+    }
+
     Offset_seek_char(&self->offset, c);
     self->src ++;
     self->len --;
@@ -60,280 +81,148 @@ static char Parser_read(inout Parser* self) {
     return c;
 }
 
-static void Parser_skip_space(inout Parser* self) {
-    while(self->len != 0 && isspace(self->src[0])) {
-        Parser_read(self);
-    }
-}
-
-static bool Parser_is_gap(in Parser* self) {
-    if(self->len == 0) {
-        return true;
-    }
-
-    char c = self->src[0];
-    return self->src[0] != '\0' && (isspace(c) || (ispunct(c) && c != '_'));
-}
-
-static void Parser_run_for_gap(inout Parser* self, out char token[256]) {
-    Parser_skip_space(self);
-    u32 len = 0;
-    
-    while(!Parser_is_gap(self) && isascii(self->src[0]) && len < 256 - 1) {
-        token[len] = Parser_read(self);
-        len ++;
-    }
-
-    token[len] = '\0';
-
-    return;
-}
-
-static bool Parser_skip(inout Parser* self) {
-    Parser_skip_space(self);
-
-    if(Parser_is_empty(self)) {
-        return false;
-    }
-
-    char c[3];
-    if(ParserMsg_is_success(Parser_parse_charliteral(self, c))) {
-        return true;
-    }
-    
-    char token[256];
-    Parser_run_for_gap(self, token);
-    if(token[0] != '\0') {
-        return true;
-    }
-
-    static ParserMsg (*BLOCK_PARSERS[3])(Parser*, Parser*) = {Parser_parse_block, Parser_parse_paren, Parser_parse_index};
-    for(u32 i=0; i<3; i++) {
-        Parser parser;
-        if(ParserMsg_is_success(BLOCK_PARSERS[i](self, &parser))) {
-            return true;
-        }
-    }
-
-    if(self->len != 0 && ispunct(self->src[0])) {
-        Parser_read(self);
-        return true;
-    }
-
-    return false;
-}
-
-static ParserMsg Parser_parse_block_helper(inout Parser* self, out Parser* parser, in char* start, in char* end) {
-    Parser self_copy = *self; 
-
+static ParserMsg Parser_parse_parens_helper(inout Parser* self, out Parser* parser, in char* start, in char* end) {
     PARSERMSG_UNWRAP(
-        Parser_parse_symbol(&self_copy, start),
-        (void)(NULL)
+        Parser_parse_symbol(self, start),
+        (void)NULL
     );
-
-    *parser = self_copy;
-
-    while(!ParserMsg_is_success(Parser_parse_symbol(&self_copy, end))) {
-        if(!Parser_skip(&self_copy)) {
-            PANIC("unknown token");
-        }
-    }
-
-    parser->len = parser->len - self_copy.len - 1;
-    *self = self_copy;
+    *parser = Parser_split(self, end);
 
     return ParserMsg_new(self->offset, NULL);
 }
 
-bool Parser_is_empty(in Parser* self) {
-    Parser_skip_space(self);
-    return 0 == self->len;
-}
-
-void Parser_skip_to_semicolon(inout Parser* self) {
-    while(!ParserMsg_is_success(Parser_parse_symbol(self, ";"))) {
-        Parser_skip(self);
+void Parser_skip_space(inout Parser* self) {
+    while(isspace((unsigned char)Parser_look(self))) {
+        Parser_read(self);
     }
-
-    return;
 }
 
-bool Parser_start_with(inout Parser* self, in char* keyword) {
-    Parser self_copy = *self;
+bool Parser_is_empty(in Parser* self) {
+    return self->len == 0;
+}
 
+bool Parser_start_with(in Parser* self, in char* keyword) {
+    Parser self_copy = *self;
     return ParserMsg_is_success(Parser_parse_keyword(&self_copy, keyword));
 }
 
-bool Parser_start_with_symbol(inout Parser* self, in char* symbol) {
+bool Parser_start_with_symbol(in Parser* self, in char* symbol) {
     Parser self_copy = *self;
-
     return ParserMsg_is_success(Parser_parse_symbol(&self_copy, symbol));
 }
 
 Parser Parser_split(inout Parser* self, in char* symbol) {
-    Parser self_copy = *self;
     Parser parser = *self;
+    u32 len = parser.len;
+    parser.len = 0;
 
-    if(Parser_is_empty(self)) {
-        return parser;
+    while(!Parser_is_empty(self) && !ParserMsg_is_success(Parser_parse_symbol(self, symbol))) {
+        Parser_skip(self);
+        parser.len = len - self->len;
     }
-
-    while(!ParserMsg_is_success(Parser_parse_symbol(&self_copy, symbol))) {
-        if(!Parser_skip(&self_copy)) {
-            if(Parser_is_empty(&self_copy)) {
-                break;
-            }else {
-                PANIC("unknown token");
-            }
-        }
-        
-        parser.len = self->len - self_copy.len;
-    }
-
-    *self = self_copy;
 
     return parser;
 }
 
-char* Parser_own(in Parser* parser, out Parser* owned_parser) {
-    char* src = malloc(sizeof(char) * (parser->len + 1));
-    UNWRAP_NULL(src);
-    memcpy(src, parser->src, parser->len);
-    src[parser->len] = '\0';
-    
-    owned_parser->src = src;
-    owned_parser->len = parser->len;
-    owned_parser->offset = parser->offset;
+void Parser_skip(inout Parser* self) {
+    char token[256];
+    u64 value;
+    Parser parser;
 
-    return src;
+    if(ParserMsg_is_success(Parser_parse_ident(self, token))
+        || ParserMsg_is_success(Parser_parse_number(self, &value))
+        || ParserMsg_is_success(Parser_parse_block(self, &parser))
+        || ParserMsg_is_success(Parser_parse_paren(self, &parser))
+        || ParserMsg_is_success(Parser_parse_index(self, &parser))) {
+        return;
+    }
+
+    Parser_read(self);
 }
 
 ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]) {
-    Parser self_copy = *self;
-    Parser_run_for_gap(&self_copy, token);
-    u32 len = strlen(token);
-
-    ParserMsg msg = ParserMsg_new(self->offset, "expected identifier");
-    
-    if(len == 0) {
-        return msg;
-    }
-
-    for(u32 i=0; i<len; i++) {
-        if(!(isascii(token[i]) && (token[i] == '_' || isalpha(token[i]) || (i != 0 && isalnum(token[i]))))) {
-            return msg;
+    u32 len = 0;
+    while(true) {
+        char c = Parser_look(self);
+        unsigned char u_c = (unsigned char)c;
+        
+        if(!isascii(u_c)) {
+            break;
         }
+        if(!(isalpha(u_c) || isdigit(u_c) || u_c == '_')) {
+            break;
+        }
+
+        if(len < 256) token[len] = Parser_read(self);
+        len ++;
     }
 
-    *self = self_copy;
+    if(len < 256) {
+        token[len] = '\0';
+    }else {
+        token[255] = '\0';
+    }
+    if(len == 0) {
+        return ParserMsg_new(self->offset, "expected ident");
+    }
 
+    Parser_skip_space(self);
     return ParserMsg_new(self->offset, NULL);
 }
 
 ParserMsg Parser_parse_keyword(inout Parser* self, in char* keyword) {
     Parser self_copy = *self;
+
     char token[256];
-    Parser_run_for_gap(&self_copy, token);
-    if(strcmp(token, keyword) != 0) {
+    if(!ParserMsg_is_success(Parser_parse_ident(&self_copy, token)) || strcmp(token, keyword) != 0) {
         return ParserMsg_new(self->offset, "expected keyword");
     }
 
     *self = self_copy;
-
+    Parser_skip_space(self);
     return ParserMsg_new(self->offset, NULL);
 }
 
 ParserMsg Parser_parse_symbol(inout Parser* self, in char* symbol) {
-    Parser_skip_space(self);
-
-    u32 symbol_len = strlen(symbol);
-    if(strncmp(self->src, symbol, symbol_len) != 0) {
+    if(self->len < strlen(symbol) || strncmp(self->src, symbol, strlen(symbol)) != 0) {
         return ParserMsg_new(self->offset, "expected symbol");
     }
-
-    for(u32 i=0; i<symbol_len; i++) {
+    
+    for(u32 i=0; i<strlen(symbol); i++) {
         Parser_read(self);
     }
 
+    Parser_skip_space(self);
     return ParserMsg_new(self->offset, NULL);
 }
 
 ParserMsg Parser_parse_number(inout Parser* self, out u64* value) {
-    Parser self_copy = *self;
+    char* end = NULL;
 
-    bool minus_flag = ParserMsg_is_success(Parser_parse_symbol(self, "-"));
-
-    char token[256];
-    
-    Parser_run_for_gap(&self_copy, token);
-    if(Util_str_to_u64(token, value) == NULL) {
+    errno = 0;
+    *value = strtoll(self->src, &end, 0);
+    if(errno == ERANGE || end == self->src) {
         return ParserMsg_new(self->offset, "expected number literal");
     }
     
-    if(minus_flag) {
-        *value = - (i64)*value;
+    while(self->src != end) {
+        Parser_read(self);
     }
 
-    *self = self_copy;
-    
-    return ParserMsg_new(self->offset, NULL);
-}
-
-ParserMsg Parser_parse_charliteral(inout Parser* self, out char c[3]) {
-    ParserMsg msg = ParserMsg_new(self->offset, "expected char literal");
-
-    Parser self_copy = *self;
-
-    PARSERMSG_UNWRAP(
-        Parser_parse_symbol(self, "\'"),
-        (void)NULL
-    );
-
-    c[0] = Parser_read(self);
-    c[1] = '\0';
-    switch(c[0]) {
-        case '\0':
-            return msg;
-        case '\\':
-            c[1] = Parser_read(self);
-            switch(c[1]) {
-                case '0':
-                case 'n':
-                case 'r':
-                case '\\':
-                case 't':
-                case 'a':
-                case '"':
-                case '\'':
-                    break;
-                default:
-                    return msg;
-            }
-            c[2] = '\0';
-        default:
-            break;
-    }
-
-    PARSERMSG_UNWRAP(
-        Parser_parse_symbol(self, "\'"),
-        (void)NULL
-    );
-
-    *self = self_copy;
-
+    Parser_skip_space(self);
     return ParserMsg_new(self->offset, NULL);
 }
 
 ParserMsg Parser_parse_block(inout Parser* self, out Parser* parser) {
-    return Parser_parse_block_helper(self, parser, "{", "}");
+    return Parser_parse_parens_helper(self, parser, "{", "}");
 }
 
 ParserMsg Parser_parse_paren(inout Parser* self, out Parser* parser) {
-    return Parser_parse_block_helper(self, parser, "(", ")");
+    return Parser_parse_parens_helper(self, parser, "(", ")");
 }
 
 ParserMsg Parser_parse_index(inout Parser* self, out Parser* parser) {
-    return Parser_parse_block_helper(self, parser, "[", "]");
+    return Parser_parse_parens_helper(self, parser, "[", "]");
 }
 
 ParserMsg ParserMsg_new(Offset offset, optional char* msg) {

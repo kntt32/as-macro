@@ -1848,6 +1848,7 @@ Asmacro Asmacro_clone(in Asmacro* self) {
     Asmacro asmacro;
 
     strcpy(asmacro.name, self->name);
+    strcpy(asmacro.valid_path, self->valid_path);
     asmacro.arguments = Vec_clone(&self->arguments, Argument_clone_for_vec);
     asmacro.type = self->type;
 

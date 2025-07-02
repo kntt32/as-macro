@@ -5,9 +5,9 @@ struct Point {
     y: i64
 };
 
-as mov(x: i64@reg, y: i64@imm) : (double: 0xb8, rq, iq);
+pub as mov(x: i64@reg, y: i64@imm) : (double: 0xb8, rq, iq);
 
-as nop() : (double: 0x90);
+pub as nop() : (double: 0x90);
 
 pub as NOP() {
     nop();

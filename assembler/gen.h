@@ -335,6 +335,8 @@ void Label_print_for_vec(in void* ptr);
 void Rel_print(in Rel* self);
 void Rel_print_for_vec(in void* ptr);
 
+void Import_print(in Import* self);
+void Import_print_for_vec(in void* ptr);
 void Import_free(Import self);
 void Import_free_for_vec(inout void* ptr);
 

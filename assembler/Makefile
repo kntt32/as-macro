@@ -1,4 +1,4 @@
-FSANITIZE ?= 1
+FSANITIZE ?= 0
 RELEASE ?= 0
 
 CC ?= gcc
@@ -8,7 +8,7 @@ ifeq ($(FSANITIZE), 0)
     CFLAGS := -Wall -Wextra -O0 -g
 endif
 ifeq ($(RELEASE),1)
-	CFLAGS := -Wall -Wextra -Ofast
+	CFLAGS := -Wall -Wextra -O4 -g
 endif
 
 asm.elf: main.o types.o vec.o str.o parser.o util.o register.o gen.o syntax.o cmd.o

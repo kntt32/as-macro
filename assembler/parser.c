@@ -11,8 +11,7 @@ Offset Offset_new(in char* path) {
 
     Offset offset;
 
-    strncpy(offset.path, path, 256);
-    offset.path[255] = '\0';
+    strncpy(offset.path, path, 255);
     offset.line = 1;
     offset.column = 1;
 
@@ -275,8 +274,7 @@ ParserMsg ParserMsg_new(Offset offset, optional char* msg) {
     if(msg == NULL) {
         parser_msg.msg[0] = '\0';
     }else {
-        strncpy(parser_msg.msg, msg, 256);
-        parser_msg.msg[255] = '\0';
+        strncpy(parser_msg.msg, msg, 255);
     }
 
     return parser_msg;

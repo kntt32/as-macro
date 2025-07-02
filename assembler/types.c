@@ -5,8 +5,7 @@
 SResult SResult_new(optional char* error) {
     SResult result = {""};
     if(error != NULL) {
-        strncpy(result.error, error, 256);
-        result.error[255] = '\0';
+        strncpy(result.error, error, 255);
     }
 
     return result;

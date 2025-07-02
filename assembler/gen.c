@@ -1941,6 +1941,15 @@ void Rel_print_for_vec(in void* ptr) {
     Rel_print(ptr);
 }
 
+void Import_print(in Import* self) {
+    assert(self != NULL);
+    printf("%s", self->path);
+}
+
+void Import_print_for_vec(in void* ptr) {
+    Import_print(ptr);
+}
+
 void Import_free(Import self) {
     free(self.src);
 }
@@ -1953,8 +1962,7 @@ void Import_free_for_vec(inout void* ptr) {
 Error Error_new(Offset offset, in char* msg) {
     Error error;
     error.offset = offset;
-    strncpy(error.msg, msg, 256);
-    error.msg[255] = '\0';
+    strncpy(error.msg, msg, 255);
 
     return error;
 }
@@ -2180,11 +2188,6 @@ SResult Generator_binary_len(in Generator* self, in char* name, out u32* len) {
     return SResult_new(NULL);
 }
 
-static void Generator_print_char(in void* ptr) {
-    char* str = ptr;
-    printf("%s", str);
-}
-
 void Generator_print(in Generator* self) {
     printf("Generator { types: ");
     Vec_print(&self->types, Type_print_for_vec);
@@ -2195,7 +2198,7 @@ void Generator_print(in Generator* self) {
     printf(", errors: ");
     Vec_print(&self->errors, Error_print_for_vec);
     printf(", imports: ");
-    Vec_print(&self->imports, Generator_print_char);
+    Vec_print(&self->imports, Import_print_for_vec);
     printf(", sections: ");
     Vec_print(&self->sections, Section_print_for_vec);
     printf(", labels: ");

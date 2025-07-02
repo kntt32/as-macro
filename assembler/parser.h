@@ -26,6 +26,7 @@ void Offset_print(in Offset* self);
 
 Parser Parser_new(in char* src, in char* path);
 void Parser_print(in Parser* self);
+char* Parser_path(in Parser* self);
 void Parser_skip_space(inout Parser* self);
 void Parser_skip(inout Parser* self);
 bool Parser_is_empty(in Parser* self);

@@ -171,6 +171,8 @@ typedef struct {
 
 typedef struct {
     char name[256];
+    char valid_path[256];// public: \0
+
     Vec arguments;// Vec<Argument>
     enum { Asmacro_AsmOperator, Asmacro_UserOperator, Asmacro_FnWrapper } type;
     union {
@@ -200,6 +202,11 @@ typedef struct {
 } Rel;
 
 typedef struct {
+    char path[256];
+    char* src;
+} Import;
+
+typedef struct {
     Offset offset;
     char msg[256];
 } Error;
@@ -209,6 +216,7 @@ typedef struct {
     Vec global_variables;// Vec<Variable>
     Vec asmacroes;// Vec<Asmacro>
     Vec errors;// Vec<Error>
+    Vec imports;// Vec<Imports>
     
     Vec sections;// Vec<Section>
     Vec labels;// Vec<Label>
@@ -307,8 +315,8 @@ SResult AsmArgs_from(in Vec* dataes, in Vec* arguments, out AsmArgs* asm_args);
 
 ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmacro* asmacro);
 bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other);
-Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */);
-SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes);
+Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */, in char* valid_path);
+SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes, in char* path);
 void Asmacro_print(in Asmacro* self);
 void Asmacro_print_for_vec(in void* ptr);
 Asmacro Asmacro_clone(in Asmacro* self);
@@ -327,6 +335,9 @@ void Label_print_for_vec(in void* ptr);
 void Rel_print(in Rel* self);
 void Rel_print_for_vec(in void* ptr);
 
+void Import_free(Import self);
+void Import_free_for_vec(inout void* ptr);
+
 Error Error_new(Offset offset, in char* msg);
 Error Error_from_parsermsg(ParserMsg parser_msg);
 Error Error_from_sresult(Offset offset, SResult result);
@@ -334,6 +345,8 @@ void Error_print(in Error* self);
 void Error_print_for_vec(in void* ptr);
 
 Generator Generator_new();
+bool Generator_imported(in Generator* self, in char module_path[256]);
+void Generator_import(inout Generator* self, in char module_path[256], optional char* src);
 SResult Generator_add_type(inout Generator* self, Type type);
 SResult Generator_get_type(in Generator* self, in char* name, out Type* type);
 SResult Generator_add_global_variable(inout Generator* self, Variable variable);

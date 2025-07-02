@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <assert.h>
 #include "types.h"
 #include "register.h"
 #include "parser.h"
@@ -1645,6 +1646,12 @@ static ParserMsg Asmacro_parse_header_arguments(Parser parser, in Generator* gen
 static ParserMsg Asmacro_parse_header(inout Parser* parser, in Generator* generator, out Asmacro* asmacro) {
     Parser parser_copy = *parser;
 
+    if(ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "pub"))) {
+        asmacro->valid_path[0] = '\0';
+    }else {
+        strcpy(asmacro->valid_path, Parser_path(parser));
+    }
+
     PARSERMSG_UNWRAP(
         Parser_parse_keyword(&parser_copy, "as"),
         (void)NULL
@@ -1730,6 +1737,8 @@ static ParserMsg Asmacro_parse_encoding(inout Parser* parser, out Asmacro* asmac
 ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmacro* asmacro) {
     // as name ( args ) { proc }
     // as name ( args ) : ( encoding )
+    assert(parser != NULL && generator != NULL && asmacro != NULL);
+
     Parser parser_copy = *parser;
 
     PARSERMSG_UNWRAP(
@@ -1753,11 +1762,15 @@ ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmac
     return ParserMsg_new(parser->offset, NULL);
 }
 
-Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */) {
+Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */, in char* valid_path) {
+    assert(name != NULL);
+    assert(valid_path != NULL);
+
     Asmacro asmacro;
 
     strcpy(asmacro.name, name);
-    
+    strcpy(asmacro.valid_path, valid_path);
+
     asmacro.arguments = Vec_new(sizeof(Argument));
     for(u32 i=0; i<Vec_len(&arguments); i++) {
         Variable* variable = Vec_index(&arguments, i);
@@ -1771,7 +1784,15 @@ Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */) 
     return asmacro;
 }
 
-SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes) {
+SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes, in char* path) {
+    assert(self != NULL);
+    assert(dataes != NULL);
+    assert(path != NULL);
+
+    if(self->valid_path[0] != '\0' && strcmp(self->valid_path, path) != 0) {
+        return SResult_new("out of namespace");
+    }
+
     if(Vec_len(&self->arguments) != Vec_len(dataes)) {
         return SResult_new("mismatching the number of arguments");
     }
@@ -1795,7 +1816,9 @@ bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other) {
 }
 
 void Asmacro_print(in Asmacro* self) {
-    printf("Asmacro { name: %s, arguments: ", self->name);
+    assert(self != NULL);
+
+    printf("Asmacro { name: %s, valid_path: %s, arguments: ", self->name, self->valid_path);
     Vec_print(&self->arguments, Argument_print_for_vec);
     printf(", type: %d, body: ", self->type);
 
@@ -1918,6 +1941,15 @@ void Rel_print_for_vec(in void* ptr) {
     Rel_print(ptr);
 }
 
+void Import_free(Import self) {
+    free(self.src);
+}
+
+void Import_free_for_vec(inout void* ptr) {
+    Import* import = ptr;
+    Import_free(*import);
+}
+
 Error Error_new(Offset offset, in char* msg) {
     Error error;
     error.offset = offset;
@@ -1951,11 +1983,35 @@ Generator Generator_new() {
         Vec_new(sizeof(Variable)),
         Vec_new(sizeof(Asmacro)),
         Vec_new(sizeof(Error)),
+        Vec_new(sizeof(Import)),
         Vec_new(sizeof(Section)),
         Vec_new(sizeof(Label)),
         Vec_new(sizeof(Rel))
     };
     return generator;
+}
+
+bool Generator_imported(in Generator* self, in char module_path[256]) {
+    assert(self != NULL && module_path != NULL);
+
+    for(u32 i=0; i<Vec_len(&self->imports); i++) {
+        Import* ptr = Vec_index(&self->imports, i);
+
+        if(strcmp(ptr->path, module_path) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void Generator_import(inout Generator* self, in char module_path[256], optional char* src) {
+    Import import;
+
+    strcpy(import.path, module_path);
+    import.src = src;
+
+    Vec_push(&self->imports, &import);
 }
 
 SResult Generator_add_type(inout Generator* self, Type type) {
@@ -2090,7 +2146,7 @@ static SResult Generator_get_section(in Generator* self, in char* name, out Sect
 }
 
 SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte) {
-    Section* section;
+    Section* section = NULL;
     SRESULT_UNWRAP(
         Generator_get_section(self, name, &section),
         (void)NULL
@@ -2100,7 +2156,7 @@ SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte) {
 }
 
 SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte) {
-    Section* section;
+    Section* section = NULL;
     SRESULT_UNWRAP(
         Generator_get_section(self, name, &section),
         (void)NULL
@@ -2113,7 +2169,7 @@ SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte) 
 }
 
 SResult Generator_binary_len(in Generator* self, in char* name, out u32* len) {
-    Section* section;
+    Section* section = NULL;
     SRESULT_UNWRAP(
         Generator_get_section(self, name, &section),
         (void)NULL
@@ -2122,6 +2178,11 @@ SResult Generator_binary_len(in Generator* self, in char* name, out u32* len) {
     *len = Vec_len(&section->binary);
 
     return SResult_new(NULL);
+}
+
+static void Generator_print_char(in void* ptr) {
+    char* str = ptr;
+    printf("%s", str);
 }
 
 void Generator_print(in Generator* self) {
@@ -2133,6 +2194,8 @@ void Generator_print(in Generator* self) {
     Vec_print(&self->asmacroes, Asmacro_print_for_vec);
     printf(", errors: ");
     Vec_print(&self->errors, Error_print_for_vec);
+    printf(", imports: ");
+    Vec_print(&self->imports, Generator_print_char);
     printf(", sections: ");
     Vec_print(&self->sections, Section_print_for_vec);
     printf(", labels: ");
@@ -2147,6 +2210,7 @@ void Generator_free(Generator self) {
     Vec_free_all(self.global_variables, Variable_free_for_vec);
     Vec_free_all(self.asmacroes, Asmacro_free_for_vec);
     Vec_free(self.errors);
+    Vec_free_all(self.imports, Import_free_for_vec);
     Vec_free_all(self.sections, Section_free_for_vec);
     Vec_free(self.labels);
     Vec_free(self.rels);

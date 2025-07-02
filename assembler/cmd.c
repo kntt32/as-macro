@@ -3,18 +3,7 @@
 #include "vec.h"
 #include "gen.h"
 #include "syntax.h"
-
-static u64 get_file_size(FILE* stream) {
-    if(fseek(stream, 0, SEEK_END)) {
-        PANIC("fseek returned error");
-    }
-    u64 size = ftell(stream);
-    if(fseek(stream, 0, SEEK_SET)) {
-        PANIC("fseek returned error");
-    }
-
-    return size;
-}
+#include "util.h"
 
 void Cmd_interpreter(int argc, char* argv[]) {
     // (cmdpath) path
@@ -43,11 +32,10 @@ void Cmd_interpreter(int argc, char* argv[]) {
         char* file_str = malloc(file_size + 1);
         UNWRAP_NULL(file_str);
         if(fread(file_str, 1, file_size, file) <= 0) {
-            fprintf(stderr, "something wrong");
-            free(file_str);
-            goto catch;
+            PANIC("something wrong");
         }
         file_str[file_size] = '\0';
+        fclose(file);
 
         Parser parser = Parser_new(file_str, path);
         

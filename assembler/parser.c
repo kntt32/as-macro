@@ -7,6 +7,8 @@
 #include "parser.h"
 
 Offset Offset_new(in char* path) {
+    assert(path != NULL);
+
     Offset offset;
 
     strncpy(offset.path, path, 256);
@@ -18,6 +20,8 @@ Offset Offset_new(in char* path) {
 }
 
 void Offset_seek_char(inout Offset* self, char c) {
+    assert(self != NULL);
+
     switch(c) {
         case '\n':
             self->line ++;
@@ -32,6 +36,9 @@ void Offset_seek_char(inout Offset* self, char c) {
 }
 
 void Offset_seek(inout Offset* self, char* token) {
+    assert(self != NULL);
+    assert(token != NULL);
+
     u32 token_len = strlen(token);
 
     for(u32 i=0; i<token_len; i++) {
@@ -40,16 +47,22 @@ void Offset_seek(inout Offset* self, char* token) {
 }
 
 void Offset_print(in Offset* self) {
+    assert(self != NULL);
     printf("Offset { path: %s, line: %u, column: %u }", self->path, self->line, self->column);
 }
 
 Parser Parser_new(in char* src, in char* path) {
+    assert(src != NULL);
+    assert(path != NULL);
+
     Parser parser = {src, strlen(src), Offset_new(path)};
     Parser_skip_space(&parser);
     return parser;
 }
 
 void Parser_print(in Parser* self) {
+    assert(self != NULL);
+
     printf("Parser { src: \"");
     for(u32 i=0; i<self->len; i++) {
         printf("%c", self->src[i]);
@@ -59,8 +72,14 @@ void Parser_print(in Parser* self) {
     printf(" }");
 }
 
+char* Parser_path(in Parser* self) {
+    assert(self != NULL);
+    return self->offset.path;
+}
+
 static char Parser_look(in Parser* self) {
-    assert(self->src != NULL);
+    assert(self != NULL);
+
     if(self->len == 0) {
         return '\0';
     }
@@ -69,6 +88,8 @@ static char Parser_look(in Parser* self) {
 }
 
 static char Parser_read(inout Parser* self) {
+    assert(self != NULL);
+    
     char c = Parser_look(self);
     if(c == '\0') {
         return c;
@@ -82,6 +103,8 @@ static char Parser_read(inout Parser* self) {
 }
 
 static ParserMsg Parser_parse_parens_helper(inout Parser* self, out Parser* parser, in char* start, in char* end) {
+    assert(self != NULL && parser != NULL && start != NULL && end != NULL);
+
     PARSERMSG_UNWRAP(
         Parser_parse_symbol(self, start),
         (void)NULL
@@ -92,26 +115,36 @@ static ParserMsg Parser_parse_parens_helper(inout Parser* self, out Parser* pars
 }
 
 void Parser_skip_space(inout Parser* self) {
+    assert(self != NULL);
+
     while(isspace((unsigned char)Parser_look(self))) {
         Parser_read(self);
     }
 }
 
 bool Parser_is_empty(in Parser* self) {
+    assert(self != NULL);
+    
     return self->len == 0;
 }
 
 bool Parser_start_with(in Parser* self, in char* keyword) {
+    assert(self != NULL && keyword != NULL);
+    
     Parser self_copy = *self;
     return ParserMsg_is_success(Parser_parse_keyword(&self_copy, keyword));
 }
 
 bool Parser_start_with_symbol(in Parser* self, in char* symbol) {
+    assert(self != NULL && symbol != NULL);
+    
     Parser self_copy = *self;
     return ParserMsg_is_success(Parser_parse_symbol(&self_copy, symbol));
 }
 
 Parser Parser_split(inout Parser* self, in char* symbol) {
+    assert(self != NULL && symbol != NULL);
+    
     Parser parser = *self;
     u32 len = parser.len;
     parser.len = 0;
@@ -125,6 +158,8 @@ Parser Parser_split(inout Parser* self, in char* symbol) {
 }
 
 void Parser_skip(inout Parser* self) {
+    assert(self != NULL);
+
     char token[256];
     u64 value;
     Parser parser;
@@ -141,6 +176,8 @@ void Parser_skip(inout Parser* self) {
 }
 
 ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]) {
+    assert(self != NULL && token != NULL);
+    
     u32 len = 0;
     while(true) {
         char c = Parser_look(self);
@@ -171,6 +208,8 @@ ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]) {
 }
 
 ParserMsg Parser_parse_keyword(inout Parser* self, in char* keyword) {
+    assert(self != NULL && keyword != NULL);
+
     Parser self_copy = *self;
 
     char token[256];
@@ -184,6 +223,8 @@ ParserMsg Parser_parse_keyword(inout Parser* self, in char* keyword) {
 }
 
 ParserMsg Parser_parse_symbol(inout Parser* self, in char* symbol) {
+    assert(self != NULL && symbol != NULL);
+    
     if(self->len < strlen(symbol) || strncmp(self->src, symbol, strlen(symbol)) != 0) {
         return ParserMsg_new(self->offset, "expected symbol");
     }
@@ -197,6 +238,8 @@ ParserMsg Parser_parse_symbol(inout Parser* self, in char* symbol) {
 }
 
 ParserMsg Parser_parse_number(inout Parser* self, out u64* value) {
+    assert(self != NULL && value != NULL);
+    
     char* end = NULL;
 
     errno = 0;

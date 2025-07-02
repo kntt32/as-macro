@@ -1,8 +1,15 @@
+import sub;
+
+struct Point {
+    x: i64,
+    y: i64
+};
+
 as mov(x: i64@reg, y: i64@imm) : (double: 0xb8, rq, iq);
 
 as nop() : (double: 0x90);
 
-as NOP() {
+pub as NOP() {
     nop();
 };
 
@@ -10,7 +17,8 @@ fn f() {
     NOP();
 };
 
-fn main(x: i64@r15) {
+pub fn main(x: i64@r15) {
+    test();
     mov(x, 10);
     nop();
 };

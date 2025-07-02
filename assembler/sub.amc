@@ -1,0 +1,5 @@
+pub as test() {
+    nop();
+    nop();
+};
+

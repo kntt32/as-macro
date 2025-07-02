@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <assert.h>
 #include "types.h"
 #include "gen.h"
 #include "syntax.h"
+#include "util.h"
 
 VariableManager VariableManager_new(i32 stack_offset) {
     VariableManager variable_manager = {Vec_new(sizeof(Variable)), stack_offset};
@@ -136,7 +138,9 @@ static bool GlobalSyntax_parse_enum_definision(Parser parser, inout Generator* g
 }
 
 static bool GlobalSyntax_parse_asmacro_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
-    if(!Parser_start_with(&parser, "as")) {
+    Parser temp_parser = parser;
+    Parser_parse_keyword(&temp_parser, "pub");
+    if(!Parser_start_with(&temp_parser, "as")) {
         return false;
     }
 
@@ -187,6 +191,68 @@ static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* genera
     return true;
 }
 
+static SResult GlobalSyntax_parse_import_code(inout Generator* generator, in char module_name[256]) {
+    assert(module_name != NULL);
+    assert(generator != NULL);
+
+    char path[260];
+    snprintf(path, 260, "%.255s.amc", module_name);
+    
+    if(!Generator_imported(generator, path)) {
+        FILE* file = fopen(path, "rb");
+        if(file == NULL) {
+            return SResult_new("module is not exist");
+        }
+
+        u64 file_size = get_file_size(file);
+        char* file_str = malloc(file_size + 1);
+        UNWRAP_NULL(file_str);
+
+        if(fread(file_str, 1, file_size, file) <= 0) {
+            PANIC("something wrong");
+        }
+        file_str[file_size] = '\0';
+        fclose(file);
+        Generator_import(generator, path, file_str);
+        Parser parser = Parser_new(file_str, path);
+
+        while(!Parser_is_empty(&parser)) {
+            Parser syntax_parser = Parser_split(&parser, ";");
+            GlobalSyntax global_syntax;
+            GlobalSyntax_parse(syntax_parser, generator, &global_syntax);
+            GlobalSyntax_free(global_syntax);
+        }
+    }
+
+    return SResult_new(NULL);
+}
+
+static bool GlobalSyntax_parse_import(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    assert(generator != NULL);
+    assert(global_syntax != NULL);
+
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "import"))) {
+        return false;
+    }
+
+    global_syntax->ok_flag = false;
+    global_syntax->offset = parser.offset;
+    global_syntax->type = GlobalSyntax_Import;
+
+    char module_name[256];
+    if(resolve_parsermsg(Parser_parse_ident(&parser, module_name), generator)) {
+        return true;
+    }
+    global_syntax->ok_flag = !resolve_sresult(
+        GlobalSyntax_parse_import_code(generator, module_name),
+        parser.offset,
+        generator
+    );
+
+    check_parser(&parser, generator);
+    return true;
+}
+
 static ParserMsg function_definision_parse_arguments(Parser parser, in Generator* generator, inout VariableManager* variable_manager, inout Vec* arguments) {
     i32 stack_offset = 0;
     
@@ -224,6 +290,7 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
 }
 
 static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "fn"))) {
         return false;
     }
@@ -248,7 +315,7 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
         return true;
     }
 
-    Asmacro wrapper_asmacro = Asmacro_new_fn_wrapper(name, arguments);
+    Asmacro wrapper_asmacro = Asmacro_new_fn_wrapper(name, arguments, (public_flag)?(""):(Parser_path(&parser)));
     if(resolve_sresult(Generator_add_asmacro(generator, wrapper_asmacro), parser.offset, generator)) {
         return true;
     }
@@ -269,6 +336,7 @@ ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out Glob
         GlobalSyntax_parse_struct_definision,
         GlobalSyntax_parse_enum_definision,
         GlobalSyntax_parse_type_alias,
+        GlobalSyntax_parse_import,
         GlobalSyntax_parse_function_definision
     };
     
@@ -324,12 +392,18 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
 }
 
 void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
-    (void)self;(void)generator;
+    assert(self != NULL);
+    assert(generator != NULL);
+
+    if(!self->ok_flag) {
+        return;
+    }
     switch(self->type) {
         case GlobalSyntax_StructDefinision:
         case GlobalSyntax_EnumDefinision:
         case GlobalSyntax_TypeAlias:
         case GlobalSyntax_AsmacroDefinision:
+        case GlobalSyntax_Import:
             break;
         case GlobalSyntax_FunctionDefinision:
             GlobalSyntax_build_function_definision(self, generator);
@@ -363,6 +437,9 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
             printf(".function_definision: name: %s, variable_manager: ", self->body.function_definision.name);
             VariableManager_print(&self->body.function_definision.variable_manager);
             break;
+        case GlobalSyntax_Import:
+            printf(".none");
+            break;
     }
     printf(" }");
 }
@@ -372,10 +449,14 @@ void GlobalSyntax_print_for_vec(in void* ptr) {
 }
 
 void GlobalSyntax_free(GlobalSyntax self) {
+    if(!self.ok_flag) {
+        return;
+    }
     switch(self.type) {
         case GlobalSyntax_StructDefinision:
         case GlobalSyntax_EnumDefinision:
         case GlobalSyntax_TypeAlias:
+        case GlobalSyntax_Import:
             break;
         case GlobalSyntax_AsmacroDefinision:
             Asmacro_free(self.body.asmacro_definision);
@@ -398,6 +479,8 @@ GlobalSyntaxTree GlobalSyntaxTree_new() {
 }
 
 void GlobalSyntaxTree_parse(inout GlobalSyntaxTree* self, Parser parser) {
+    Generator_import(&self->generator, Parser_path(&parser), NULL);
+
     while(!Parser_is_empty(&parser)) {
         Parser syntax_parser = Parser_split(&parser, ";");
         
@@ -474,10 +557,15 @@ static SResult Syntax_build_asmacro_expansion_get_arguments(Parser parser, inout
     return SResult_new(NULL);
 }
 
-static SResult Syntax_build_asmacro_expansion_search_asmacro(in Vec* asmacroes, in Vec* arguments, out Asmacro* asmacro) {
+static SResult Syntax_build_asmacro_expansion_search_asmacro(in Vec* asmacroes, in Vec* arguments, in char* path, out Asmacro* asmacro) {
+    assert(asmacroes != NULL);
+    assert(arguments != NULL);
+    assert(path != NULL);
+    assert(asmacro != NULL);
+
     for(u32 i=0; i<Vec_len(asmacroes); i++) {
         Asmacro* ptr = Vec_index(asmacroes, i);
-        if(SResult_is_success(Asmacro_match_with(ptr, arguments))) {
+        if(SResult_is_success(Asmacro_match_with(ptr, arguments, path))) {
             *asmacro = Asmacro_clone(ptr);
             return SResult_new(NULL);
         }
@@ -504,7 +592,9 @@ static bool Syntax_build_asmacro_expansion_get_info(
         return true;
     }
 
-    if(resolve_sresult(Syntax_build_asmacro_expansion_search_asmacro(&asmacroes, arguments, asmacro), args_parser.offset, generator)) {
+    if(resolve_sresult(
+        Syntax_build_asmacro_expansion_search_asmacro(
+            &asmacroes, arguments, Parser_path(&args_parser), asmacro), args_parser.offset, generator)) {
         Vec_free_all(asmacroes, Asmacro_free_for_vec);
         Vec_free_all(*arguments, Data_free_for_vec);
         return true;

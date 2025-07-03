@@ -51,10 +51,10 @@ typedef struct {
 typedef struct {
     enum {
         ModRmType_R,
-        ModRmType_Dight,
+        ModRmType_Digit,
     } type;
     union {
-        u8 dight;// 0~7
+        u8 digit;// 0~7
         u8 r;// 8, 16, 32, 64 size of reg field register
     } body;
     u8 memsize;// 8, 16, 32, 64 size of regmem field operand
@@ -104,7 +104,6 @@ typedef struct {
 
 typedef struct {
     Register base;
-    Index index;
     Disp disp;
 } Memory;
 
@@ -268,6 +267,11 @@ void AsmEncoding_print(in AsmEncoding* self);
 AsmEncoding AsmEncoding_clone(in AsmEncoding* self);
 void AsmEncoding_free(AsmEncoding self);
 
+u64 Disp_size(in Disp* self);
+u64 Disp_value(in Disp* self);
+SResult Disp_set_label(in Disp* self, inout Generator* generator);
+void Disp_print(in Disp* self);
+
 bool Memory_cmp(in Memory* self, in Memory* other);
 void Memory_print(in Memory* self);
 
@@ -358,6 +362,7 @@ void Generator_add_error(inout Generator* self, Error error);
 SResult Generator_new_section(inout Generator* self, in char* name);
 SResult Generator_new_label(inout Generator* self, Label label);
 SResult Generator_new_rel(inout Generator* self, Rel rel);
+SResult Generator_append_rel(inout Generator* self, in char* section, in char* label);
 SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte);
 SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte);
 SResult Generator_binary_len(in Generator* self, in char* name, out u32* len);

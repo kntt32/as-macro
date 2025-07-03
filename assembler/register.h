@@ -7,22 +7,23 @@
 #define ADDREG_REXB 0x8
 #define ADDREG_REX 0x80
 
-#define MODRMREG_REGFIELD 0x7
-#define MODRMREG_REXR 0x8
-#define MODRMREG_REX 0x80
+#define REG_REGFIELD 0x7
+#define REG_REXR 0x8
+#define REG_REX 0x80
 
 #define MODRMBASE_RMFIELD 0x7
 #define MODRMBASE_REXB 0x8
-#define MODRMREG_REX 0x80
+#define MODRMBASE_REX 0x80
 
 typedef enum {
-    Rsp,
-    Rbp,
+    Rip,
 
     Rax,
     Rcx,
     Rdx,
     Rbx,
+    Rsp,
+    Rbp,
     Rsi,
     Rdi,
     R8,
@@ -54,9 +55,9 @@ typedef enum {
 
 SResult Register_get_addreg_code(Register self, out u8* value);
 
-SResult Register_get_modrmreg_code(Register self, out u8* value);
+SResult Register_get_reg_code(Register self, out u8* value);
 
-SResult Register_get_modrmregmem_base_code(Register self, out u8* value);
+SResult Register_get_modrm_base_code(Register self, out u8* value);
 
 ParserMsg Register_parse(Parser* parser, Register* ptr);
 

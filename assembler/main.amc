@@ -14,7 +14,8 @@ fn f() {
     NOP();
 };
 
-pub fn main(x: i64@r15) {
+pub fn main(x: i64@r15, y: i64@rax) {
+    mov(x, y);
     test();
     nop();
 };

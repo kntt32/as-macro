@@ -58,7 +58,7 @@ SResult Register_get_addreg_code(Register self, out u8* value) {
     return SResult_new("unexpected register");
 }
 
-SResult Register_get_modrmreg_code(Register self, out u8* value) {
+SResult Register_get_reg_code(Register self, out u8* value) {
     for(u32 i=0; i<LEN(REGISTER_TABLE); i++) {
         if(REGISTER_TABLE[i].reg == self) {
             *value = REGISTER_TABLE[i].modrmreg_code;
@@ -69,7 +69,7 @@ SResult Register_get_modrmreg_code(Register self, out u8* value) {
     return SResult_new("unexpected register");
 }
 
-SResult Register_get_modrmregmem_base_code(Register self, out u8* value) {
+SResult Register_get_modrm_base_code(Register self, out u8* value) {
     for(u32 i=0; i<LEN(REGISTER_TABLE); i++) {
         if(REGISTER_TABLE[i].reg == self) {
             *value = REGISTER_TABLE[i].modrmregmem_reg_code;
@@ -81,11 +81,16 @@ SResult Register_get_modrmregmem_base_code(Register self, out u8* value) {
 }
 
 ParserMsg Register_parse(Parser* parser, Register* restrict ptr) {
+    if(ParserMsg_is_success(Parser_parse_keyword(parser, "rip"))) {
+        *ptr = Rip;
+        return ParserMsg_new(parser->offset, NULL);
+    }
+
     for(u32 i=0; i<LEN(REGISTER_TABLE); i++) {
         char* rtable_str = REGISTER_TABLE[i].str;
         Register rtable_reg = REGISTER_TABLE[i].reg;
 
-        if(Parser_parse_keyword(parser, rtable_str).msg[0] == '\0') {
+        if(ParserMsg_is_success(Parser_parse_keyword(parser, rtable_str))) {
             *ptr = rtable_reg;
             return ParserMsg_new(parser->offset, NULL);
         }
@@ -123,12 +128,27 @@ bool Register_is_xmm(Register self) {
 }
 
 void Register_print(in Register self) {
+    if(self == Rip) {
+        printf("rip");
+        return;
+    }
+
     for(u32 i=0; i<LEN(REGISTER_TABLE); i++) {
         char* rtable_str = REGISTER_TABLE[i].str;
         Register rtable_reg = REGISTER_TABLE[i].reg;
 
         if(self == rtable_reg) {
             printf("%s", rtable_str);
+            return;
+        }
+    }
+
+    for(u32 i=0; i<LEN(XMM_TABLE); i++) {
+        char* xtable_str = XMM_TABLE[i].str;
+        Register xtable_reg = XMM_TABLE[i].reg;
+
+        if(self == xtable_reg) {
+            printf("%s", xtable_str);
             return;
         }
     }

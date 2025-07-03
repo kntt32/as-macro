@@ -1,13 +1,10 @@
 import sub;
+import core_x64;
 
 struct Point {
     x: i64,
     y: i64
 };
-
-pub as mov(x: i64@reg, y: i64@imm) : (double: 0xb8, rq, iq);
-
-pub as nop() : (double: 0x90);
 
 pub as NOP() {
     nop();
@@ -19,7 +16,6 @@ fn f() {
 
 pub fn main(x: i64@r15) {
     test();
-    mov(x, 10);
     nop();
 };
 

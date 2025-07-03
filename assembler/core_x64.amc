@@ -1,0 +1,735 @@
+pub as adc(_: i8@rax, _: i8@imm) : (double: 0x14, ib);
+pub as adc(_: i16@rax, _: i16@imm) : (double: 0x15, iw);
+pub as adc(_: i32@rax, _: i32@imm) : (double: 0x15, id);
+pub as adc(_: i64@rax, _: i32@imm) : (double: 0x15, id);
+pub as adc(_: i16@reg+mem, _: i8@imm) : (double: 0x83, /2, ib);
+pub as adc(_: i32@reg+mem, _: i8@imm) : (double: 0x83, /2, ib);
+pub as adc(_: i64@reg+mem, _: i8@imm) : (double: 0x83, /2, ib);
+pub as adc(_: i8@reg+mem, _: i8@imm) : (double: 0x80, /2, ib);
+pub as adc(_: i16@reg+mem, _: i16@imm) : (double: 0x81, /2, iw);
+pub as adc(_: i32@reg+mem, _: i32@imm) : (double: 0x81, /2, id);
+pub as adc(_: i64@reg+mem, _: i32@imm) : (double: 0x81, /2, id);
+pub as adc(_: i8@reg+mem, _: i8@reg) : (double: 0x10, /r);
+pub as adc(_: i16@reg+mem, _: i16@reg) : (double: 0x11, /r);
+pub as adc(_: i32@reg+mem, _: i32@reg) : (double: 0x11, /r);
+pub as adc(_: i64@reg+mem, _: i64@reg) : (double: 0x11, /r);
+pub as adc(_: i8@reg, _: i8@reg+mem) : (double: 0x12, /r);
+pub as adc(_: i16@reg, _: i16@reg+mem) : (double: 0x13, /r);
+pub as adc(_: i32@reg, _: i32@reg+mem) : (double: 0x13, /r);
+pub as adc(_: i64@reg, _: i64@reg+mem) : (double: 0x13, /r);
+
+pub as add(_: i8@rax, _: i8@imm) : (double: 0x04, ib);
+pub as add(_: i16@rax, _: i16@imm) : (double: 0x05, iw);
+pub as add(_: i32@rax, _: i32@imm) : (double: 0x05, id);
+pub as add(_: i64@rax, _: i32@imm) : (double: 0x05, id);
+pub as add(_: i16@reg+mem, _: i8@imm) : (double: 0x83, /0, ib);
+pub as add(_: i32@reg+mem, _: i8@imm) : (double: 0x83, /0, ib);
+pub as add(_: i64@reg+mem, _: i8@imm) : (double: 0x83, /0, ib);
+pub as add(_: i8@reg+mem, _: i8@imm) : (double: 0x80, /0, ib);
+pub as add(_: i16@reg+mem, _: i16@imm) : (double: 0x81, /0, iw);
+pub as add(_: i32@reg+mem, _: i32@imm) : (double: 0x81, /0, id);
+pub as add(_: i64@reg+mem, _: i32@imm) : (double: 0x81, /0, id);
+pub as add(_: i8@reg+mem, _: i8@reg) : (double: 0x00, /r);
+pub as add(_: i16@reg+mem, _: i16@reg) : (double: 0x01, /r);
+pub as add(_: i32@reg+mem, _: i32@reg) : (double: 0x01, /r);
+pub as add(_: i64@reg+mem, _: i64@reg) : (double: 0x01, /r);
+pub as add(_: i8@reg, _: i8@reg+mem) : (double: 0x02, /r);
+pub as add(_: i16@reg, _: i16@reg+mem) : (double: 0x03, /r);
+pub as add(_: i32@reg, _: i32@reg+mem) : (double: 0x03, /r);
+pub as add(_: i64@reg, _: i64@reg+mem) : (double: 0x03, /r);
+
+pub as and(_: i8@rax, _: i8@imm) : (double: 0x24, ib);
+pub as and(_: i16@rax, _: i16@imm) : (double: 0x25, iw);
+pub as and(_: i32@rax, _: i32@imm) : (double: 0x25, id);
+pub as and(_: i64@rax, _: i32@imm) : (double: 0x25, id);
+pub as and(_: i16@reg+mem, _: i8@imm) : (double: 0x83, /4, ib);
+pub as and(_: i32@reg+mem, _: i8@imm) : (double: 0x83, /4, ib);
+pub as and(_: i64@reg+mem, _: i8@imm) : (double: 0x83, /4, ib);
+pub as and(_: i8@reg+mem, _: i8@imm) : (double: 0x80, /4, ib);
+pub as and(_: i16@reg+mem, _: i16@imm) : (double: 0x81, /4, iw);
+pub as and(_: i32@reg+mem, _: i32@imm) : (double: 0x81, /4, id);
+pub as and(_: i64@reg+mem, _: i32@imm) : (double: 0x81, /4, id);
+pub as and(_: i8@reg+mem, _: i8@reg) : (double: 0x20, /r);
+pub as and(_: i16@reg+mem, _: i16@reg) : (double: 0x21, /r);
+pub as and(_: i32@reg+mem, _: i32@reg) : (double: 0x21, /r);
+pub as and(_: i64@reg+mem, _: i64@reg) : (double: 0x21, /r);
+pub as and(_: i8@reg, _: i8@reg+mem) : (double: 0x22, /r);
+pub as and(_: i16@reg, _: i16@reg+mem) : (double: 0x23, /r);
+pub as and(_: i32@reg, _: i32@reg+mem) : (double: 0x23, /r);
+pub as and(_: i64@reg, _: i64@reg+mem) : (double: 0x23, /r);
+
+pub as bsf(_: i16@reg, _: i16@reg+mem) : (double: 0x0f, 0xbc, /r);
+pub as bsf(_: i32@reg, _: i32@reg+mem) : (double: 0x0f, 0xbc, /r);
+pub as bsf(_: i64@reg, _: i64@reg+mem) : (double: 0x0f, 0xbc, /r);
+
+pub as bsr(_: i16@reg, _: i16@reg+mem) : (double: 0x0f, 0xbd, /r);
+pub as bsr(_: i32@reg, _: i32@reg+mem) : (double: 0x0f, 0xbd, /r);
+pub as bsr(_: i64@reg, _: i64@reg+mem) : (double: 0x0f, 0xbd, /r);
+
+pub as bswap(_: i32@reg) : (double: 0x0f, 0xc8, rd);
+pub as bswap(_: i64@reg) : (double: 0x0f, 0xc8, rq);
+
+pub as bt(_: i16@reg+mem, _: i16@reg) : (double: 0x0f, 0xa3, /r);
+pub as bt(_: i32@reg+mem, _: i32@reg) : (double: 0x0f, 0xa3, /r);
+pub as bt(_: i64@reg+mem, _: i64@reg) : (double: 0x0f, 0xa3, /r);
+pub as bt(_: i16@reg+mem, _: i8@imm) : (double: 0x0f, 0xba, /4, ib);
+pub as bt(_: i32@reg+mem, _: i8@imm) : (double: 0x0f, 0xba, /4, ib);
+pub as bt(_: i64@reg+mem, _: i8@imm) : (double: 0x0f, 0xba, /4, ib);
+
+pub as btc(_: i16@reg+mem, _: i16@reg) : (double: 0x0f, 0xbb, /r);
+pub as btc(_: i32@reg+mem, _: i32@reg) : (double: 0x0f, 0xbb, /r);
+pub as btc(_: i64@reg+mem, _: i64@reg) : (double: 0x0f, 0xbb, /r);
+pub as btc(_: i16@reg+mem, _: i8@imm) : (double: 0x0f, 0xba, /7, ib);
+pub as btc(_: i32@reg+mem, _: i8@imm) : (double: 0x0f, 0xba, /7, ib);
+pub as btc(_: i64@reg+mem, _: i8@imm) : (double: 0x0f, 0xba, /7, ib);
+
+pub as btr(_: i16@reg+mem, _: i16@reg) : (double: 0x0f, 0xb3, /r);
+pub as btr(_: i32@reg+mem, _: i32@reg) : (double: 0x0f, 0xb3, /r);
+pub as btr(_: i64@reg+mem, _: i64@reg) : (double: 0x0f, 0xb3, /r);
+pub as btr(_: i16@reg+mem, _: i8@imm) : (double: 0x0f, 0xba, /6, ib);
+pub as btr(_: i32@reg+mem, _: i8@imm) : (double: 0x0f, 0xba, /6, ib);
+pub as btr(_: i64@reg+mem, _: i8@imm) : (double: 0x0f, 0xba, /6, ib);
+
+pub as bts(_: i16@reg+mem, _: i16@reg) : (double: 0x0f, 0xab, /r);
+pub as bts(_: i32@reg+mem, _: i32@reg) : (double: 0x0f, 0xab, /r);
+pub as bts(_: i64@reg+mem, _: i64@reg) : (double: 0x0f, 0xab, /r);
+pub as bts(_: i16@reg+mem, _: i8@imm) : (double: 0x0f, 0xba, /5, ib);
+pub as bts(_: i32@reg+mem, _: i8@imm) : (double: 0x0f, 0xba, /5, ib);
+pub as bts(_: i64@reg+mem, _: i8@imm) : (double: 0x0f, 0xba, /5, ib);
+
+pub as call(_: i16@imm) : (quad: 0xe8, iw);
+pub as call(_: i32@imm) : (quad: 0xe8, id);
+pub as call(_: i64@reg+mem) : (quad: 0xff, /2);
+
+pub as cdqe() : (double: 0x98);
+
+pub as cqo() : (double: 0x99);
+
+pub as clc() : (double: 0xf8);
+
+pub as cld() : (double: 0xfc);
+
+pub as clflush(_: i8@reg+mem) : (double: 0x0f, 0xae, /7);
+pub as clflushopt(_: i8@reg+mem) : (double: 0x66, 0x0f, 0xae, /7);
+pub as clzero(_: i64@rax) : (double: 0x0f, 0x01, 0xfc);
+pub as cmc() : (double: 0xf5);
+
+pub as cmovo(_: i16@reg, _: i16@reg+mem) : (double: 0x0f, 0x40, /r);
+pub as cmovo(_: i32@reg, _: i32@reg+mem) : (double: 0x0f, 0x40, /r);
+pub as cmovo(_: i64@reg, _: i64@reg+mem) : (double: 0x0f, 0x40, /r);
+pub as cmovno(_: i16@reg, _: i16@reg+mem) : (double: 0x0f, 0x41, /r);
+pub as cmovno(_: i32@reg, _: i32@reg+mem) : (double: 0x0f, 0x41, /r);
+pub as cmovno(_: i64@reg, _: i64@reg+mem) : (double: 0x0f, 0x41, /r);
+pub as cmovb(_: i16@reg, _: i16@reg+mem) : (double: 0x0f, 0x42, /r);
+pub as cmovb(_: i32@reg, _: i32@reg+mem) : (double: 0x0f, 0x42, /r);
+pub as cmovb(_: i64@reg, _: i64@reg+mem) : (double: 0x0f, 0x42, /r);
+pub as cmovc(_: i16@reg, _: i16@reg+mem) : (double: 0x0f, 0x42, /r);
+pub as cmovc(_: i32@reg, _: i32@reg+mem) : (double: 0x0f, 0x42, /r);
+pub as cmovc(_: i64@reg, _: i64@reg+mem) : (double: 0x0f, 0x42, /r);
+pub as cmovnae(_: i16@reg, _: i16@reg+mem) : (double: 0x0f, 0x42, /r);
+pub as cmovnae(_: i32@reg, _: i32@reg+mem) : (double: 0x0f, 0x42, /r);
+pub as cmovnae(_: i64@reg, _: i64@reg+mem) : (double: 0x0f, 0x42, /r);
+pub as cmovnb(_: i16@reg, _: i16@reg+mem) : (double: 0x0f, 0x43, /r);
+pub as cmovnb(_: i32@reg, _: i32@reg+mem) : (double: 0x0f, 0x43, /r);
+pub as cmovnb(_: i64@reg, _: i64@reg+mem) : (double: 0x0f, 0x43, /r);
+pub as cmovnc(_: i16@reg, _: i16@reg+mem) : (double: 0x0f, 0x43, /r);
+pub as cmovnc(_: i32@reg, _: i32@reg+mem) : (double: 0x0f, 0x43, /r);
+pub as cmovnc(_: i64@reg, _: i64@reg+mem) : (double: 0x0f, 0x43, /r);
+
+pub as cmp(_: i8@rax, _: i8@imm) : (double: 0x3c, ib);
+pub as cmp(_: i16@rax, _: i16@imm) : (double: 0x3d, iw);
+pub as cmp(_: i32@rax, _: i32@imm) : (double: 0x3d, id);
+pub as cmp(_: i64@rax, _: i32@imm) : (double: 0x3d, id);
+pub as cmp(_: i16@reg+mem, _: i8@imm) : (double: 0x83, /7, ib);
+pub as cmp(_: i32@reg+mem, _: i8@imm) : (double: 0x83, /7, ib);
+pub as cmp(_: i64@reg+mem, _: i8@imm) : (double: 0x83, /7, ib);
+pub as cmp(_: i8@reg+mem, _: i8@imm) : (double: 0x80, /7, ib);
+pub as cmp(_: i16@reg+mem, _: i16@imm) : (double: 0x81, /7, iw);
+pub as cmp(_: i32@reg+mem, _: i32@imm) : (double: 0x81, /7, id);
+pub as cmp(_: i64@reg+mem, _: i32@imm) : (double: 0x81, /7, id);
+pub as cmp(_: i8@reg+mem, _: i8@reg) : (double: 0x38, /r);
+pub as cmp(_: i16@reg+mem, _: i16@reg) : (double: 0x39, /r);
+pub as cmp(_: i32@reg+mem, _: i32@reg) : (double: 0x39, /r);
+pub as cmp(_: i64@reg+mem, _: i64@reg) : (double: 0x39, /r);
+pub as cmp(_: i8@reg, _: i8@reg+mem) : (double: 0x3a, /r);
+pub as cmp(_: i16@reg, _: i16@reg+mem) : (double: 0x3b, /r);
+pub as cmp(_: i32@reg, _: i32@reg+mem) : (double: 0x3b, /r);
+pub as cmp(_: i64@reg, _: i64@reg+mem) : (double: 0x3b, /r);
+
+pub as cmps(_: i8*@rdi, _: i8*@rsi) : (double: 0xa6);
+pub as cmps(_: i16*@rdi, _: i16*@rsi) : (double: 0xa7);
+pub as cmps(_: i32*@rdi, _: i32*@rsi) : (double: 0xa7);
+pub as cmps(_: i64*@rdi, _: i64*@rsi) : (double: 0xa7);
+
+pub as cpuid() : (double: 0x0f, 0xa2);
+
+pub as crc32(_: i32@reg, _: i8@reg+mem) : (double: 0xf2, 0x0f, 0x38, 0xf0, /r);
+pub as crc32(_: i32@reg, _: i16@reg+mem) : (double: 0xf2, 0x0f, 0x38, 0xf1, /r);
+pub as crc32(_: i32@reg, _: i32@reg+mem) : (double: 0xf2, 0x0f, 0x38, 0xf1, /r);
+pub as crc32(_: i64@reg, _: i8@reg+mem) : (double: 0xf2, 0x0f, 0x38, 0xf0, /r);
+pub as crc32(_: i64@reg, _: i64@reg+mem) : (double: 0xf2, 0x0f, 0x38, 0xf1, /r);
+
+pub as cmpxchg(_: i8@reg+mem, _: i8@reg) : (double: 0x0f, 0xb0, /r);
+pub as cmpxchg(_: i16@reg+mem, _: i16@reg) : (double: 0x0f, 0xb1, /r);
+pub as cmpxchg(_: i32@reg+mem, _: i32@reg) : (double: 0x0f, 0xb1, /r);
+pub as cmpxchg(_: i64@reg+mem, _: i64@reg) : (double: 0x0f, 0xb1, /r);
+
+pub as dec(_: i8@reg+mem) : (double: 0xfe, /1);
+pub as dec(_: i16@reg+mem) : (double: 0xff, /1);
+pub as dec(_: i32@reg+mem) : (double: 0xff, /1);
+pub as dec(_: i64@reg+mem) : (double: 0xff, /1);
+pub as dec(_: i16@reg) : (double: 0x48, rw);
+pub as dec(_: i32@reg) : (double: 0x48, rd);
+
+pub as div(_: i8@reg+mem) : (double: 0xf6, /6);
+pub as div(_: i16@reg+mem) : (double: 0xf7, /6);
+pub as div(_: i32@reg+mem) : (double: 0xf7, /6);
+pub as div(_: i64@reg+mem) : (double: 0xf7, /6);
+
+pub as enter(_: i16@imm, _: i8@imm) : (quad: 0xc8, iw, ib);
+
+pub as idiv(_: i8@reg+mem) : (double: 0xf6, /7);
+pub as idiv(_: i16@reg+mem) : (double: 0xf7, /7);
+pub as idiv(_: i32@reg+mem) : (double: 0xf7, /7);
+pub as idiv(_: i64@reg+mem) : (double: 0xf7, /7);
+
+pub as imul(_: i8@reg+mem) : (double: 0xf6, /5);
+pub as imul(_: i16@reg+mem) : (double: 0xf7, /5);
+pub as imul(_: i32@reg+mem) : (double: 0xf7, /5);
+pub as imul(_: i64@reg+mem) : (double: 0xf7, /5);
+pub as imul(_: i16@reg, _: i16@reg+mem) : (double: 0x0f, 0xaf, /r);
+pub as imul(_: i32@reg, _: i32@reg+mem) : (double: 0x0f, 0xaf, /r);
+pub as imul(_: i64@reg, _: i64@reg+mem) : (double: 0x0f, 0xaf, /r);
+pub as imul(_: i16@reg, _: i16@reg+mem, _: i8@imm) : (double: 0x6b, /r, ib);
+
+pub as in(_: i8@rax, _: i8@imm) : (double: 0xe4, ib);
+pub as in(_: i32@rax, _: i8@imm) : (double: 0xe5, ib);
+pub as in(_: i8@rax, _: i16@rdx) : (double: 0xec);
+pub as in(_: i16@rax, _: i16@rdx) : (double: 0xed);
+pub as in(_: i32@rax, _: i16@rdx) : (double: 0xed);
+
+pub as inc(_: i8@reg+mem) : (double: 0xfe, /0);
+pub as inc(_: i16@reg+mem) : (double: 0xff, /0);
+pub as inc(_: i32@reg+mem) : (double: 0xff, /0);
+pub as inc(_: i64@reg+mem) : (double: 0xff, /0);
+pub as inc(_: i16@reg) : (double: 0x40, rw);
+pub as inc(_: i32@reg) : (double: 0x40, rd);
+
+pub as ins(_: i8@mem, _: i16@rdx) : (double: 0x6c);
+pub as ins(_: i16@mem, _: i16@rdx) : (double: 0x6d);
+pub as ins(_: i32@mem, _: i16@rdx) : (double: 0x6d);
+pub as insb() : (double: 0x6c);
+pub as insw() : (double: 0x6d);
+pub as insd() : (double: 0x6d);
+
+pub as int(_: i8@imm) : (double: 0xcd, ib);
+
+pub as jo(_: i8@imm) : (quad: 0x70, ib);
+pub as jo(_: i16@imm) : (quad: 0x0f, 0x80, iw);
+pub as jo(_: i32@imm) : (quad: 0x0f, 0x80, id);
+
+pub as jno(_: i8@imm) : (quad: 0x71, ib);
+pub as jno(_: i16@imm) : (quad: 0x0f, 0x81, iw);
+pub as jno(_: i32@imm) : (quad: 0x0f, 0x81, id);
+
+pub as jb(_: i8@imm) : (quad: 0x72, ib);
+pub as jb(_: i16@imm) : (quad: 0x0f, 0x82, iw);
+pub as jb(_: i32@imm) : (quad: 0x0f, 0x82, id);
+
+pub as jc(_: i8@imm) : (quad: 0x72, ib);
+pub as jc(_: i16@imm) : (quad: 0x0f, 0x82, iw);
+pub as jc(_: i32@imm) : (quad: 0x0f, 0x82, id);
+
+pub as jnae(_: i8@imm) : (quad: 0x72, ib);
+pub as jnae(_: i16@imm) : (quad: 0x0f, 0x82, iw);
+pub as jnae(_: i32@imm) : (quad: 0x0f, 0x82, id);
+
+pub as jnb(_: i8@imm) : (quad: 0x73, ib);
+pub as jnb(_: i16@imm) : (quad: 0x0f, 0x83, iw);
+pub as jnb(_: i32@imm) : (quad: 0x0f, 0x83, id);
+
+pub as jnc(_: i8@imm) : (quad: 0x73, ib);
+pub as jnc(_: i16@imm) : (quad: 0x0f, 0x83, iw);
+pub as jnc(_: i32@imm) : (quad: 0x0f, 0x83, id);
+
+pub as jae(_: i8@imm) : (quad: 0x73, ib);
+pub as jae(_: i16@imm) : (quad: 0x0f, 0x83, iw);
+pub as jae(_: i32@imm) : (quad: 0x0f, 0x83, id);
+
+pub as jz(_: i8@imm) : (quad: 0x74, ib);
+pub as jz(_: i16@imm) : (quad: 0x0f, 0x84, iw);
+pub as jz(_: i32@imm) : (quad: 0x0f, 0x84, id);
+
+pub as je(_: i8@imm) : (quad: 0x74, ib);
+pub as je(_: i16@imm) : (quad: 0x0f, 0x84, iw);
+pub as je(_: i32@imm) : (quad: 0x0f, 0x84, id);
+
+pub as jnz(_: i8@imm) : (quad: 0x75, ib);
+pub as jnz(_: i16@imm) : (quad: 0x0f, 0x85, iw);
+pub as jnz(_: i32@imm) : (quad: 0x0f, 0x85, id);
+
+pub as jne(_: i8@imm) : (quad: 0x75, ib);
+pub as jne(_: i16@imm) : (quad: 0x0f, 0x85, iw);
+pub as jne(_: i32@imm) : (quad: 0x0f, 0x85, id);
+
+pub as jbe(_: i8@imm) : (quad: 0x76, ib);
+pub as jbe(_: i16@imm) : (quad: 0x0f, 0x86, iw);
+pub as jbe(_: i32@imm) : (quad: 0x0f, 0x86, id);
+
+pub as jna(_: i8@imm) : (quad: 0x76, ib);
+pub as jna(_: i16@imm) : (quad: 0x0f, 0x86, iw);
+pub as jna(_: i32@imm) : (quad: 0x0f, 0x86, id);
+
+pub as jnbe(_: i8@imm) : (quad: 0x77, ib);
+pub as jnbe(_: i16@imm) : (quad: 0x0f, 0x87, iw);
+pub as jnbe(_: i32@imm) : (quad: 0x0f, 0x87, id);
+
+pub as ja(_: i8@imm) : (quad: 0x77, ib);
+pub as ja(_: i16@imm) : (quad: 0x0f, 0x87, iw);
+pub as ja(_: i32@imm) : (quad: 0x0f, 0x87, id);
+
+pub as js(_: i8@imm) : (quad: 0x78, ib);
+pub as js(_: i16@imm) : (quad: 0x0f, 0x88, iw);
+pub as js(_: i32@imm) : (quad: 0x0f, 0x88, id);
+
+pub as jns(_: i8@imm) : (quad: 0x79, ib);
+pub as jns(_: i16@imm) : (quad: 0x0f, 0x89, iw);
+pub as jns(_: i32@imm) : (quad: 0x0f, 0x89, id);
+
+pub as jp(_: i8@imm) : (quad: 0x7a, ib);
+pub as jp(_: i16@imm) : (quad: 0x0f, 0x8a, iw);
+pub as jp(_: i32@imm) : (quad: 0x0f, 0x8a, id);
+
+pub as jpe(_: i8@imm) : (quad: 0x7a, ib);
+pub as jpe(_: i16@imm) : (quad: 0x0f, 0x8a, iw);
+pub as jpe(_: i32@imm) : (quad: 0x0f, 0x8a, id);
+
+pub as jnp(_: i8@imm) : (quad: 0x7b, ib);
+pub as jnp(_: i16@imm) : (quad: 0x0f, 0x8b, iw);
+pub as jnp(_: i32@imm) : (quad: 0x0f, 0x8b, id);
+
+pub as jpo(_: i8@imm) : (quad: 0x7b, ib);
+pub as jpo(_: i16@imm) : (quad: 0x0f, 0x8b, iw);
+pub as jpo(_: i32@imm) : (quad: 0x0f, 0x8b, id);
+
+pub as jl(_: i8@imm) : (quad: 0x7c, ib);
+pub as jl(_: i16@imm) : (quad: 0x0f, 0x8c, iw);
+pub as jl(_: i32@imm) : (quad: 0x0f, 0x8c, id);
+
+pub as jnge(_: i8@imm) : (quad: 0x7c, ib);
+pub as jnge(_: i16@imm) : (quad: 0x0f, 0x8c, iw);
+pub as jnge(_: i32@imm) : (quad: 0x0f, 0x8c, id);
+
+pub as jnl(_: i8@imm) : (quad: 0x7d, ib);
+pub as jnl(_: i16@imm) : (quad: 0x0f, 0x8d, iw);
+pub as jnl(_: i32@imm) : (quad: 0x0f, 0x8d, id);
+
+pub as jge(_: i8@imm) : (quad: 0x7d, ib);
+pub as jge(_: i16@imm) : (quad: 0x0f, 0x8d, iw);
+pub as jge(_: i32@imm) : (quad: 0x0f, 0x8d, id);
+
+pub as jle(_: i8@imm) : (quad: 0x7e, ib);
+pub as jle(_: i16@imm) : (quad: 0x0f, 0x8e, iw);
+pub as jle(_: i32@imm) : (quad: 0x0f, 0x8e, id);
+
+pub as jng(_: i8@imm) : (quad: 0x7e, ib);
+pub as jng(_: i16@imm) : (quad: 0x0f, 0x8e, iw);
+pub as jng(_: i32@imm) : (quad: 0x0f, 0x8e, id);
+
+pub as jnle(_: i8@imm) : (quad: 0x7f, ib);
+pub as jnle(_: i16@imm) : (quad: 0x0f, 0x8f, iw);
+pub as jnle(_: i32@imm) : (quad: 0x0f, 0x8f, id);
+
+pub as jg(_: i8@imm) : (quad: 0x7f, ib);
+pub as jg(_: i16@imm) : (quad: 0x0f, 0x8f, iw);
+pub as jg(_: i32@imm) : (quad: 0x0f, 0x8f, id);
+
+pub as jmp(_: i8@imm) : (quad: 0xeb);
+pub as jmp(_: i16@imm) : (quad: 0xe9, iw);
+pub as jmp(_: i32@imm) : (quad: 0xe9, id);
+pub as jmp(_: i64@reg+mem) : (quad: 0xff, /4);
+
+pub as lahf() : (double: 0x9f);
+
+pub as lea(_: i16@reg, _: i16@mem) : (double: 0x8d, /r);
+pub as lea(_: i32@reg, _: i32@mem) : (double: 0x8d, /r);
+pub as lea(_: i64@reg, _: i64@mem) : (double: 0x8d, /r);
+
+pub as lfence() : (double: 0x0f, 0xae, 0xe8);
+
+pub as lods(_: i8@rax, _: i64@rsi) : (double: 0xac);
+pub as lods(_: i16@rax, _: i64@rsi) : (double: 0xad);
+pub as lodsd(_: i32@rax, _: i64@rsi) : (double: 0xad);
+pub as lodsq(_: i64@rax, _: i64@rsi) : (double: 0xad);
+
+pub as loop(_: i8@imm) : (quad: 0xe2, 0xcb);
+pub as loopne(_: i8@imm) : (quad: 0xe0, 0xcb);
+pub as loopnz(_: i8@imm) : (quad: 0xe0, 0xcb);
+pub as loopz(_: i8@imm) : (quad: 0xe1, 0xcb);
+
+pub as lzcnt(_: i16@reg, _: i16@reg+mem) : (double: 0xf3, 0x0f, 0xbd, /r);
+pub as lzcnt(_: i32@reg, _: i32@reg+mem) : (double: 0xf3, 0x0f, 0xbd, /r);
+pub as lzcnt(_: i64@reg, _: i64@reg+mem) : (double: 0xf3, 0x0f, 0xbd, /r);
+
+pub as mcommit() : (double: 0xf3, 0x0f, 0x01, 0xfa);
+
+pub as mfence() : (double: 0x0f, 0xae, 0xf0);
+
+pub as monitorx() : (double: 0x0f, 0x01, 0xfa);
+
+pub as mov(_: i8@reg+mem, _: i8@reg) : (double: 0x88, /r);
+pub as mov(_: i16@reg+mem, _: i16@reg) : (double: 0x89, /r);
+pub as mov(_: i32@reg+mem, _: i32@reg) : (double: 0x89, /r);
+pub as mov(_: i64@reg+mem, _: i64@reg) : (double: 0x89, /r);
+pub as mov(_: i8@reg, _: i8@reg+mem) : (double: 0x8a, /r);
+pub as mov(_: i16@reg, _: i16@reg+mem) : (double: 0x8b, /r);
+pub as mov(_: i32@reg, _: i32@reg+mem) : (double: 0x8b, /r);
+pub as mov(_: i64@reg, _: i64@reg+mem) : (double: 0x8b, /r);
+pub as mov(_: i8@reg+mem, _: i8@imm) : (double: 0xc6, /0, ib);
+pub as mov(_: i16@reg+mem, _: i16@imm) : (double: 0xc7, /0, iw);
+pub as mov(_: i32@reg+mem, _: i32@imm) : (double: 0xc7, /0, id);
+pub as mov(_: i64@reg+mem, _: i32@imm) : (double: 0xc7, /0, id);
+pub as mov(_: i8@reg, _: i8@imm) : (double: 0xb0, rb, ib);
+pub as mov(_: i16@reg, _: i16@imm) : (double: 0xb8, rw, iw);
+pub as mov(_: i32@reg, _: i32@imm) : (double: 0xb8, rd, id);
+pub as mov(_: i64@reg, _: i64@imm) : (double: 0xb8, rq, iq);
+
+pub as movbe(_: i16@reg, _: i16@mem) : (double: 0x0f, 0x38, 0xf0, /r);
+pub as movbe(_: i32@reg, _: i32@mem) : (double: 0x0f, 0x38, 0xf0, /r);
+pub as movbe(_: i64@reg, _: i64@mem) : (double: 0x0f, 0x38, 0xf0, /r);
+pub as movbe(_: i16@mem, _: i16@reg) : (double: 0x0f, 0x38, 0xf1, /r);
+pub as movbe(_: i32@mem, _: i32@reg) : (double: 0x0f, 0x38, 0xf1, /r);
+pub as movbe(_: i64@mem, _: i64@reg) : (double: 0x0f, 0x38, 0xf1, /r);
+
+pub as movnti(_: i32@mem, _: i32@reg) : (double: 0x0f, 0xc3, /r);
+pub as movnti(_: i64@mem, _: i64@reg) : (double: 0x0f, 0xc3, /r);
+
+pub as movs(_: i8@rdi, _: i8@rsi) : (double: 0xa4);
+pub as movs(_: i16@rdi, _: i16@rsi) : (double: 0xa5);
+pub as movs(_: i32@rdi, _: i32@rsi) : (double: 0xa5);
+pub as movs(_: i64@rdi, _: i64@rsi) : (double: 0xa5);
+
+pub as movsx(_: i16@reg, _: i8@reg+mem) : (double: 0x0f, 0xbe, /r);
+pub as movsx(_: i32@reg, _: i8@reg+mem) : (double: 0x0f, 0xbe, /r);
+pub as movsx(_: i64@reg, _: i8@reg+mem) : (double: 0x0f, 0xbe, /r);
+pub as movsx(_: i32@reg, _: i16@reg+mem) : (double: 0x0f, 0xbf, /r);
+pub as movsx(_: i64@reg, _: i16@reg+mem) : (double: 0x0f, 0xbf, /r);
+
+pub as movsxd(_: i64@reg, _: i32@reg+mem) : (double: 0x63, /r);
+
+pub as movzx(_: i16@reg, _: i8@reg+mem) : (double: 0x0f, 0xb6, /r);
+pub as movzx(_: i32@reg, _: i8@reg+mem) : (double: 0x0f, 0xb6, /r);
+pub as movzx(_: i64@reg, _: i8@reg+mem) : (double: 0x0f, 0xb6, /r);
+pub as movzx(_: i32@reg, _: i16@reg+mem) : (double: 0x0f, 0xb7, /r);
+pub as movzx(_: i64@reg, _: i16@reg+mem) : (double: 0x0f, 0xb7, /r);
+
+pub as mul(_: i8@reg+mem) : (double: 0xf6, /4);
+pub as mul(_: i16@reg+mem) : (double: 0xf7, /4);
+pub as mul(_: i32@reg+mem) : (double: 0xf7, /4);
+pub as mul(_: i64@reg+mem) : (double: 0xf7, /4);
+
+pub as mwaitx() : (double: 0x0f, 0x01, 0xfb);
+
+pub as neg(_: i8@reg+mem) : (double: 0xf6, /3);
+pub as neg(_: i16@reg+mem) : (double: 0xf7, /3);
+pub as neg(_: i32@reg+mem) : (double: 0xf7, /3);
+pub as neg(_: i64@reg+mem) : (double: 0xf7, /3);
+
+pub as nop() : (double: 0x90);
+pub as nop(_: i16@reg+mem) : (double: 0x0f, 0x1f, /0);
+pub as nop(_: i32@reg+mem) : (double: 0x0f, 0x1f, /0);
+pub as nop(_: i64@reg+mem) : (double: 0x0f, 0x1f, /0);
+
+pub as not(_: i8@reg+mem) : (double: 0xf6, /2);
+pub as not(_: i16@reg+mem) : (double: 0xf7, /2);
+pub as not(_: i32@reg+mem) : (double: 0xf7, /2);
+pub as not(_: i64@reg+mem) : (double: 0xf7, /2);
+
+pub as or(_: i8@rax, _: i8@imm) : (double: 0x0c, ib);
+pub as or(_: i16@rax, _: i16@imm) : (double: 0x0d, iw);
+pub as or(_: i32@rax, _: i32@imm) : (double: 0x0d, id);
+pub as or(_: i64@rax, _: i32@imm) : (double: 0x0d, id);
+pub as or(_: i8@reg+mem, _: i8@imm) : (double: 0x80, /1, ib);
+pub as or(_: i16@reg+mem, _: i16@imm) : (double: 0x81, /1, iw);
+pub as or(_: i32@reg+mem, _: i32@imm) : (double: 0x81, /1, id);
+pub as or(_: i64@reg+mem, _: i32@imm) : (double: 0x81, /1, id);
+pub as or(_: i16@reg+mem, _: i8@imm) : (double: 0x83, /1, ib);
+pub as or(_: i32@reg+mem, _: i8@imm) : (double: 0x83, /1, ib);
+pub as or(_: i64@reg+mem, _: i8@imm) : (double: 0x83, /1, ib);
+pub as or(_: i8@reg+mem, _: i8@reg) : (double: 0x08, /r);
+pub as or(_: i16@reg+mem, _: i16@reg) : (double: 0x09, /r);
+pub as or(_: i32@reg+mem, _: i32@reg) : (double: 0x09, /r);
+pub as or(_: i64@reg+mem, _: i64@reg) : (double: 0x09, /r);
+
+pub as out(_: i8@imm, _: i8@rax) : (double: 0xe6, ib);
+pub as out(_: i8@imm, _: i16@rax) : (double: 0xe7, ib);
+pub as out(_: i8@imm, _: i32@rax) : (double: 0xe7, ib);
+pub as out(_: i16@rdx, _: i8@rax) : (double: 0xee);
+pub as out(_: i16@rdx, _: i16@rax) : (double: 0xef);
+pub as out(_: i16@rdx, _: i32@rax) : (double: 0xef);
+
+pub as outsb() : (double: 0x6e);
+pub as outsw() : (double: 0x6f);
+pub as outsd() : (double: 0x6f);
+
+pub as pause() : (double: 0xf3, 0x90);
+
+pub as pop(_: i64@reg+mem) : (quad: 0x8f, /0);
+pub as pop(_: i64@reg) : (quad: 0x58, rq);
+
+pub as popcnt(_: i16@reg, _: i16@reg+mem) : (double: 0xf3, 0x0f, 0xb8, /r);
+pub as popcnt(_: i32@reg, _: i32@reg+mem) : (double: 0xf3, 0x0f, 0xb8, /r);
+pub as popcnt(_: i64@reg, _: i64@reg+mem) : (double: 0xf3, 0x0f, 0xb8, /r);
+
+pub as popf() : (double: 0x9d);
+pub as popfd() : (double: 0x9d);
+pub as popfq() : (double: 0x9d);
+
+pub as prefetch(_: i8@mem) : (double: 0x0f, 0x0d, /0);
+pub as prefetchw(_: i8@mem) : (double: 0x0f, 0x0d, /1);
+
+pub as prefetchnta(_: i8@mem) : (double: 0x0f, 0x18, /0);
+pub as prefetcht0(_: i8@mem) : (double: 0x0f, 0x18, /1);
+pub as prefetcht1(_: i8@mem) : (double: 0x0f, 0x18, /2);
+pub as prefetcht2(_: i8@mem) : (double: 0x0f, 0x18, /3);
+
+pub as push(_: i64@reg+mem) : (quad: 0xff, /6);
+pub as push(_: i64@reg) : (quad: 0x50, rq);
+pub as push(_: i64@imm) : (double: 0x68, id);
+
+pub as pushfq() : (quad: 0x9c);
+
+pub as rcl(_: i8@reg+mem, _: i8@imm) : (double: 0xc0, /2, ib);
+pub as rcl(_: i16@reg+mem, _: i8@imm) : (double: 0xc1, /2, ib);
+pub as rcl(_: i32@reg+mem, _: i8@imm) : (double: 0xc1, /2, ib);
+pub as rcl(_: i64@reg+mem, _: i8@imm) : (double: 0xc1, /2, ib);
+
+pub as rcr(_: i8@reg+mem, _: i8@imm) : (double: 0xc0, /3, ib);
+pub as rcr(_: i16@reg+mem, _: i8@imm) : (double: 0xc1, /3, ib);
+pub as rcr(_: i32@reg+mem, _: i8@imm) : (double: 0xc1, /3, ib);
+pub as rcr(_: i64@reg+mem, _: i8@imm) : (double: 0xc1, /3, ib);
+
+as rdrand(_: i16@reg+mem) : (double: 0x0f, 0xc7, /6);
+as rdrand(_: i32@reg+mem) : (double: 0x0f, 0xc7, /6);
+as rdrand(_: i64@reg+mem) : (double: 0x0f, 0xc7, /6);
+pub as rdrand(r: i16@reg) {
+    rdrand(r);
+};
+pub as rdrand(r: i32@reg) {
+    rdrand(r);
+};
+pub as rdrand(r: i64@reg) {
+    rdrand(r);
+};
+
+as rdseed(_: i16@reg+mem) : (double: 0x0f, 0xc7, /7);
+as rdseed(_: i32@reg+mem) : (double: 0x0f, 0xc7, /7);
+as rdseed(_: i64@reg+mem) : (double: 0x0f, 0xc7, /7);
+pub as rdseed(r: i16@reg) {
+    rdseed(r);
+};
+pub as rdseed(r: i32@reg) {
+    rdseer(r);
+};
+pub as rdseed(r: i64@reg) {
+    rdseed(r);
+};
+
+pub as ret() : (quad: 0xc3);
+pub as ret(_: i16@imm) : (quad: 0xc2, iw);
+
+pub as retf() : (double: 0xcb);
+pub as retf(_: i16@imm) : (double: 0xca, iw);
+
+pub as rol(_: i8@reg+mem, _: i8@imm) : (double: 0xc0, /0, ib);
+pub as rol(_: i16@reg+mem, _: i8@imm) : (double: 0xc1, /0, ib);
+pub as rol(_: i32@reg+mem, _: i8@imm) : (double: 0xc1, /0, ib);
+pub as rol(_: i64@reg+mem, _: i8@imm) : (double: 0xc1, /0, ib);
+
+pub as ror(_: i8@reg+mem, _: i8@imm) : (double: 0xc0, /1, ib);
+pub as ror(_: i16@reg+mem, _: i8@imm) : (double: 0xc1, /1, ib);
+pub as ror(_: i32@reg+mem, _: i8@imm) : (double: 0xc1, /1, ib);
+pub as ror(_: i64@reg+mem, _: i8@imm) : (double: 0xc1, /1, ib);
+
+pub as sahf() : (double: 0x9e);
+
+pub as sal(_: i8@reg+mem, _: i8@imm) : (double: 0xc0, /4, ib);
+pub as sal(_: i16@reg+mem, _: i8@imm) : (double: 0xc1, /4, ib);
+pub as sal(_: i32@reg+mem, _: i8@imm) : (double: 0xc1, /4, ib);
+pub as sal(_: i64@reg+mem, _: i8@imm) : (double: 0xc1, /4, ib);
+
+pub as shl(_: i8@reg+mem, _: i8@imm) : (double: 0xc0, /4, ib);
+pub as shl(_: i16@reg+mem, _: i8@imm) : (double: 0xc1, /4, ib);
+pub as shl(_: i32@reg+mem, _: i8@imm) : (double: 0xc1, /4, ib);
+pub as shl(_: i64@reg+mem, _: i8@imm) : (double: 0xc1, /4, ib);
+
+pub as sar(_: i8@reg+mem, _: i8@imm) : (double: 0xc0, /7, ib);
+pub as sar(_: i16@reg+mem, _: i8@imm) : (double: 0xc1, /7, ib);
+pub as sar(_: i32@reg+mem, _: i8@imm) : (double: 0xc1, /7, ib);
+pub as sar(_: i64@reg+mem, _: i8@imm) : (double: 0xc1, /7, ib);
+
+pub as sbb(_: i8@rax, _: i8@imm) : (double: 0x1c, ib);
+pub as sbb(_: i16@rax, _: i16@imm) : (double: 0x1d, iw);
+pub as sbb(_: i32@rax, _: i32@imm) : (double: 0x1d, id);
+pub as sbb(_: i64@rax, _: i32@imm) : (double: 0x1d, id);
+pub as sbb(_: i16@reg+mem, _: i8@imm) : (double: 0x83, /3, ib);
+pub as sbb(_: i32@reg+mem, _: i8@imm) : (double: 0x83, /3, ib);
+pub as sbb(_: i64@reg+mem, _: i8@imm) : (double: 0x83, /3, ib);
+pub as sbb(_: i8@reg+mem, _: i8@imm) : (double: 0x80, /3, ib);
+pub as sbb(_: i16@reg+mem, _: i16@imm) : (double: 0x81, /3, iw);
+pub as sbb(_: i32@reg+mem, _: i32@imm) : (double: 0x81, /3, id);
+pub as sbb(_: i64@reg+mem, _: i32@imm) : (double: 0x81, /3, id);
+pub as sbb(_: i8@reg+mem, _: i8@reg) : (double: 0x18, /r);
+pub as sbb(_: i16@reg+mem, _: i16@reg) : (double: 0x19, /r);
+pub as sbb(_: i32@reg+mem, _: i32@reg) : (double: 0x19, /r);
+pub as sbb(_: i64@reg+mem, _: i64@reg) : (double: 0x19, /r);
+pub as sbb(_: i8@reg, _: i8@reg+mem) : (double: 0x1a, /r);
+pub as sbb(_: i16@reg, _: i16@reg+mem) : (double: 0x1b, /r);
+pub as sbb(_: i32@reg, _: i32@reg+mem) : (double: 0x1b, /r);
+pub as sbb(_: i64@reg, _: i64@reg+mem) : (double: 0x1b, /r);
+
+pub as scas(_: i8@rax, _: i64@rdi) : (double: 0xae);
+pub as scas(_: i16@rax, _: i64@rdi) : (double: 0xaf);
+pub as scas(_: i32@rax, _: i64@rdi) : (double: 0xaf);
+pub as scas(_: i64@rax, _: i64@rdi) : (double: 0xaf);
+
+pub as seto(_: i8@reg+mem) : (double: 0x0f, 0x90, /0);
+pub as setno(_: i8@reg+mem) : (double: 0x0f, 0x91, /0);
+pub as setb(_: i8@reg+mem) : (double: 0x0f, 0x92, /0);
+pub as setc(_: i8@reg+mem) : (double: 0x0f, 0x92, /0);
+pub as setnae(_: i8@reg+mem) : (double: 0x0f, 0x92, /0);
+pub as setnb(_: i8@reg+mem) : (double: 0x0f, 0x93, /0);
+pub as setnc(_: i8@reg+mem) : (double: 0x0f, 0x93, /0);
+pub as setae(_: i8@reg+mem) : (double: 0x0f, 0x93, /0);
+pub as setz(_: i8@reg+mem) : (double: 0x0f, 0x94, /0);
+pub as sete(_: i8@reg+mem) : (double: 0x0f, 0x94, /0);
+pub as setnz(_: i8@reg+mem) : (double: 0x0f, 0x95, /0);
+pub as setne(_: i8@reg+mem) : (double: 0x0f, 0x95, /0);
+pub as setbe(_: i8@reg+mem) : (double: 0x0f, 0x96, /0);
+pub as setna(_: i8@reg+mem) : (double: 0x0f, 0x96, /0);
+pub as setnbe(_: i8@reg+mem) : (double: 0x0f, 0x97, /0);
+pub as seta(_: i8@reg+mem) : (double: 0x0f, 0x97, /0);
+pub as sets(_: i8@reg+mem) : (double: 0x0f, 0x98, /0);
+pub as setns(_: i8@reg+mem) : (double: 0x0f, 0x99, /0);
+pub as setpe(_: i8@reg+mem) : (double: 0x0f, 0x9a, /0);
+pub as setnp(_: i8@reg+mem) : (double: 0x0f, 0x9b, /0);
+pub as setpo(_: i8@reg+mem) : (double: 0x0f, 0x9b, /0);
+pub as setl(_: i8@reg+mem) : (double: 0x0f, 0x9c, /0);
+pub as setnge(_: i8@reg+mem) : (double: 0x0f, 0x9c, /0);
+pub as setnl(_: i8@reg+mem) : (double: 0x0f, 0x9d, /0);
+pub as setge(_: i8@reg+mem) : (double: 0x0f, 0x9d, /0);
+pub as setle(_: i8@reg+mem) : (double: 0x0f, 0x9e, /0);
+pub as setng(_: i8@reg+mem) : (double: 0x0f, 0x9e, /0);
+pub as setnle(_: i8@reg+mem) : (double: 0x0f, 0x9f, /0);
+pub as setg(_: i8@reg+mem) : (double: 0x0f, 0x9f, /0);
+
+pub as sfence() : (double: 0x0f, 0xae, 0xf8);
+
+pub as shld(_: i16@reg+mem, _: i16@reg, _: i8@imm) : (double: 0x0f, 0xa4, /r, ib);
+pub as shld(_: i32@reg+mem, _: i32@reg, _: i8@imm) : (double: 0x0f, 0xa4, /r, ib);
+pub as shld(_: i64@reg+mem, _: i64@reg, _: i8@imm) : (double: 0x0f, 0xa4, /r, ib);
+
+pub as shr(_: i8@reg+mem, _: i8@imm) : (double: 0xc0, /5, ib);
+pub as shr(_: i16@reg+mem, _: i8@imm) : (double: 0xc1, /5, ib);
+pub as shr(_: i32@reg+mem, _: i8@imm) : (double: 0xc1, /5, ib);
+pub as shr(_: i64@reg+mem, _: i8@imm) : (double: 0xc1, /5, ib);
+
+pub as shrd(_: i16@reg+mem, _: i16@reg, _: i8@imm) : (double: 0x0f, 0xac, /r, ib);
+pub as shrd(_: i32@reg+mem, _: i32@reg, _: i8@imm) : (double: 0x0f, 0xac, /r, ib);
+pub as shrd(_: i64@reg+mem, _: i64@reg, _: i8@imm) : (double: 0x0f, 0xac, /r, ib);
+
+pub as stc() : (double: 0xf9);
+
+pub as std() : (double: 0xfd);
+
+pub as stos(_: i8@rax, _: i64@rdi) : (double: 0xaa);
+pub as stos(_: i16@rax, _: i64@rdi) : (double: 0xab);
+pub as stos(_: i32@rax, _: i64@rdi) : (double: 0xab);
+pub as stos(_: i64@rax, _: i64@rdi) : (double: 0xab);
+
+pub as sub(_: i8@rax, _: i8@imm) : (double: 0x2c, ib);
+pub as sub(_: i16@rax, _: i16@imm) : (double: 0x2d, iw);
+pub as sub(_: i32@rax, _: i32@imm) : (double: 0x2d, id);
+pub as sub(_: i64@rax, _: i32@imm) : (double: 0x2d, id);
+pub as sub(_: i16@reg+mem, _: i8@imm) : (double: 0x83, /5, ib);
+pub as sub(_: i32@reg+mem, _: i8@imm) : (double: 0x83, /5, ib);
+pub as sub(_: i64@reg+mem, _: i8@imm) : (double: 0x83, /5, ib);
+pub as sub(_: i8@reg+mem, _: i8@imm) : (double: 0x80, /5, ib);
+pub as sub(_: i16@reg+mem, _: i16@imm) : (double: 0x81, /5, iw);
+pub as sub(_: i32@reg+mem, _: i32@imm) : (double: 0x81, /5, id);
+pub as sub(_: i64@reg+mem, _: i32@imm) : (double: 0x81, /5, id);
+pub as sub(_: i8@reg+mem, _: i8@reg) : (double: 0x28, /r);
+pub as sub(_: i16@reg+mem, _: i16@reg) : (double: 0x29, /r);
+pub as sub(_: i32@reg+mem, _: i32@reg) : (double: 0x29, /r);
+pub as sub(_: i64@reg+mem, _: i64@reg) : (double: 0x29, /r);
+pub as sub(_: i8@reg, _: i8@reg+mem) : (double: 0x2a, /r);
+pub as sub(_: i16@reg, _: i16@reg+mem) : (double: 0x2b, /r);
+pub as sub(_: i32@reg, _: i32@reg+mem) : (double: 0x2b, /r);
+pub as sub(_: i64@reg, _: i64@reg+mem) : (double: 0x2b, /r);
+
+pub as test(_: i8@rax, _: i8@imm) : (double: 0xa8, ib);
+pub as test(_: i16@rax, _: i16@imm) : (double: 0xa9, iw);
+pub as test(_: i32@rax, _: i32@imm) : (double: 0xa9, id);
+pub as test(_: i64@rax, _: i32@imm) : (double: 0xa9, id);
+pub as test(_: i8@reg+mem, _: i8@imm) : (double: 0xf6, /0, ib);
+pub as test(_: i16@reg+mem, _: i16@imm) : (double: 0xf7, /0, iw);
+pub as test(_: i32@reg+mem, _: i32@imm) : (double: 0xf7, /0, id);
+pub as test(_: i64@reg+mem, _: i32@imm) : (double: 0xf7, /0, id);
+pub as test(_: i8@reg+mem, _: i8@reg) : (double: 0x84, /r);
+pub as test(_: i16@reg+mem, _: i16@reg) : (double: 0x85, /r);
+pub as test(_: i32@reg+mem, _: i32@reg) : (double: 0x85, /r);
+pub as test(_: i64@reg+mem, _: i64@reg) : (double: 0x85, /r);
+
+pub as tzcntreg16(_: i16@reg, _: i16@reg+mem) : (double: 0xf3, 0x0f, 0xbc, /r);
+pub as tzcntreg32(_: i32@reg, _: i32@reg+mem) : (double: 0xf3, 0x0f, 0xbc, /r);
+pub as tzcntreg64(_: i64@reg, _: i64@reg+mem) : (double: 0xf3, 0x0f, 0xbc, /r);
+
+pub as ud0() : (double: 0x0f, 0xff);
+pub as ud1(_: i64@reg+mem, _: i64@reg) : (double: 0x0f, 0xb9, /r);
+pub as ud2() : (double: 0x0f, 0x0b);
+
+pub as xadd(_: i8@reg+mem, _: i8@reg) : (double: 0x0f, 0xc0, /r);
+pub as xadd(_: i16@reg+mem, _: i16@reg) : (double: 0x0f, 0xc1, /r);
+pub as xadd(_: i32@reg+mem, _: i32@reg) : (double: 0x0f, 0xc1, /r);
+pub as xadd(_: i64@reg+mem, _: i64@reg) : (double: 0x0f, 0xc1, /r);
+
+pub as xchg(_: i16@rax, _: i16@reg) : (double: 0x90, rw);
+pub as xchg(_: i16@reg, _: i16@rax) : (double: 0x90, rw);
+pub as xchg(_: i32@rax, _: i32@reg) : (double: 0x90, rd);
+pub as xchg(_: i32@reg, _: i32@rax) : (double: 0x90, rd);
+pub as xchg(_: i64@rax, _: i64@reg) : (double: 0x90, rq);
+pub as xchg(_: i64@reg, _: i64@rax) : (double: 0x90, rq);
+pub as xchg(_: i8@reg+mem, _: i8@reg) : (double: 0x86, /r);
+pub as xchg(_: i8@reg, _: i8@reg+mem) : (double: 0x86, /r);
+pub as xchg(_: i16@reg+mem, _: i16@reg) : (double: 0x87, /r);
+pub as xchg(_: i16@reg, _: i16@reg+mem) : (double: 0x87, /r);
+pub as xchg(_: i32@reg+mem, _: i32@reg) : (double: 0x87, /r);
+pub as xchg(_: i32@reg, _: i32@reg+mem) : (double: 0x87, /r);
+pub as xchg(_: i64@reg+mem, _: i64@reg) : (double: 0x87, /r);
+pub as xchg(_: i64@reg, _: i64@reg+mem) : (double: 0x87, /r);
+
+pub as xlatb() : (double: 0xd7);
+
+pub as xor(_: i8@rax, _: i8@imm) : (double: 0x34, ib);
+pub as xor(_: i16@rax, _: i16@imm) : (double: 0x35, iw);
+pub as xor(_: i32@rax, _: i32@imm) : (double: 0x35, id);
+pub as xor(_: i64@rax, _: i32@imm) : (double: 0x35, id);
+pub as xor(_: i8@reg+mem, _: i8@imm) : (double: 0x80, /6, ib);
+pub as xor(_: i16@reg+mem, _: i16@imm) : (double: 0x81, /6, iw);
+pub as xor(_: i32@reg+mem, _: i32@imm) : (double: 0x81, /6, id);
+pub as xor(_: i64@reg+mem, _: i32@imm) : (double: 0x81, /6, id);
+pub as xor(_: i16@reg+mem, _: i8@imm) : (double: 0x83, /6, ib);
+pub as xor(_: i32@reg+mem, _: i8@imm) : (double: 0x83, /6, ib);
+pub as xor(_: i64@reg+mem, _: i8@imm) : (double: 0x83, /6, ib);
+pub as xor(_: i8@reg+mem, _: i8@reg) : (double: 0x30, /r);
+pub as xor(_: i16@reg+mem, _: i16@reg) : (double: 0x31, /r);
+pub as xor(_: i32@reg+mem, _: i32@reg) : (double: 0x31, /r);
+pub as xor(_: i64@reg+mem, _: i64@reg) : (double: 0x31, /r);
+pub as xor(_: i8@reg, _: i8@reg+mem) : (double: 0x32, /r);
+pub as xor(_: i16@reg, _: i16@reg+mem) : (double: 0x33, /r);
+pub as xor(_: i32@reg, _: i32@reg+mem) : (double: 0x33, /r);
+pub as xor(_: i64@reg, _: i64@reg+mem) : (double: 0x33, /r);
+
+pub as syscall() : (double: 0x0f, 0x05);
+
+

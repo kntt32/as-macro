@@ -523,6 +523,7 @@ void GlobalSyntaxTree_free(GlobalSyntaxTree self) {
 
 SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     bool (*BUILDERS[])(Parser, inout Generator*, inout VariableManager* variable_manager, out Data*) = {
+        Syntax_build_variable_declaration,
         Syntax_build_asmacro_expansion,
         Syntax_build_register_expression,
         Syntax_build_imm_expression,

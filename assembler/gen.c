@@ -963,19 +963,12 @@ static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in Asm
         case Imm_Label:
             value = 0;
             {
-                Rel rel;
-                strcpy(rel.label, imm->body.label);
-                strcpy(rel.section_name, "text");
-                rel.size = self->body.imm;
                 SRESULT_UNWRAP(
-                    Generator_binary_len(generator, "text", &rel.offset),
-                    (void)NULL
-                );
-                SRESULT_UNWRAP(
-                    Generator_new_rel(generator, rel),
+                    Generator_append_rela(generator, "text", imm->body.label, false),
                     (void)NULL
                 );
             }
+            break;
     }
     
     for(u32 i=0; i<self->body.imm/8; i++) {
@@ -1192,7 +1185,7 @@ SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generat
         );
     }
 
-    return SResult_new(NULL);
+    return Generator_addend_rela(generator, "text");
 }
 
 void AsmEncoding_print(in AsmEncoding* self) {
@@ -1253,7 +1246,7 @@ u64 Disp_value(in Disp* self) {
 
 SResult Disp_set_label(in Disp* self, inout Generator* generator) {
     if(self->type == Disp_Label) {
-        return Generator_append_rel(generator, "text", self->body.label);
+        return Generator_append_rela(generator, "text", self->body.label, false);
     }
 
     return SResult_new(NULL);
@@ -1453,8 +1446,23 @@ Data Data_from_register(Register reg) {
 }
 
 Data Data_from_imm(u64 imm) {
+    Type type;
+    if(imm <= 0xff) {
+        Type tmp = {"i8", Type_Integer, {}, 1, 1};
+        type = tmp;
+    }else if(imm <= 0xffff) {
+        Type tmp = {"i16", Type_Integer, {}, 2, 2};
+        type = tmp;
+    }else if(imm <= 0xffffffff) {
+        Type tmp = {"i32", Type_Integer, {}, 4, 4};
+        type = tmp;
+    }else {
+        Type tmp = {"i64", Type_Integer, {}, 8, 8};
+        type = tmp;
+    }
+
     Data data = {
-        {"i64", Type_Integer, {}, 8, 8},
+        type,
         {StorageType_imm, {.imm = {Imm_Value, {.value = imm}}}}
     };
     return data;
@@ -2192,17 +2200,18 @@ void Label_print_for_vec(in void* ptr) {
     Label_print(ptr);
 }
 
-void Rel_print(in Rel* self) {
-    printf("Rel { label: %s, section_name: %s, size: %u, offset: %u }",
+void Rela_print(in Rela* self) {
+    printf("Rela { label: %s, section_name: %s, offset: %u, addend: %d, flag: %s }",
         self->label,
         self->section_name,
-        self->size,
-        self->offset
+        self->offset,
+        self->addend,
+        BOOL_TO_STR(self->flag)
     );
 }
 
-void Rel_print_for_vec(in void* ptr) {
-    Rel_print(ptr);
+void Rela_print_for_vec(in void* ptr) {
+    Rela_print(ptr);
 }
 
 void Import_print(in Import* self) {
@@ -2258,7 +2267,7 @@ Generator Generator_new() {
         Vec_new(sizeof(Import)),
         Vec_new(sizeof(Section)),
         Vec_new(sizeof(Label)),
-        Vec_new(sizeof(Rel))
+        Vec_new(sizeof(Rela))
     };
     return generator;
 }
@@ -2399,25 +2408,36 @@ SResult Generator_new_label(inout Generator* self, Label label) {
     return SResult_new(NULL);
 }
 
-SResult Generator_new_rel(inout Generator* self, Rel rel) {
-    Vec_push(&self->rels, &rel);
+SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, bool flag) {
+    Rela rela;
+    strcpy(rela.label, label);
+    strcpy(rela.section_name, section);
+    rela.addend = 0;
+    rela.flag = flag;
+
+    SRESULT_UNWRAP(
+        Generator_binary_len(self, section, &rela.offset),
+        (void)NULL
+    );
+
+    Vec_push(&self->relas, &rela);
+
     return SResult_new(NULL);
 }
 
-SResult Generator_append_rel(inout Generator* self, in char* section, in char* label) {
-    Rel rel;
-    strcpy(rel.label, label);
-    strcpy(rel.section_name, section);
-    rel.size = 32;
-    SRESULT_UNWRAP(
-        Generator_binary_len(self, section, &rel.offset),
-        (void)NULL
-    );
-
-    SRESULT_UNWRAP(
-        Generator_new_rel(self, rel),
-        (void)NULL
-    );
+SResult Generator_addend_rela(inout Generator* self, in char* section) {
+    for(u32 i=0; i<Vec_len(&self->relas); i++) {
+        Rela* rela = Vec_index(&self->relas, i);
+        if(strcmp(rela->section_name, section) == 0 && !rela->flag) {
+            u32 section_len = 0;
+            SRESULT_UNWRAP(
+                Generator_binary_len(self, section, &section_len),
+                (void)NULL
+            );
+            rela->addend = section_len - rela->offset;
+            rela->flag = true;
+        }
+    }
 
     return SResult_new(NULL);
 }
@@ -2485,8 +2505,8 @@ void Generator_print(in Generator* self) {
     Vec_print(&self->sections, Section_print_for_vec);
     printf(", labels: ");
     Vec_print(&self->labels, Label_print_for_vec);
-    printf(", rels: ");
-    Vec_print(&self->rels, Rel_print_for_vec);
+    printf(", relas: ");
+    Vec_print(&self->relas, Rela_print_for_vec);
     printf(" }");
 }
 
@@ -2498,7 +2518,7 @@ void Generator_free(Generator self) {
     Vec_free_all(self.imports, Import_free_for_vec);
     Vec_free_all(self.sections, Section_free_for_vec);
     Vec_free(self.labels);
-    Vec_free(self.rels);
+    Vec_free(self.relas);
 }
 
 void Generator_free_for_vec(inout void* ptr) {

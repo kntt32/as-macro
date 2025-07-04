@@ -196,9 +196,10 @@ typedef struct {
 typedef struct {
     pub char label[256];
     pub char section_name[256];
-    pub u8 size;// 8, 16, 32, 64
     pub u32 offset;
-} Rel;
+    pub i32 addend;
+    pub bool flag;
+} Rela;
 
 typedef struct {
     char path[256];
@@ -219,7 +220,7 @@ typedef struct {
     
     Vec sections;// Vec<Section>
     Vec labels;// Vec<Label>
-    Vec rels;
+    Vec relas;// Vec<Rela>
 } Generator;
 
 extern Data DATA_VOID;
@@ -336,8 +337,8 @@ void Section_free_for_vec(inout void* ptr);
 void Label_print(in Label* self);
 void Label_print_for_vec(in void* ptr);
 
-void Rel_print(in Rel* self);
-void Rel_print_for_vec(in void* ptr);
+void Rela_print(in Rela* self);
+void Rela_print_for_vec(in void* ptr);
 
 void Import_print(in Import* self);
 void Import_print_for_vec(in void* ptr);
@@ -361,8 +362,8 @@ SResult Generator_get_asmacro(in Generator* self, in char* name, out Vec* asmacr
 void Generator_add_error(inout Generator* self, Error error);
 SResult Generator_new_section(inout Generator* self, in char* name);
 SResult Generator_new_label(inout Generator* self, Label label);
-SResult Generator_new_rel(inout Generator* self, Rel rel);
-SResult Generator_append_rel(inout Generator* self, in char* section, in char* label);
+SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, bool flag);
+SResult Generator_addend_rela(inout Generator* self, in char* section);
 SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte);
 SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte);
 SResult Generator_binary_len(in Generator* self, in char* name, out u32* len);

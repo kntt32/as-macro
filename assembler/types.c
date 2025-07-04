@@ -20,3 +20,9 @@ void u8_print_for_vec(in void* ptr) {
     printf("%x", *u8_ptr);
 }
 
+bool u8_cmp_for_vec(in void* ptr1, in void* ptr2) {
+    u8* val1 = ptr1;
+    u8* val2 = ptr2;
+    return *val1 == *val2;
+}
+

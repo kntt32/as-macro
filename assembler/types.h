@@ -65,5 +65,5 @@ SResult SResult_new(optional char* error);
 bool SResult_is_success(SResult self);
 
 void u8_print_for_vec(in void* ptr);
-
+bool u8_cmp_for_vec(in void* ptr1, in void* ptr2);
 

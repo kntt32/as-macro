@@ -16,11 +16,6 @@ static Type TYPES[] = {
     {"f64", Type_Floating, {}, 8, 8},
 };
 
-Data DATA_VOID = {
-    {"void", Type_Integer, {}, 0, 1},
-    {StorageType_imm, {.imm = {Imm_Value, {.value = 0}}}}
-};
-
 static void Type_parse_ref(inout Parser* parser, inout Type* type) {
     while(ParserMsg_is_success(Parser_parse_symbol(parser, "*"))) {
         Type* child = malloc(sizeof(Type));
@@ -954,30 +949,35 @@ static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in Asm
     if(!args->imm_flag) {
         return SResult_new("expected imm argument");
     }
-    u64 value = 0;
+
     Imm* imm = &args->imm;
     switch(imm->type) {
         case Imm_Value:
-            value = imm->body.value;
-            break;
-        case Imm_Label:
-            value = 0;
-            {
+        {
+            u32 vec_len = Vec_len(&imm->body.value);
+            for(u32 i=0; i<self->body.imm/8; i++) {
+                u8 byte = (i < vec_len)?(*(u8*)Vec_index(&imm->body.value, i)):(0);
                 SRESULT_UNWRAP(
-                    Generator_append_rela(generator, "text", imm->body.label, false),
+                    Generator_append_binary(generator, "text", byte),
                     (void)NULL
                 );
+            }
+        }
+            break;
+        case Imm_Label:
+            SRESULT_UNWRAP(
+                Generator_append_rela(generator, "text", imm->body.label, false),
+                (void)NULL
+            );
+            for(u32 i=0; i<8; i++) {
+                SRESULT_UNWRAP(
+                    Generator_append_binary(generator, "text", 0x00),
+                    (void)NULL
+                )
             }
             break;
     }
     
-    for(u32 i=0; i<self->body.imm/8; i++) {
-        u8 byte = (value >> (8*i)) & 0xff;
-        SRESULT_UNWRAP(
-            Generator_append_binary(generator, "text", byte),
-            (void)NULL
-        );
-    }
     return SResult_new(NULL);
 }
 
@@ -1306,7 +1306,7 @@ void Imm_print(in Imm* self) {
     printf("Imm { type: %d, body: ", self->type);
     switch(self->type) {
         case Imm_Value:
-            printf(".value: %lu", self->body.value);
+            Vec_print(&self->body.value, u8_print_for_vec);
             break;
         case Imm_Label:
             printf(".label: %s", self->body.label);
@@ -1322,7 +1322,7 @@ bool Imm_cmp(in Imm* self, in Imm* other) {
 
     switch(self->type) {
         case Imm_Value:
-            if(self->body.value != other->body.value) {
+            if(Vec_cmp(&self->body.value, &other->body.value, u8_cmp_for_vec)) {
                 return false;
             }
             break;
@@ -1336,6 +1336,33 @@ bool Imm_cmp(in Imm* self, in Imm* other) {
     return true;
 }
 
+Imm Imm_clone(in Imm* self) {
+    assert(self != NULL);
+
+    Imm imm;
+    imm.type = self->type;
+    switch(self->type) {
+        case Imm_Value:
+            imm.body.value = Vec_clone(&self->body.value, NULL);
+            break;
+        case Imm_Label:
+            strcpy(imm.body.label, self->body.label);
+            break;
+    }
+
+    return imm;
+}
+
+void Imm_free(Imm self) {
+    switch(self.type) {
+        case Imm_Value:
+            Vec_free(self.body.value);
+            break;
+        case Imm_Label:
+            break;
+    }
+}
+
 ParserMsg Storage_parse(inout Parser* parser, in i32* rbp_offset, out Storage* storage) {
     if(ParserMsg_is_success(Register_parse(parser, &storage->body.reg))) {
         if(Register_is_integer(storage->body.reg)) {
@@ -1347,7 +1374,7 @@ ParserMsg Storage_parse(inout Parser* parser, in i32* rbp_offset, out Storage* s
     }else if(ParserMsg_is_success(Parser_parse_keyword(parser, "imm"))){
         storage->type = StorageType_imm;
         storage->body.imm.type = Imm_Value;
-        storage->body.imm.body.value = 0;
+        storage->body.imm.body.value = Vec_new(sizeof(u8));
     }else if(ParserMsg_is_success(Parser_parse_keyword(parser, "stack"))) {
         storage->type = StorageType_mem;
         Memory* mem = &storage->body.mem;
@@ -1401,6 +1428,36 @@ void Storage_print(in Storage* self) {
     printf(" }");
 }
 
+Storage Storage_clone(in Storage* self) {
+    Storage storage;
+
+    storage.type = self->type;
+    switch(self->type) {
+        case StorageType_reg:
+        case StorageType_mem:
+        case StorageType_xmm:
+            storage.body = self->body;
+            break;
+        case StorageType_imm:
+            storage.body.imm = Imm_clone(&self->body.imm);
+            break;
+    }
+
+    return storage;
+}
+
+void Storage_free(Storage self) {
+    switch(self.type) {
+        case StorageType_reg:
+        case StorageType_mem:
+        case StorageType_xmm:
+            break;
+        case StorageType_imm:
+            Imm_free(self.body.imm);
+            break;
+    }
+}
+
 ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Data* data) {
     // Data @ Storage
     Parser parser_copy = *parser;
@@ -1447,23 +1504,33 @@ Data Data_from_register(Register reg) {
 
 Data Data_from_imm(u64 imm) {
     Type type;
+    u32 len = 0;;
     if(imm <= 0xff) {
         Type tmp = {"i8", Type_Integer, {}, 1, 1};
         type = tmp;
+        len = 1;
     }else if(imm <= 0xffff) {
         Type tmp = {"i16", Type_Integer, {}, 2, 2};
         type = tmp;
+        len = 2;
     }else if(imm <= 0xffffffff) {
         Type tmp = {"i32", Type_Integer, {}, 4, 4};
         type = tmp;
+        len = 4;
     }else {
         Type tmp = {"i64", Type_Integer, {}, 8, 8};
         type = tmp;
+        len = 8;
+    }
+    Vec value = Vec_new(sizeof(u8));
+    for(u32 i=0; i<len; i++) {
+        u8 byte = (imm >> (i*8)) & 0xff;
+        Vec_push(&value, &byte);
     }
 
     Data data = {
         type,
-        {StorageType_imm, {.imm = {Imm_Value, {.value = imm}}}}
+        {StorageType_imm, {.imm = {Imm_Value, {.value = value}}}}
     };
     return data;
 }
@@ -1472,8 +1539,17 @@ Data Data_clone(in Data* self) {
     Data data;
     
     data.type = Type_clone(&self->type);
-    data.storage = self->storage;
+    data.storage = Storage_clone(&self->storage);
     
+    return data;
+}
+
+Data Data_void(void) {
+    Data data = {
+        {"void", Type_Integer, {}, 0, 1},
+        {StorageType_imm, {.imm = {Imm_Value, {.value = Vec_new(sizeof(u8))}}}}
+    };
+
     return data;
 }
 
@@ -1491,6 +1567,7 @@ void Data_print_for_vec(in void* ptr) {
 
 void Data_free(Data self) {
     Type_free(self.type);
+    Storage_free(self.storage);
 }
 
 void Data_free_for_vec(inout void* ptr) {
@@ -1858,7 +1935,7 @@ static SResult AsmArgs_from_trait(in Data* data, in Argument* arg, inout AsmArgs
         case StorageType_imm:
             if(!reg_flag && !mem_flag && imm_flag && !xmm_flag) {
                 asm_args->imm_flag = true;
-                asm_args->imm = data->storage.body.imm;
+                asm_args->imm = Imm_clone(&data->storage.body.imm);
             }else {
                 return result;
             }
@@ -1893,6 +1970,22 @@ SResult AsmArgs_from(in Vec* dataes, in Vec* arguments, out AsmArgs* asm_args) {
     }
 
     return SResult_new(NULL);
+}
+
+AsmArgs AsmArgs_clone(in AsmArgs* self) {
+    AsmArgs asm_args = *self;
+
+    if(self->imm_flag) {
+        asm_args.imm = Imm_clone(&self->imm);
+    }
+
+    return asm_args;
+}
+
+void AsmArgs_free(AsmArgs self) {
+    if(self.imm_flag) {
+        Imm_free(self.imm);
+    }
 }
 
 static ParserMsg Asmacro_parse_header_arguments(Parser parser, in Generator* generator, inout Vec* arguments) {

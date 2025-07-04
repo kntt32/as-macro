@@ -617,6 +617,8 @@ static SResult Syntax_build_asmacro_expansion_asmoperator(in Asmacro* asmacro, i
         AsmEncoding_encode(&asmacro->body.asm_operator, &asm_args, generator),
         (void)NULL
     );
+
+    AsmArgs_free(asm_args);
     
     return SResult_new(NULL);
 }
@@ -672,7 +674,7 @@ bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, i
     if(Vec_len(&arguments) != 0) {
         *data = Data_clone(Vec_index(&arguments, Vec_len(&arguments)-1));
     }else {
-        *data = DATA_VOID;
+        *data = Data_void();
     }
 
     switch(asmacro.type) {
@@ -703,7 +705,7 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
         return false;
     }
     
-    *data = DATA_VOID;
+    *data = Data_void();
     
     Variable variable;
     if(resolve_parsermsg(Variable_parse(&parser, generator, &variable_manager->stack_offset, &variable), generator)) {
@@ -750,7 +752,7 @@ bool Syntax_build_variable_expression(Parser parser, inout Generator* generator,
         return false;
     }
     
-    *data = DATA_VOID;
+    *data = Data_void();
     
     Variable variable;
     if(resolve_sresult(VariableManager_get(variable_manager, name, &variable), parser.offset, generator)) {

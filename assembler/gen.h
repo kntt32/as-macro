@@ -110,7 +110,7 @@ typedef struct {
 typedef struct {
     enum { Imm_Value, Imm_Label} type;
     union {
-        u64 value;
+        Vec value;// Vec<u8>
         char label[256];
     } body;
 } Imm;
@@ -223,8 +223,6 @@ typedef struct {
     Vec relas;// Vec<Rela>
 } Generator;
 
-extern Data DATA_VOID;
-
 ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_parse_enum(inout Parser* parser, out Type* type);
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type);
@@ -278,15 +276,20 @@ void Memory_print(in Memory* self);
 
 void Imm_print(in Imm* self);
 bool Imm_cmp(in Imm* self, in Imm* other);
+Imm Imm_clone(in Imm* self);
+void Imm_free(Imm self);
 
 ParserMsg Storage_parse(inout Parser* parser, in i32* rbp_offset, out Storage* storage);
 bool Storage_cmp(in Storage* self, in Storage* other);
 void Storage_print(in Storage* self);
+Storage Storage_clone(in Storage* self);
+void Storage_free(Storage self);
 
 ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Data* data);
 Data Data_from_register(Register reg);
 Data Data_from_imm(u64 imm);
 Data Data_clone(in Data* self);
+Data Data_void(void);
 void Data_print(in Data* self);
 void Data_print_for_vec(in void* ptr);
 void Data_free(Data self);
@@ -317,6 +320,8 @@ void Argument_free(Argument self);
 void Argument_free_for_vec(inout void* ptr);
 
 SResult AsmArgs_from(in Vec* dataes, in Vec* arguments, out AsmArgs* asm_args);
+AsmArgs AsmArgs_clone(in AsmArgs* self);
+void AsmArgs_free(AsmArgs self);
 
 ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmacro* asmacro);
 bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other);

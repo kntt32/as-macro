@@ -6,6 +6,8 @@
 #include "syntax.h"
 #include "util.h"
 
+static SResult expand_asmacro(in char* name, in char* path, in Vec* arguments, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+
 VariableManager VariableManager_new(i32 stack_offset) {
     VariableManager variable_manager = {Vec_new(sizeof(Variable)), stack_offset};
     return variable_manager;
@@ -575,35 +577,29 @@ static SResult Syntax_build_asmacro_expansion_search_asmacro(in Vec* asmacroes, 
     return SResult_new("mismatching asmacro");
 }
 
-static bool Syntax_build_asmacro_expansion_get_info(
+static SResult Syntax_build_asmacro_expansion_get_info(
     in char* name,
-    Parser args_parser,
+    in char* path,
     inout Generator* generator,
-    inout VariableManager* variable_manager,
-    out Asmacro* asmacro,
-    out Vec* arguments
+    in Vec* arguments,
+    out Asmacro* asmacro
 ) {
     Vec asmacroes;
-    if(resolve_sresult(Generator_get_asmacro(generator, name, &asmacroes), args_parser.offset, generator)) {
-        return true;
-    }
+    SRESULT_UNWRAP(
+        Generator_get_asmacro(generator, name, &asmacroes),
+        (void)NULL
+    );
 
-    if(resolve_sresult(Syntax_build_asmacro_expansion_get_arguments(args_parser, generator, variable_manager, arguments), args_parser.offset, generator)) {
-        Vec_free_all(asmacroes, Asmacro_free_for_vec);
-        return true;
-    }
-
-    if(resolve_sresult(
+    SRESULT_UNWRAP(
         Syntax_build_asmacro_expansion_search_asmacro(
-            &asmacroes, arguments, Parser_path(&args_parser), asmacro), args_parser.offset, generator)) {
+            &asmacroes, arguments, path, asmacro),
         Vec_free_all(asmacroes, Asmacro_free_for_vec);
-        Vec_free_all(*arguments, Data_free_for_vec);
-        return true;
-    }
+        Vec_free_all(*arguments, Data_free_for_vec)
+    );
 
     Vec_free_all(asmacroes, Asmacro_free_for_vec);
 
-    return false;
+    return SResult_new(NULL);
 }
 
 static SResult Syntax_build_asmacro_expansion_asmoperator(in Asmacro* asmacro, in Vec* arguments, inout Generator* generator) {
@@ -649,6 +645,83 @@ static void Syntax_build_asmacro_expansion_useroperator(in Asmacro* asmacro, in 
     }
 }
 
+static SResult Syntax_build_asmacro_expansion_fnwrapper(in Asmacro* asmacro, in Vec* arguments, inout Generator* generator, inout VariableManager* variable_manager) {
+    TODO();
+    /*
+    u32 additional_stack = 0;
+    
+    // store volatile registers
+    for(u32 i=0; i<Vec_len(&variable_manager->variables); i++) {
+        Variable* variable = Vec_index(&variable_manager->variables, i);
+        Storage* storage = variable->data.storage;
+
+        switch(storage->type) {
+            case StorageType_reg:
+                if(Register_is_volatile(storage->body.reg)) {
+                    Data data = Data_from_register(storage->body.reg);
+                    Vec vec = Vec_new(sizeof(Data));
+                    Vec_push(&vec, &data);
+                    Data out_data;
+                    if(resolve_sresult(
+                        expand_asmacro("push", "", &vec, generator, variable_manager, &out_data)
+                    )) {
+                        Data_free(out_data);
+                    }
+                    Vec_free_all(&vec, Data_free_for_vec);
+                }
+                break;
+            case StorageType_xmm:
+                TODO();
+                break;
+            default:
+                break;
+        }
+    }
+
+    */ 
+}
+
+static SResult expand_asmacro(in char* name, in char* path, in Vec* arguments, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    Asmacro asmacro;
+
+    SRESULT_UNWRAP(
+        Syntax_build_asmacro_expansion_get_info(
+            name,
+            path,
+            generator,
+            arguments,
+            &asmacro),
+        (void)NULL
+    );
+
+    switch(asmacro.type) {
+        case Asmacro_AsmOperator:
+            SRESULT_UNWRAP(
+                Syntax_build_asmacro_expansion_asmoperator(&asmacro, arguments, generator),
+                Asmacro_free(asmacro)
+            );
+            break;
+        case Asmacro_UserOperator:
+            Syntax_build_asmacro_expansion_useroperator(&asmacro, arguments, generator, variable_manager);
+            break;
+        case Asmacro_FnWrapper:
+            SRESULT_UNWRAP(
+                Syntax_build_asmacro_expansion_fnwrapper(&asmacro, arguments, generator, variable_manager),
+                Asmacro_free(asmacro)
+            );
+            break;
+    }
+
+    if(Vec_len(arguments) != 0) {
+        *data = Data_clone(Vec_index(arguments, Vec_len(arguments)-1));
+    }else {
+        *data = Data_void();
+    }
+    Asmacro_free(asmacro);
+
+    return SResult_new(NULL);
+}
+
 bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     char name[256];
     if(!ParserMsg_is_success(Parser_parse_ident(&parser, name))) {
@@ -659,41 +732,23 @@ bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, i
         return false;
     }
 
-    Asmacro asmacro;
     Vec arguments;
-    if(Syntax_build_asmacro_expansion_get_info(
-        name,
-        args_parser,
-        generator,
-        variable_manager,
-        &asmacro,
-        &arguments)) {
+
+    if(resolve_sresult(
+        Syntax_build_asmacro_expansion_get_arguments(args_parser, generator, variable_manager, &arguments),
+        parser.offset, generator
+    )) {
+        return true;
+    }
+    
+    if(resolve_sresult(
+        expand_asmacro(name, Parser_path(&parser), &arguments, generator, variable_manager, data),
+        parser.offset, generator
+    )) {
+        Vec_free_all(arguments, Data_free_for_vec);
         return true;
     }
 
-    if(Vec_len(&arguments) != 0) {
-        *data = Data_clone(Vec_index(&arguments, Vec_len(&arguments)-1));
-    }else {
-        *data = Data_void();
-    }
-
-    switch(asmacro.type) {
-        case Asmacro_AsmOperator:
-            resolve_sresult(
-                Syntax_build_asmacro_expansion_asmoperator(&asmacro, &arguments, generator),
-                parser.offset,
-                generator
-            );
-            break;
-        case Asmacro_UserOperator:
-            Syntax_build_asmacro_expansion_useroperator(&asmacro, &arguments, generator, variable_manager);
-            break;
-        case Asmacro_FnWrapper:
-            TODO();
-            break;
-    }
-
-    Asmacro_free(asmacro);
     Vec_free_all(arguments, Data_free_for_vec);
 
     check_parser(&parser, generator);

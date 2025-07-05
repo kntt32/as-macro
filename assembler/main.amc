@@ -10,12 +10,7 @@ pub as NOP() {
     nop();
 };
 
-fn f() {
-    NOP();
-};
-
-pub fn main(x: i64@r15, y: i64@rax, z: f64@xmm1) {
-    mov(x, -1);
+pub fn main(x: i64@r15, y: i64@rax, z: f64@xmm1, alpha: i64@stack) {
     let num: i32@rdi;
     mov(num, 12345);
 };

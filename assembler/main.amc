@@ -1,17 +1,11 @@
-import sub;
 import core_x64;
 
-struct Point {
-    x: i64,
-    y: i64
+pub fn double(x: i64@rax) {
+    add(x, x);
 };
 
-pub as NOP() {
-    nop();
-};
-
-pub fn main(x: i64@r15, y: i64@rax, z: f64@xmm1, alpha: i64@stack) {
-    let num: i32@rdi;
-    mov(num, 12345);
+pub fn main() {
+    let num: i64@rax;
+    double(num);
 };
 

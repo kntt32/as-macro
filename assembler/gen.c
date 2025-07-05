@@ -969,7 +969,7 @@ static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in Asm
                 Generator_append_rela(generator, "text", imm->body.label, false),
                 (void)NULL
             );
-            for(u32 i=0; i<8; i++) {
+            for(u32 i=0; i<4; i++) {
                 SRESULT_UNWRAP(
                     Generator_append_binary(generator, "text", 0x00),
                     (void)NULL
@@ -1161,7 +1161,7 @@ static SResult AsmEncoding_encode_prefix(in AsmEncoding* self, in AsmArgs* args,
             (void)NULL
         );
     }
-    if(rex_prefix_needed_flag) {
+    if(rex_prefix_needed_flag && (self->operand_size == 8 || (rex_prefix & 0x0f) != 0)) {
         SRESULT_UNWRAP(
             Generator_append_binary(generator, "text", rex_prefix),
             (void)NULL
@@ -1475,7 +1475,7 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* r
         Storage_parse(&parser_copy, rbp_offset, &data->storage),
         Type_free(data->type)
     );
-    *rbp_offset = data->type.size;
+    *rbp_offset += data->type.size;
 
     *parser = parser_copy;
 
@@ -1492,7 +1492,7 @@ Data Data_from_register(Register reg) {
     }else if(Register_is_xmm(reg)) {
         Data data = {
             {"f64", Type_Floating, {}, 8, 8},
-            {StorageType_reg, {.reg = reg}}
+            {StorageType_xmm, {.reg = reg}}
         };
         return data;
     }
@@ -1531,6 +1531,24 @@ Data Data_from_imm(u64 imm) {
     Data data = {
         type,
         {StorageType_imm, {.imm = {Imm_Value, {.value = value}}}}
+    };
+    return data;
+}
+
+Data Data_from_label(in char* label) {
+    Data data = {
+        {"i32", Type_Integer, {}, 4, 4},
+        {StorageType_imm, {.imm = {Imm_Label, {.label = ""}}}}
+    };
+    strncpy(data.storage.body.imm.body.label, label, 255);
+
+    return data;
+}
+
+Data Data_from_mem(Register reg, i32 offset) {
+    Data data = {
+        {"i32", Type_Integer, {}, 4, 4},
+        {StorageType_mem, {.mem = {reg, {Disp_Offset, {.offset = offset}}}}}
     };
     return data;
 }
@@ -1737,16 +1755,18 @@ Argument Argument_from(in Variable* variable) {
     Argument argument;
     strcpy(argument.name, variable->name);
     argument.type = Type_clone(&variable->data.type);
-    argument.storage_type = Argument_Trait;
-    switch(argument.type.type) {
-        case Type_Floating:
-            argument.storage.trait.reg_flag = false;
-            argument.storage.trait.mem_flag = true;
-            argument.storage.trait.imm_flag = true;
-            argument.storage.trait.xmm_flag = true;
+
+    Storage* var_storage = &variable->data.storage;
+    switch(var_storage->type) {
+        case StorageType_imm:
+        case StorageType_reg:
+        case StorageType_xmm:
+            argument.storage_type = Argument_Storage;
+            argument.storage.storage = Storage_clone(var_storage);
             break;
-        default:
-            argument.storage.trait.reg_flag = true;
+        case StorageType_mem:
+            argument.storage_type = Argument_Trait;
+            argument.storage.trait.reg_flag = false;
             argument.storage.trait.mem_flag = true;
             argument.storage.trait.imm_flag = true;
             argument.storage.trait.xmm_flag = false;
@@ -1767,7 +1787,9 @@ bool Argument_match_with(in Argument* self, in Data* data) {
                 return false;
             }
             if(self->storage.trait.imm_flag && (self->type.type == Type_Integer || self->type.type == Type_Floating) && self->type.type == data->type.type) {
-                return true;
+                if(data->storage.type != StorageType_imm && data->storage.body.imm.type != Imm_Label) {
+                    return true;
+                }
             }
             break;
         case Argument_Storage:
@@ -2129,6 +2151,7 @@ ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmac
 Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */, in char* valid_path) {
     assert(name != NULL);
     assert(valid_path != NULL);
+    assert(Vec_size(&arguments) == sizeof(Variable));
 
     Asmacro asmacro;
 

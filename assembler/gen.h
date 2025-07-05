@@ -288,6 +288,8 @@ void Storage_free(Storage self);
 ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Data* data);
 Data Data_from_register(Register reg);
 Data Data_from_imm(u64 imm);
+Data Data_from_label(in char* label);
+Data Data_from_mem(Register reg, i32 offset);
 Data Data_clone(in Data* self);
 Data Data_void(void);
 void Data_print(in Data* self);

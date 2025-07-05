@@ -6,7 +6,8 @@
 #include "syntax.h"
 #include "util.h"
 
-static SResult expand_asmacro(in char* name, in char* path, in Vec* arguments, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+static SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+static SResult sub_rsp(i32 value, inout Generator* generator, inout VariableManager* variable_manager);
 
 VariableManager VariableManager_new(i32 stack_offset) {
     VariableManager variable_manager = {Vec_new(sizeof(Variable)), stack_offset};
@@ -370,11 +371,13 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
     strcpy(label.name, self->body.function_definision.name);
     label.public_flag = true;
     strcpy(label.section_name, "text");
-    resolve_sresult(
+    if(resolve_sresult(
         Generator_binary_len(generator, "text", &label.offset),
         parser.offset,
         generator
-    );
+    )) {
+        return;
+    }
     resolve_sresult(
         Generator_new_label(generator, label),
         parser.offset,
@@ -593,8 +596,7 @@ static SResult Syntax_build_asmacro_expansion_get_info(
     SRESULT_UNWRAP(
         Syntax_build_asmacro_expansion_search_asmacro(
             &asmacroes, arguments, path, asmacro),
-        Vec_free_all(asmacroes, Asmacro_free_for_vec);
-        Vec_free_all(*arguments, Data_free_for_vec)
+        Vec_free_all(asmacroes, Asmacro_free_for_vec)
     );
 
     Vec_free_all(asmacroes, Asmacro_free_for_vec);
@@ -637,51 +639,213 @@ static void Syntax_build_asmacro_expansion_useroperator(in Asmacro* asmacro, in 
         Parser syntax_parser = Parser_split(&proc_parser, ";");
         
         Data data;
-        resolve_sresult(
+        if(!resolve_sresult(
             Syntax_build(syntax_parser, generator, variable_manager, &data),
             syntax_parser.offset, generator
+        )) {
+            Data_free(data);
+        }
+    }
+}
+
+static SResult Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(in Data* data, inout VariableManager* variable_manager, inout Generator* generator, bool volatile_flag) {
+    Register reg;
+    switch(data->storage.type) {
+        case StorageType_reg:
+            reg = data->storage.body.reg;
+            break;
+        case StorageType_xmm:
+            reg = data->storage.body.xmm;
+            break;
+        default:
+            return SResult_new(NULL);
+    }
+
+    if(Register_is_volatile(reg) == volatile_flag) {
+        Data arg_data = Data_from_register(reg);
+        Vec args = Vec_new(sizeof(Data));
+        Vec_push(&args, &arg_data);
+        Data data;
+        SRESULT_UNWRAP(
+            expand_asmacro("push", "", args, generator, variable_manager, &data),
+            (void)NULL
+        );
+        variable_manager->stack_offset += 8;
+
+        Data_free(data);
+    }
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_vars_helper(in Data* data, inout VariableManager* variable_manager, inout Generator* generator, bool volatile_flag) {
+    Register reg;
+    switch(data->storage.type) {
+        case StorageType_reg:
+            reg = data->storage.body.reg;
+            break;
+        case StorageType_xmm:
+            reg = data->storage.body.xmm;
+            break;
+        default:
+            return SResult_new(NULL);
+    }
+
+    if(Register_is_volatile(reg) == volatile_flag) {
+        Data arg_data = Data_from_register(reg);
+        Vec args = Vec_new(sizeof(Data));
+        Vec_push(&args, &arg_data);
+        Data data;
+        SRESULT_UNWRAP(
+            expand_asmacro("pop", "", args, generator, variable_manager, &data),
+            (void)NULL
+        );
+        variable_manager->stack_offset += 8;
+
+        Data_free(data);
+    }
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_asmacro_expansion_fnwrapper_push_volatile_vars(inout VariableManager* variable_manager, inout Generator* generator) {
+    for(u32 i=0; i<Vec_len(&variable_manager->variables); i++) {
+        Variable* variable = Vec_index(&variable_manager->variables, i);
+        SRESULT_UNWRAP(
+            Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(&variable->data, variable_manager, generator, true),
+            (void)NULL
+        );
+    }
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_volatile_vars(inout VariableManager* variable_manager, inout Generator* generator) {
+    for(i32 i=Vec_len(&variable_manager->variables)-1; 0<=i; i--) {
+        Variable* variable = Vec_index(&variable_manager->variables, i);
+        SRESULT_UNWRAP(
+            Syntax_build_asmacro_expansion_fnwrapper_pop_vars_helper(&variable->data, variable_manager, generator, true),
+            (void)NULL
+        );
+    }
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_asmacro_expansion_fnwrapper_push_nonvolatile_args(in Vec* arguments, inout VariableManager* variable_manager, inout Generator* generator) {
+    for(u32 i=0; i<Vec_len(arguments); i++) {
+        Data* fn_arg = Vec_index(arguments, i);
+        SRESULT_UNWRAP(
+            Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(fn_arg, variable_manager, generator, false),
+            (void)NULL
+        );
+    }
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_nonvolatile_args(in Vec* arguments, inout VariableManager* variable_manager, inout Generator* generator) {
+    for(i32 i=Vec_len(arguments)-1; 0<=i; i--) {
+        Data* fn_arg = Vec_index(arguments, i);
+        SRESULT_UNWRAP(
+            Syntax_build_asmacro_expansion_fnwrapper_pop_vars_helper(fn_arg, variable_manager, generator, false),
+            (void)NULL
+        );
+    }
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_asmacro_expansion_fnwrapper_push_stack_args(in Asmacro* asmacro, in Vec* arguments, inout VariableManager* variable_manager, inout Generator* generator) {
+    assert(asmacro->type == Asmacro_FnWrapper);
+
+    Vec* asmacro_argvars = &asmacro->body.fn_wrapper;
+    for(i32 i=(i32)Vec_len(asmacro_argvars)-1; 0<=i; i--) {
+        Variable* asmacro_argvar = Vec_index(asmacro_argvars, i);
+        Storage* asmacro_argvar_storage = &asmacro_argvar->data.storage;
+        if(asmacro_argvar_storage->type != StorageType_mem) {
+            continue;
+        }
+
+        Type* asmacro_argvar_type = &asmacro_argvar->data.type;
+        u32 size = asmacro_argvar_type->size;
+        u64 align = asmacro_argvar_type->align;
+        Memory* memory = &asmacro_argvar_storage->body.mem;
+        assert(memory->base == Rsp);
+        assert(memory->disp.type == Disp_Offset);
+        i32 push_offset = (variable_manager->stack_offset+align-1)/align*align;
+        i32 call_stack_offset = (push_offset - memory->disp.body.offset + 0x0f)/0x10*0x10;
+        push_offset = call_stack_offset + memory->disp.body.offset;
+
+        SRESULT_UNWRAP(
+            sub_rsp(push_offset+size-variable_manager->stack_offset, generator, variable_manager),
+            (void)NULL
+        );
+
+        Vec mov_args = Vec_new(sizeof(Data));
+        Data mov_arg_dst = Data_from_mem(Rbp, push_offset);
+        Data mov_arg_src = Data_clone(Vec_index(arguments, i));
+        Vec_push(&mov_args, &mov_arg_dst);
+        Vec_push(&mov_args, &mov_arg_src);
+        Data data;
+        SRESULT_UNWRAP(
+            expand_asmacro("mov", "", mov_args, generator, variable_manager, &data),
+            (void)NULL
         );
         Data_free(data);
     }
+
+    return SResult_new(NULL);
 }
 
 static SResult Syntax_build_asmacro_expansion_fnwrapper(in Asmacro* asmacro, in Vec* arguments, inout Generator* generator, inout VariableManager* variable_manager) {
-    TODO();
-    /*
-    u32 additional_stack = 0;
-    
-    // store volatile registers
-    for(u32 i=0; i<Vec_len(&variable_manager->variables); i++) {
-        Variable* variable = Vec_index(&variable_manager->variables, i);
-        Storage* storage = variable->data.storage;
+    i32 stack_offset = variable_manager->stack_offset;
 
-        switch(storage->type) {
-            case StorageType_reg:
-                if(Register_is_volatile(storage->body.reg)) {
-                    Data data = Data_from_register(storage->body.reg);
-                    Vec vec = Vec_new(sizeof(Data));
-                    Vec_push(&vec, &data);
-                    Data out_data;
-                    if(resolve_sresult(
-                        expand_asmacro("push", "", &vec, generator, variable_manager, &out_data)
-                    )) {
-                        Data_free(out_data);
-                    }
-                    Vec_free_all(&vec, Data_free_for_vec);
-                }
-                break;
-            case StorageType_xmm:
-                TODO();
-                break;
-            default:
-                break;
-        }
-    }
+    SRESULT_UNWRAP(
+        Syntax_build_asmacro_expansion_fnwrapper_push_volatile_vars(variable_manager, generator),
+        (void)NULL
+    );
+    SRESULT_UNWRAP(
+        Syntax_build_asmacro_expansion_fnwrapper_push_nonvolatile_args(arguments, variable_manager, generator),
+        (void)NULL
+    );
+    i32 stack_offset_before_push = variable_manager->stack_offset;
+    SRESULT_UNWRAP(
+        Syntax_build_asmacro_expansion_fnwrapper_push_stack_args(asmacro, arguments, variable_manager, generator),
+        (void)NULL
+    );
 
-    */ 
+    Vec call_args = Vec_new(sizeof(Data));
+    Data call_label = Data_from_label(asmacro->name);
+    Vec_push(&call_args, &call_label);
+    Data data;
+    SRESULT_UNWRAP(
+        expand_asmacro("call", "", call_args, generator, variable_manager, &data),
+        (void)NULL
+    );
+    Data_free(data);
+
+    SRESULT_UNWRAP(
+        sub_rsp(stack_offset_before_push-variable_manager->stack_offset, generator, variable_manager),
+        (void)NULL
+    );
+    variable_manager->stack_offset = stack_offset_before_push;
+    SRESULT_UNWRAP(
+        Syntax_build_asmacro_expansion_fnwrapper_pop_nonvolatile_args(arguments, variable_manager, generator),
+        (void)NULL
+    );
+    SRESULT_UNWRAP(
+        Syntax_build_asmacro_expansion_fnwrapper_pop_volatile_vars(variable_manager, generator),
+        (void)NULL
+    );
+
+    variable_manager->stack_offset = stack_offset;
+
+    return SResult_new(NULL);
 }
 
-static SResult expand_asmacro(in char* name, in char* path, in Vec* arguments, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+static SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    assert(Vec_size(&arguments) == sizeof(Data));
     Asmacro asmacro;
 
     SRESULT_UNWRAP(
@@ -689,35 +853,56 @@ static SResult expand_asmacro(in char* name, in char* path, in Vec* arguments, i
             name,
             path,
             generator,
-            arguments,
+            &arguments,
             &asmacro),
-        (void)NULL
+        Vec_free_all(arguments, Data_free_for_vec)
     );
 
     switch(asmacro.type) {
         case Asmacro_AsmOperator:
             SRESULT_UNWRAP(
-                Syntax_build_asmacro_expansion_asmoperator(&asmacro, arguments, generator),
-                Asmacro_free(asmacro)
+                Syntax_build_asmacro_expansion_asmoperator(&asmacro, &arguments, generator),
+                Asmacro_free(asmacro);Vec_free_all(arguments, Data_free_for_vec)
             );
             break;
         case Asmacro_UserOperator:
-            Syntax_build_asmacro_expansion_useroperator(&asmacro, arguments, generator, variable_manager);
+            Syntax_build_asmacro_expansion_useroperator(&asmacro, &arguments, generator, variable_manager);
             break;
         case Asmacro_FnWrapper:
             SRESULT_UNWRAP(
-                Syntax_build_asmacro_expansion_fnwrapper(&asmacro, arguments, generator, variable_manager),
-                Asmacro_free(asmacro)
+                Syntax_build_asmacro_expansion_fnwrapper(&asmacro, &arguments, generator, variable_manager),
+                Asmacro_free(asmacro);Vec_free_all(arguments, Data_free_for_vec)
             );
             break;
     }
 
-    if(Vec_len(arguments) != 0) {
-        *data = Data_clone(Vec_index(arguments, Vec_len(arguments)-1));
+    if(Vec_len(&arguments) != 0) {
+        *data = Data_clone(Vec_index(&arguments, Vec_len(&arguments)-1));
     }else {
         *data = Data_void();
     }
     Asmacro_free(asmacro);
+    Vec_free_all(arguments, Data_free_for_vec);
+
+    return SResult_new(NULL);
+}
+
+static SResult sub_rsp(i32 value, inout Generator* generator, inout VariableManager* variable_manager) {
+    if(value != 0) {
+        Vec args = Vec_new(sizeof(Data));
+        Data rsp = Data_from_register(Rsp);
+        Data imm = Data_from_imm(value);
+        Vec_push(&args, &rsp);
+        Vec_push(&args, &imm);
+        Data data;
+
+        SRESULT_UNWRAP(
+            expand_asmacro("sub", "", args, generator, variable_manager, &data),
+            (void)NULL
+        );
+        variable_manager->stack_offset -= value;
+        Data_free(data);
+    }
 
     return SResult_new(NULL);
 }
@@ -742,15 +927,12 @@ bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, i
     }
     
     if(resolve_sresult(
-        expand_asmacro(name, Parser_path(&parser), &arguments, generator, variable_manager, data),
+        expand_asmacro(name, Parser_path(&parser), arguments, generator, variable_manager, data),
         parser.offset, generator
     )) {
-        Vec_free_all(arguments, Data_free_for_vec);
         return true;
     }
-
-    Vec_free_all(arguments, Data_free_for_vec);
-
+    
     check_parser(&parser, generator);
     return true;
 }
@@ -763,9 +945,22 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
     *data = Data_void();
     
     Variable variable;
-    if(resolve_parsermsg(Variable_parse(&parser, generator, &variable_manager->stack_offset, &variable), generator)) {
+    i32 stack_offset = variable_manager->stack_offset;
+    if(resolve_parsermsg(Variable_parse(&parser, generator, &stack_offset, &variable), generator)) {
         return true;
     }
+
+    Vec sub_args = Vec_new(sizeof(Data));
+    Data sub_arg_rsp = Data_from_register(Rsp);
+    Data sub_arg_imm = Data_from_imm(stack_offset - variable_manager->stack_offset);
+    Vec_push(&sub_args, &sub_arg_rsp);
+    Vec_push(&sub_args, &sub_arg_imm);
+    Data sub_data;
+    if(!resolve_sresult(expand_asmacro("sub", "", sub_args, generator, variable_manager, &sub_data), parser.offset, generator)) {
+        Data_free(sub_data);
+    }
+
+    variable_manager->stack_offset = stack_offset;
     VariableManager_push(variable_manager, variable);
     
     check_parser(&parser, generator);
@@ -798,7 +993,13 @@ bool Syntax_build_imm_expression(Parser parser, inout Generator* generator, inou
     check_parser(&parser, generator);
     return true;
 }
+/*
+bool Syntax_build_assignment(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
 
+    *data = Data_void();
+    return true;
+}
+*/
 bool Syntax_build_variable_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     (void)generator;
     

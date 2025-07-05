@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 #include "types.h"
 #include "register.h"
 
@@ -8,43 +9,44 @@ static struct {
     u8 addreg_code;
     u8 modrmreg_code;
     u8 modrmregmem_reg_code;
+    bool volatile_flag;
 } REGISTER_TABLE[] = {
-    {Rsp, "rsp", 0x80+4, 0x80+4, 0x80+4},
-    {Rbp, "rbp", 0x80+5, 0x80+5, 0x80+5},
+    {Rsp, "rsp", 0x80+4, 0x80+4, 0x80+4, false},
+    {Rbp, "rbp", 0x80+5, 0x80+5, 0x80+5, false},
 
-    {Rax, "rax", 0, 0, 0},
-    {Rcx, "rcx", 1, 1, 1},
-    {Rdx, "rdx", 2, 2, 2},
-    {Rbx, "rbx", 3, 3, 3},
-    {Rsi, "rsi", 0x80+6, 0x80+6, 0x80+6},
-    {Rdi, "rdi", 0x80+7, 0x80+7, 0x80+7},
-    {R8, "r8", 8, 8, 8},
-    {R9, "r9", 9, 9, 9},
-    {R10, "r10", 10, 10, 10},
-    {R11, "r11", 11, 11, 11},
-    {R12, "r12", 12, 12, 12},
-    {R13, "r13", 13, 13, 13},
-    {R14, "r14", 14, 14, 14},
-    {R15, "r15", 15, 15, 15},
+    {Rax, "rax", 0, 0, 0, true},
+    {Rcx, "rcx", 1, 1, 1, true},
+    {Rdx, "rdx", 2, 2, 2, true},
+    {Rbx, "rbx", 3, 3, 3, false},
+    {Rsi, "rsi", 0x80+6, 0x80+6, 0x80+6, true},
+    {Rdi, "rdi", 0x80+7, 0x80+7, 0x80+7, true},
+    {R8, "r8", 8, 8, 8, true},
+    {R9, "r9", 9, 9, 9, true},
+    {R10, "r10", 10, 10, 10, true},
+    {R11, "r11", 11, 11, 11, true},
+    {R12, "r12", 12, 12, 12, false},
+    {R13, "r13", 13, 13, 13, false},
+    {R14, "r14", 14, 14, 14, false},
+    {R15, "r15", 15, 15, 15, false},
 };
 
-static struct {Register reg; char* str;} XMM_TABLE[] = {
-    {Xmm0, "xmm0"},
-    {Xmm1, "xmm1"},
-    {Xmm2, "xmm2"},
-    {Xmm3, "xmm3"},
-    {Xmm4, "xmm4"},
-    {Xmm5, "xmm5"},
-    {Xmm6, "xmm6"},
-    {Xmm7, "xmm7"},
-    {Xmm8, "xmm8"},
-    {Xmm9, "xmm9"},
-    {Xmm10, "xmm10"},
-    {Xmm11, "xmm11"},
-    {Xmm12, "xmm12"},
-    {Xmm13, "xmm13"},
-    {Xmm14, "xmm14"},
-    {Xmm15, "xmm15"},
+static struct {Register reg; char* str; bool volatile_flag;} XMM_TABLE[] = {
+    {Xmm0, "xmm0", true},
+    {Xmm1, "xmm1", true},
+    {Xmm2, "xmm2", true},
+    {Xmm3, "xmm3", true},
+    {Xmm4, "xmm4", true},
+    {Xmm5, "xmm5", true},
+    {Xmm6, "xmm6", true},
+    {Xmm7, "xmm7", true},
+    {Xmm8, "xmm8", true},
+    {Xmm9, "xmm9", true},
+    {Xmm10, "xmm10", true},
+    {Xmm11, "xmm11", true},
+    {Xmm12, "xmm12", true},
+    {Xmm13, "xmm13", true},
+    {Xmm14, "xmm14", true},
+    {Xmm15, "xmm15", true},
 };
 
 SResult Register_get_addreg_code(Register self, out u8* value) {
@@ -78,6 +80,22 @@ SResult Register_get_modrm_base_code(Register self, out u8* value) {
     }
 
     return SResult_new("unexpected register");
+}
+
+bool Register_is_volatile(Register self) {
+    for(u32 i=0; i<LEN(REGISTER_TABLE); i++) {
+        if(REGISTER_TABLE[i].reg == self) {
+            return REGISTER_TABLE[i].volatile_flag;
+        }
+    }
+
+    for(u32 i=0; i<LEN(XMM_TABLE); i++) {
+        if(XMM_TABLE[i].reg == self) {
+            return XMM_TABLE[i].volatile_flag;
+        }
+    }
+
+    return false;
 }
 
 ParserMsg Register_parse(Parser* parser, Register* restrict ptr) {

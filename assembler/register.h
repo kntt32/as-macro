@@ -59,6 +59,8 @@ SResult Register_get_reg_code(Register self, out u8* value);
 
 SResult Register_get_modrm_base_code(Register self, out u8* value);
 
+bool Register_is_volatile(Register self);
+
 ParserMsg Register_parse(Parser* parser, Register* ptr);
 
 void Register_print(in Register self);

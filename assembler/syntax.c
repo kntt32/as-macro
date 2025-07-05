@@ -388,10 +388,22 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
         Parser syntax_parser = Parser_split(&parser, ";");
         Data data;
         
-        resolve_sresult(
+        if(!resolve_sresult(
             Syntax_build(syntax_parser, generator, variable_manager, &data), parser.offset, generator
-        );
+        )) {
+            Data_free(data);
+        }
+    }
 
+    resolve_sresult(
+        Generator_append_label(generator, "text", ".ret", false),
+        parser.offset, generator
+    );
+    Data data;
+    if(!resolve_sresult(
+        expand_asmacro("ret", "", Vec_new(sizeof(Data)), generator, variable_manager, &data),
+        parser.offset, generator
+    )) {
         Data_free(data);
     }
 }
@@ -529,6 +541,7 @@ void GlobalSyntaxTree_free(GlobalSyntaxTree self) {
 SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     bool (*BUILDERS[])(Parser, inout Generator*, inout VariableManager* variable_manager, out Data*) = {
         Syntax_build_variable_declaration,
+        Syntax_build_return,
         Syntax_build_asmacro_expansion,
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
@@ -1015,7 +1028,9 @@ bool Syntax_build_assignment(Parser parser, inout Generator* generator, inout Va
     Vec mov_args = Vec_new(sizeof(Data));
     Vec_push(&mov_args, &left_data);
     Vec_push(&mov_args, &right_data);
-    resolve_sresult(expand_asmacro("mov", Parser_path(&parser), mov_args, generator, variable_manager, data), parser.offset, generator);
+    if(resolve_sresult(expand_asmacro("mov", Parser_path(&parser), mov_args, generator, variable_manager, data), parser.offset, generator)) {
+        *data = Data_void();
+    }
 
     return true;
 }
@@ -1041,7 +1056,22 @@ bool Syntax_build_variable_expression(Parser parser, inout Generator* generator,
     return true;
 }
 
+bool Syntax_build_return(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "return"))) {
+        return false;
+    }
 
+    Vec ret_arg = Vec_new(sizeof(Data));
+    Data ret_rel = Data_from_label(".ret");
+    Vec_push(&ret_arg, &ret_rel);
+    if(!resolve_sresult(expand_asmacro("jmp", Parser_path(&parser), ret_arg, generator, variable_manager, data), parser.offset, generator)) {
+        Data_free(*data);
+    }
+    *data = Data_void();
+
+    check_parser(&parser, generator);
+    return true;
+}
 
 
 

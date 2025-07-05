@@ -2524,6 +2524,20 @@ SResult Generator_new_label(inout Generator* self, Label label) {
     return SResult_new(NULL);
 }
 
+SResult Generator_append_label(inout Generator* self, in char* section, in char* name, bool global_flag) {
+    Label label;
+    strncpy(label.name, name, 255);
+    label.public_flag = global_flag;
+    strncpy(label.section_name, section, 255);
+    SRESULT_UNWRAP(
+        Generator_binary_len(self, section, &label.offset),
+        (void)NULL
+    );
+
+    Vec_push(&self->labels, &label);
+    return SResult_new(NULL);
+}
+
 SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, bool flag) {
     Rela rela;
     strcpy(rela.label, label);

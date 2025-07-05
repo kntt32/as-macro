@@ -369,6 +369,7 @@ SResult Generator_get_asmacro(in Generator* self, in char* name, out Vec* asmacr
 void Generator_add_error(inout Generator* self, Error error);
 SResult Generator_new_section(inout Generator* self, in char* name);
 SResult Generator_new_label(inout Generator* self, Label label);
+SResult Generator_append_label(inout Generator* self, in char* section, in char* name, bool global_flag);
 SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, bool flag);
 SResult Generator_addend_rela(inout Generator* self, in char* section);
 SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte);

@@ -1786,8 +1786,8 @@ bool Argument_match_with(in Argument* self, in Data* data) {
                 || (self->storage.trait.xmm_flag && storage.type == StorageType_xmm))) {
                 return false;
             }
-            if(self->storage.trait.imm_flag && (self->type.type == Type_Integer || self->type.type == Type_Floating) && self->type.type == data->type.type) {
-                if(data->storage.type != StorageType_imm && data->storage.body.imm.type != Imm_Label) {
+            if(data->storage.type == StorageType_imm && (self->type.type == Type_Integer || self->type.type == Type_Floating) && self->type.type == data->type.type) {
+                if(data->storage.body.imm.type != Imm_Label) {
                     return true;
                 }
             }

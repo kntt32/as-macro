@@ -532,6 +532,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_asmacro_expansion,
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
+        Syntax_build_assignment,
         Syntax_build_variable_expression,
     };
     
@@ -993,13 +994,32 @@ bool Syntax_build_imm_expression(Parser parser, inout Generator* generator, inou
     check_parser(&parser, generator);
     return true;
 }
-/*
-bool Syntax_build_assignment(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
 
-    *data = Data_void();
+bool Syntax_build_assignment(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    Parser left_parser = Parser_split(&parser, "=");
+    Parser right_parser = parser;
+    if(Parser_is_empty(&right_parser)) {
+        return false;
+    }
+    Data left_data;
+    Data right_data;
+
+    if(resolve_sresult(Syntax_build(right_parser, generator, variable_manager, &right_data), parser.offset, generator)) {
+        return true;
+    }
+    if(resolve_sresult(Syntax_build(left_parser, generator, variable_manager, &left_data), parser.offset, generator)) {
+        Data_free(right_data);
+        return true;
+    }
+
+    Vec mov_args = Vec_new(sizeof(Data));
+    Vec_push(&mov_args, &left_data);
+    Vec_push(&mov_args, &right_data);
+    resolve_sresult(expand_asmacro("mov", Parser_path(&parser), mov_args, generator, variable_manager, data), parser.offset, generator);
+
     return true;
 }
-*/
+
 bool Syntax_build_variable_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     (void)generator;
     

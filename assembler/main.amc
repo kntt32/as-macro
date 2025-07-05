@@ -6,6 +6,7 @@ pub fn double(x: i64@rax) {
 
 pub fn main() {
     let num: i64@rax;
+    num = 5;
     double(num);
 };
 

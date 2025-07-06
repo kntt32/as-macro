@@ -4,6 +4,7 @@
 #include "gen.h"
 #include "syntax.h"
 #include "util.h"
+#include "cmd.h"
 
 void Cmd_interpreter(int argc, char* argv[]) {
     // (cmdpath) path

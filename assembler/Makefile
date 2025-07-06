@@ -14,16 +14,16 @@ endif
 asm.elf: main.o types.o vec.o str.o parser.o util.o register.o gen.o syntax.o cmd.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-main.o: main.c types.h parser.h syntax.h cmd.h
-types.o: types.h
-parser.o: parser.c parser.h util.h
+main.o: main.c types.h parser.h gen.h syntax.h cmd.h
+types.o: types.c types.h
+parser.o: parser.c parser.h
 vec.o: vec.c vec.h types.h
 str.o: str.c str.h vec.h
 util.o: util.c util.h types.h
 register.o: register.c register.h types.h
-gen.o: gen.c types.h parser.h gen.h
-syntax.o: syntax.c types.h gen.h syntax.h
-cmd.o: cmd.c types.h cmd.h
+gen.o: gen.c types.h register.h parser.h gen.h
+syntax.o: syntax.c types.h gen.h syntax.h util.h
+cmd.o: cmd.c types.h vec.h gen.h syntax.h cmd.h util.h
 
 types.h:
 parser.h: types.h

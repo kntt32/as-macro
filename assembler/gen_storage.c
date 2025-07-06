@@ -42,7 +42,7 @@ u64 Disp_value(in Disp* self) {
 
 SResult Disp_set_label(in Disp* self, inout Generator* generator) {
     if(self->type == Disp_Label) {
-        return Generator_append_rela(generator, "text", self->body.label, false);
+        return Generator_append_rela(generator, ".text", self->body.label, false);
     }
 
     return SResult_new(NULL);

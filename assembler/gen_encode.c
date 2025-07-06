@@ -399,7 +399,7 @@ static SResult ModRmType_encode_disp(u8 mod, in AsmArgs* args, inout Generator* 
     for(u32 i=0; i<len; i++) {
         u8 byte = (disp_value >> (i*8)) & 0xff;
         SRESULT_UNWRAP(
-            Generator_append_binary(generator, "text", byte),
+            Generator_append_binary(generator, ".text", byte),
             (void)NULL
         );
     }
@@ -424,13 +424,13 @@ SResult ModRmType_encode(in ModRmType* self, in AsmArgs* args, inout Generator* 
     );
 
     SRESULT_UNWRAP(
-        Generator_append_binary(generator, "text", mod_rm),
+        Generator_append_binary(generator, ".text", mod_rm),
         (void)NULL
     );
 
     if(sib_flag) {
         SRESULT_UNWRAP(
-            Generator_append_binary(generator, "text", sib),
+            Generator_append_binary(generator, ".text", sib),
             (void)NULL
         );
     }
@@ -480,7 +480,7 @@ SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmA
 
 static SResult AsmEncodingElement_encode_value(in AsmEncodingElement* self, inout Generator* generator) {
     SRESULT_UNWRAP(
-        Generator_append_binary(generator, "text", self->body.value),
+        Generator_append_binary(generator, ".text", self->body.value),
         (void)NULL
     );
     return SResult_new(NULL);
@@ -499,7 +499,7 @@ static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in Asm
             for(u32 i=0; i<self->body.imm/8; i++) {
                 u8 byte = (i < vec_len)?(*(u8*)Vec_index(&imm->body.value, i)):(0);
                 SRESULT_UNWRAP(
-                    Generator_append_binary(generator, "text", byte),
+                    Generator_append_binary(generator, ".text", byte),
                     (void)NULL
                 );
             }
@@ -507,12 +507,12 @@ static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in Asm
             break;
         case Imm_Label:
             SRESULT_UNWRAP(
-                Generator_append_rela(generator, "text", imm->body.label, false),
+                Generator_append_rela(generator, ".text", imm->body.label, false),
                 (void)NULL
             );
             for(u32 i=0; i<4; i++) {
                 SRESULT_UNWRAP(
-                    Generator_append_binary(generator, "text", 0x00),
+                    Generator_append_binary(generator, ".text", 0x00),
                     (void)NULL
                 )
             }
@@ -535,7 +535,7 @@ static SResult AsmEncodingElement_encode_addreg(in AsmArgs* args, inout Generato
 
     u8* byte;
     SRESULT_UNWRAP(
-        Generator_last_binary(generator, "text", &byte),
+        Generator_last_binary(generator, ".text", &byte),
         (void)NULL
     );
     *byte += addreg_code & ADDREG_ADDCODE;
@@ -690,7 +690,7 @@ static SResult AsmEncoding_encode_prefix(in AsmEncoding* self, in AsmArgs* args,
 
     if(x66_prefix_needed_flag) {
         SRESULT_UNWRAP(
-            Generator_append_binary(generator, "text", x66_prefix),
+            Generator_append_binary(generator, ".text", x66_prefix),
             (void)NULL
         );
     }
@@ -704,7 +704,7 @@ static SResult AsmEncoding_encode_prefix(in AsmEncoding* self, in AsmArgs* args,
     }
     if(rex_prefix_needed_flag && (self->operand_size == 8 || (rex_prefix & 0x0f) != 0)) {
         SRESULT_UNWRAP(
-            Generator_append_binary(generator, "text", rex_prefix),
+            Generator_append_binary(generator, ".text", rex_prefix),
             (void)NULL
         );
     }
@@ -726,7 +726,7 @@ SResult AsmEncoding_encode(in AsmEncoding* self, in AsmArgs* args, inout Generat
         );
     }
 
-    return Generator_addend_rela(generator, "text");
+    return Generator_addend_rela(generator, ".text");
 }
 
 void AsmEncoding_print(in AsmEncoding* self) {

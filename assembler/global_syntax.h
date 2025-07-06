@@ -14,7 +14,7 @@ typedef struct {
     } type;
     union {
         Asmacro asmacro_definision;
-        struct { char name[256]; Parser proc_parser; VariableManager variable_manager; } function_definision;
+        struct { char name[256]; bool public_flag; Parser proc_parser; VariableManager variable_manager; } function_definision;
     } body;
 } GlobalSyntax;
 

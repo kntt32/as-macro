@@ -147,3 +147,19 @@ bool Vec_cmp(in Vec* self, in Vec* other, bool (in *cmp)(in void*, in void*)) {
     return true;
 }
 
+void Vec_save(Vec self, in char* path) {
+    if(Vec_size(&self) != sizeof(u8)) {
+        PANIC("Vec_size is not 1 byte");
+    }
+    
+    FILE* file = fopen(path, "wb");
+    if(file == NULL) {
+        PANIC("failed to save");
+    }
+
+    fwrite(Vec_as_ptr(&self), sizeof(u8), Vec_len(&self), file);
+    fclose(file);
+
+    Vec_free(self);
+}
+

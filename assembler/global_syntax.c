@@ -237,6 +237,7 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
     check_parser(&parser, generator);
     
     strcpy(global_syntax->body.function_definision.name, name);
+    global_syntax->body.function_definision.public_flag = public_flag;
     global_syntax->body.function_definision.variable_manager = variable_manager;
     global_syntax->body.function_definision.proc_parser = block_parser;
 
@@ -278,19 +279,8 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
     Parser parser = self->body.function_definision.proc_parser;
     VariableManager* variable_manager = &self->body.function_definision.variable_manager;
     
-    Label label;
-    strcpy(label.name, self->body.function_definision.name);
-    label.public_flag = true;
-    strcpy(label.section_name, "text");
-    if(resolve_sresult(
-        Generator_binary_len(generator, "text", &label.offset),
-        parser.offset,
-        generator
-    )) {
-        return;
-    }
     resolve_sresult(
-        Generator_new_label(generator, label),
+        Generator_append_label(generator, ".text", self->body.function_definision.name, self->body.function_definision.public_flag, Label_Func),
         parser.offset,
         generator
     );
@@ -307,7 +297,7 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
     }
 
     resolve_sresult(
-        Generator_append_label(generator, "text", ".ret", false),
+        Generator_append_label(generator, ".text", ".ret", false, Label_Notype),
         parser.offset, generator
     );
     Data data;
@@ -362,7 +352,7 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
             printf(".none");
             break;
         case GlobalSyntax_FunctionDefinision:
-            printf(".function_definision: name: %s, variable_manager: ", self->body.function_definision.name);
+            printf(".function_definision: name: %s, public_flag: %s, variable_manager: ", self->body.function_definision.name, BOOL_TO_STR(self->body.function_definision.public_flag));
             VariableManager_print(&self->body.function_definision.variable_manager);
             break;
         case GlobalSyntax_Import:
@@ -402,7 +392,7 @@ void GlobalSyntax_free_for_vec(inout void* ptr) {
 
 GlobalSyntaxTree GlobalSyntaxTree_new() {
     GlobalSyntaxTree tree = {Generator_new(), Vec_new(sizeof(GlobalSyntax))};
-    Generator_new_section(&tree.generator, "text");
+    Generator_new_section(&tree.generator, ".text");
     return tree;
 }
 

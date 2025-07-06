@@ -2,6 +2,7 @@
 #include "types.h"
 #include "vec.h"
 #include "gen.h"
+#include "gen_elf.h"
 #include "global_syntax.h"
 #include "util.h"
 #include "cmd.h"
@@ -46,6 +47,9 @@ void Cmd_interpreter(int argc, char* argv[]) {
         printf("%s:\n", path);
         Generator_print(&generator);
         printf("\n\n");
+        Vec elf_binary = Elf64(&generator);
+        Vec_save(elf_binary, "result.o");
+
         Generator_free(generator);
 
         free(file_str);

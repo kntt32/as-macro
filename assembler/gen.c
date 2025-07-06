@@ -35,13 +35,29 @@ void Section_free_for_vec(inout void* ptr) {
     Section_free(*section);
 }
 
+void LabelType_print(LabelType type) {
+    switch(type) {
+        case Label_Func:
+            printf("Label_Func");
+            break;
+        case Label_Object:
+            printf("Label_Object");
+            break;
+        case Label_Notype:
+            printf("Label_Notype");
+            break;
+    }
+}
+
 void Label_print(in Label* self) {
-    printf("Label { name: %s, public_flag: %s, section_name: %s, offset: %u }",
+    printf("Label { name: %s, public_flag: %s, section_name: %s, offset: %u, type: ",
         self->name,
         BOOL_TO_STR(self->public_flag),
         self->section_name,
         self->offset
     );
+    LabelType_print(self->type);
+    printf(" }");
 }
 
 void Label_print_for_vec(in void* ptr) {
@@ -257,7 +273,7 @@ SResult Generator_new_label(inout Generator* self, Label label) {
     return SResult_new(NULL);
 }
 
-SResult Generator_append_label(inout Generator* self, in char* section, in char* name, bool global_flag) {
+SResult Generator_append_label(inout Generator* self, in char* section, in char* name, bool global_flag, LabelType type) {
     Label label;
     strncpy(label.name, name, 255);
     label.public_flag = global_flag;
@@ -266,6 +282,7 @@ SResult Generator_append_label(inout Generator* self, in char* section, in char*
         Generator_binary_len(self, section, &label.offset),
         (void)NULL
     );
+    label.type = type;
 
     Vec_push(&self->labels, &label);
     return SResult_new(NULL);

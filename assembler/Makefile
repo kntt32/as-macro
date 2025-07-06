@@ -11,7 +11,7 @@ ifeq ($(RELEASE),1)
 	CFLAGS := -Wall -Wextra -Ofast -g
 endif
 
-asm.elf: main.o types.o vec.o str.o parser.o util.o register.o gen.o syntax.o cmd.o
+asm.elf: main.o types.o vec.o str.o parser.o util.o register.o gen.o gen_type.o gen_encode.o gen_storage.o gen_data.o gen_variable.o gen_asmacro.o syntax.o cmd.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 main.o: main.c types.h parser.h gen.h syntax.h cmd.h
@@ -22,6 +22,12 @@ str.o: str.c str.h vec.h
 util.o: util.c util.h types.h
 register.o: register.c register.h types.h
 gen.o: gen.c types.h register.h parser.h gen.h
+gen_type.o: gen_type.c gen.h
+gen_encode.o: gen_type.c gen.h
+gen_storage.o: gen_storage.c gen.h
+gen_data.o: gen_data.c gen.h
+gen_asmacro.o: gen_asmacro.c gen.h
+gen_variable.o: gen_variable.c gen.h
 syntax.o: syntax.c types.h gen.h syntax.h util.h
 cmd.o: cmd.c types.h vec.h gen.h syntax.h cmd.h util.h
 

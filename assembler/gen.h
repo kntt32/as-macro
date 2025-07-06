@@ -223,6 +223,7 @@ typedef struct {
     Vec relas;// Vec<Rela>
 } Generator;
 
+Vec Type_primitives(void);
 ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_parse_enum(inout Parser* parser, out Type* type);
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type);

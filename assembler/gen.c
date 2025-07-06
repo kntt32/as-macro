@@ -84,6 +84,7 @@ Error Error_new(Offset offset, in char* msg) {
     Error error;
     error.offset = offset;
     strncpy(error.msg, msg, 255);
+    error.msg[255] = '\0';
 
     return error;
 }
@@ -388,3 +389,19 @@ void Generator_free_for_vec(inout void* ptr) {
     Generator_free(*generator);
 }
 
+bool resolve_sresult(SResult result, Offset offset, inout Generator* generator) {
+    if(!SResult_is_success(result)) {
+        Generator_add_error(generator, Error_from_sresult(offset, result));
+        return true;
+    }
+    return false;
+}
+
+bool resolve_parsermsg(ParserMsg msg, inout Generator* generator) {
+    if(!ParserMsg_is_success(msg)) {
+        Error error = Error_from_parsermsg(msg);
+        Generator_add_error(generator, error);
+        return true;
+    }
+    return false;
+}

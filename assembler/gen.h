@@ -378,5 +378,7 @@ SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte);
 SResult Generator_binary_len(in Generator* self, in char* name, out u32* len);
 void Generator_print(in Generator* self);
 void Generator_free(Generator self);
+bool resolve_sresult(SResult result, Offset offset, inout Generator* generator);
+bool resolve_parsermsg(ParserMsg msg, inout Generator* generator);
 
 

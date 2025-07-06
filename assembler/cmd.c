@@ -2,7 +2,7 @@
 #include "types.h"
 #include "vec.h"
 #include "gen.h"
-#include "syntax.h"
+#include "global_syntax.h"
 #include "util.h"
 #include "cmd.h"
 

@@ -17,6 +17,7 @@ static Vec Elf64_shdrs(in Generator* generator, inout StrTable* shstrtable, inou
         Elf64_Shdr shdr = Elf64_Shdr_from(section, shstrtable, rawbin);
         Vec_push(&shdrs, &shdr);
     }
+    Elf64_Shdr_symtab_and_strtab(&shdrs, generator, shstrtable, rawbin);
 
     *elf_offset += sizeof(Elf64_Shdr) * Vec_len(&shdrs);
 
@@ -59,7 +60,7 @@ Vec Elf64(in Generator* generator) {
 
     ehdr.e_shstrndx = 1;
     StrTable_resolve(&shstrtable, &shdrs, &elf_offset);
-    RawBin_resolve(&rawbin, &shdrs, &elf_offset);
+    RawBin_resolve(&rawbin, &shstrtable, &shdrs, &elf_offset);
 
     return Elf64_binary(ehdr, shdrs, shstrtable, rawbin);
 }
@@ -134,7 +135,15 @@ Elf64_Shdr Elf64_shdr_shstrtab(inout StrTable* self) {
     return header;
 }
 
-Elf64_Sym Elf64_Sym_from(in Label* label, in char* name, in Vec* shdrs, in StrTable* shstrtable, inout StrTable* strtable) {
+Elf64_Sym Elf64_Sym_from(in Label* label, inout char parent_name[512], in Vec* shdrs, in StrTable* shstrtable, inout StrTable* strtable) {
+    char name[512];
+    if(label->name[0] == '.') {
+        snprintf(name, 512, "%.256s%.256s", parent_name, label->name);
+    }else {
+        strcpy(name, label->name);
+        strcpy(parent_name, label->name);
+    }
+
     Elf64_Sym sym;
     sym.st_name = StrTable_push(strtable, name);
     u8 bind = (label->public_flag)?(STB_GLOBAL):(STB_LOCAL);
@@ -152,9 +161,9 @@ Elf64_Sym Elf64_Sym_from(in Label* label, in char* name, in Vec* shdrs, in StrTa
     }
     sym.st_info = ELF64_ST_INFO(bind, type);
     sym.st_other = 0;
-    sym.st_shndx = find_section(shdrs, shstrtable, label->section_name);// resolve after
+    sym.st_shndx = find_section(shdrs, shstrtable, label->section_name);
     sym.st_value = label->offset;
-    sym.st_size = 0;// unknown
+    sym.st_size = label->size;
 
     return sym;
 }
@@ -165,53 +174,75 @@ Elf64_Sym Elf64_Sym_null(void) {
     return symbol;
 }
 
+static void Elf64_Shdr_symtab_and_strtab_get_sym(
+    in Vec* labels, in Vec* shdrs, inout StrTable* shstrtable, inout StrTable* strtable, inout Vec* public_symbols, inout Vec* local_symbols) {
+    char parent_symbol[512] = "";
+
+    for(u32 i=0; i<Vec_len(labels); i++) {
+        Label* label = Vec_index(labels, i);
+
+        Elf64_Sym symbol = Elf64_Sym_from(label, parent_symbol, shdrs, shstrtable, strtable);
+        if(label->public_flag) {
+            Vec_push(public_symbols, &symbol);
+        }else {
+            Vec_push(local_symbols, &symbol);
+        }
+    }
+}
+
+static void Elf64_Shdr_symtab_and_strtab_push_symtab_shdr(inout Vec* shdrs, in Vec* public_symbols, in Vec* local_symbols, inout StrTable* shstrtable, inout RawBin* rawbin) {
+    Elf64_Shdr shdr;
+    memset(&shdr, 0, sizeof(shdr));
+    Elf64_Sym null_symbol = Elf64_Sym_null();
+    
+    shdr.sh_name = StrTable_push(shstrtable, ".symtab");
+    shdr.sh_type = SHT_SYMTAB;
+    shdr.sh_flags = 0;
+    shdr.sh_addr = 0;
+    shdr.sh_offset = RawBin_push_arr(rawbin, &null_symbol, sizeof(null_symbol));
+    RawBin_push_arr(rawbin, Vec_as_ptr(local_symbols), Vec_len(local_symbols)*sizeof(Elf64_Sym));
+    RawBin_push_arr(rawbin, Vec_as_ptr(public_symbols), Vec_len(public_symbols)*sizeof(Elf64_Sym));
+    shdr.sh_size = (1 + Vec_len(local_symbols) + Vec_len(public_symbols))*sizeof(Elf64_Sym);
+    shdr.sh_link = Vec_len(shdrs) + 1;
+    shdr.sh_info = 1 + Vec_len(local_symbols);
+    shdr.sh_addralign = 8;
+    shdr.sh_entsize = sizeof(Elf64_Sym);
+
+    Vec_push(shdrs, &shdr);
+}
+
+void Elf64_Shdr_symtab_and_strtab_push_strtab_shdr(inout Vec* shdrs, inout StrTable* shstrtable, in StrTable* strtable, inout RawBin* rawbin) {
+    Elf64_Shdr shdr;
+    memset(&shdr, 0, sizeof(shdr));
+
+    shdr.sh_name = StrTable_push(shstrtable, ".strtab");
+    shdr.sh_type = SHT_STRTAB;
+    shdr.sh_flags = 0;
+    shdr.sh_addr = 0;
+    shdr.sh_offset = StrTable_rawbin(strtable, rawbin);
+    shdr.sh_size = StrTable_size(strtable);
+    shdr.sh_link = 0;
+    shdr.sh_info = 0;
+    shdr.sh_addralign = 1;
+    shdr.sh_entsize = 0;
+
+    Vec_push(shdrs, &shdr);
+}
+
 void Elf64_Shdr_symtab_and_strtab(inout Vec* shdrs, in Generator* generator, inout StrTable* shstrtable, inout RawBin* rawbin) {
     assert(shdrs != NULL && Vec_size(shdrs) == sizeof(Elf64_Shdr) && generator != NULL && shstrtable != NULL && rawbin != NULL);
     StrTable strtable = StrTable_new();
     Vec local_symbols = Vec_new(sizeof(Elf64_Sym));
     Vec public_symbols = Vec_new(sizeof(Elf64_Sym));
+    
+    Elf64_Shdr_symtab_and_strtab_get_sym(&generator->labels, shdrs, shstrtable, &strtable, &public_symbols, &local_symbols);
 
-    char last_parent_symbol[256] = "";
-    for(u32 i=0; i<Vec_len(&generator->labels); i++) {
-        Label* label = Vec_index(&generator->labels, i);
+    Elf64_Shdr_symtab_and_strtab_push_symtab_shdr(shdrs, &public_symbols, &local_symbols, shstrtable, rawbin);
+    Elf64_Shdr_symtab_and_strtab_push_strtab_shdr(shdrs, shstrtable, &strtable, rawbin);
 
-        char name[256];
-        if(label->name[0] == '.') {
-            snprintf(name, 256, "%.127s%.128s", last_parent_symbol, label->name);
-        }else {
-            strncpy(name, label->name, 256);
-            name[255] = '\0';
-        }
-
-        Elf64_Sym symbol = Elf64_Sym_from(label, name, shdrs, shstrtable, &strtable);
-        if(label->public_flag) {
-            Vec_push(&public_symbols, &symbol);
-        }else {
-            Vec_push(&local_symbols, &symbol);
-        }
-    }
-
-    Elf64_Sym null_symbol = Elf64_Sym_null();
-
-    Elf64_Shdr shdr;
-    shdr.sh_name = StrTable_push(shstrtable, ".symtab");
-    shdr.sh_type = SHT_SYMTAB;
-    shdr.sh_flags = 0;
-    shdr.sh_addr = 0;
-    shdr.sh_offset = RawBin_push_arr(rawbin, &null_symbol, sizeof(Elf64_Sym));
-    shdr.sh_size = (Vec_len(&local_symbols) + Vec_len(&public_symbols) + 1)*sizeof(Elf64_Shdr);
-    shdr.sh_link = Vec_len(shdrs) + 1;
-    shdr.sh_info = Vec_len(&local_symbols) + 1;
-    shdr.sh_addralign = 8;
-    shdr.sh_entsize = sizeof(Elf64_Sym);
-
-    RawBin_push_arr(rawbin, Vec_as_ptr(&local_symbols), Vec_len(&local_symbols)*sizeof(Elf64_Sym));
-    RawBin_push_arr(rawbin, Vec_as_ptr(&public_symbols), Vec_len(&public_symbols)*sizeof(Elf64_Sym));
-
-    Vec_push(shdrs, &shdr);
-
-    Elf64_Shdr strtab_shdr;
-    TODO();
+    Vec_free(local_symbols);
+    Vec_free(public_symbols);
+    StrTable_free(strtable);
 }
 
 Elf64_Shdr Elf64_Shdr_from(in Section* section, inout StrTable* shstrtable, inout RawBin* rawbin) {
@@ -261,10 +292,10 @@ u32 StrTable_push(inout StrTable* self, in char* str) {
 
 void StrTable_resolve(in StrTable* self, inout Vec* shdrs, inout u32* elf_offset) {
     assert(self != NULL && elf_offset != NULL && Vec_size(shdrs) == sizeof(Elf64_Shdr));
-
+    
     for(u32 i=0; i<Vec_len(shdrs); i++) {
         Elf64_Shdr* shdr = Vec_index(shdrs, i);
-        if(shdr->sh_type == SHT_STRTAB) {
+        if(strcmp(StrTable_str(self, shdr->sh_name), ".shstrtab") == 0) {
             shdr->sh_offset = *elf_offset;
             shdr->sh_size = Vec_len(&self->table);
         }
@@ -280,6 +311,14 @@ void StrTable_write(in StrTable* self, inout Vec* binary) {
     char* table_ptr = Vec_as_ptr(&self->table);
     u32 len = Vec_len(&self->table);
     Vec_append(binary, table_ptr, len);
+}
+
+u32 StrTable_size(in StrTable* self) {
+    return Vec_len(&self->table) * sizeof(u8);
+}
+
+u32 StrTable_rawbin(in StrTable* self, inout RawBin* rawbin) {
+    return RawBin_push(rawbin, &self->table);
 }
 
 char* StrTable_str(in StrTable* self, u32 index) {
@@ -332,12 +371,12 @@ u32 RawBin_push_arr(inout RawBin* self, in void* ptr, u32 size) {
     return index;
 }
 
-void RawBin_resolve(in RawBin* self, inout Vec* shdrs, inout u32* elf_offset) {
+void RawBin_resolve(in RawBin* self, in StrTable* shstrtable, inout Vec* shdrs, inout u32* elf_offset) {
     assert(self != NULL && Vec_size(shdrs) == sizeof(Elf64_Shdr) && elf_offset != NULL);
 
     for(u32 i=0; i<Vec_len(shdrs); i++) {
         Elf64_Shdr* shdr = Vec_index(shdrs, i);
-        if(shdr->sh_type != SHT_STRTAB) {
+        if(strcmp(StrTable_str(shstrtable, shdr->sh_name), ".shstrtab") != 0) {
             shdr->sh_offset += *elf_offset;
         }
     }

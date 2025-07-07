@@ -307,6 +307,11 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
     )) {
         Data_free(data);
     }
+
+    resolve_sresult(
+        Generator_end_label(generator, self->body.function_definision.name),
+        parser.offset, generator
+    );
 }
 
 void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {

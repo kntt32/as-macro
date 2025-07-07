@@ -57,7 +57,7 @@ void Label_print(in Label* self) {
         self->offset
     );
     LabelType_print(self->type);
-    printf(" }");
+    printf(", size: %u }", self->size);
 }
 
 void Label_print_for_vec(in void* ptr) {
@@ -283,9 +283,28 @@ SResult Generator_append_label(inout Generator* self, in char* section, in char*
         (void)NULL
     );
     label.type = type;
+    label.size = 0;
 
     Vec_push(&self->labels, &label);
     return SResult_new(NULL);
+}
+
+SResult Generator_end_label(inout Generator* self, in char* name) {
+    for(u32 i=0; i<Vec_len(&self->labels); i++) {
+        Label* label = Vec_index(&self->labels, i);
+        if(strcmp(label->name, name) == 0) {
+            u32 binary_len = 0;
+            SRESULT_UNWRAP(
+                Generator_binary_len(self, label->section_name, &binary_len),
+                (void)NULL
+            );
+
+            label->size = binary_len - label->offset;
+            return SResult_new(NULL);
+        }
+    }
+
+    return SResult_new("unknown section");
 }
 
 SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, bool flag) {

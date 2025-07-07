@@ -198,6 +198,7 @@ typedef struct {
     pub char section_name[256];
     pub u32 offset;
     pub LabelType type;
+    pub u32 size;
 } Label;
 
 typedef struct {
@@ -378,8 +379,8 @@ SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro);
 SResult Generator_get_asmacro(in Generator* self, in char* name, out Vec* asmacroes);
 void Generator_add_error(inout Generator* self, Error error);
 SResult Generator_new_section(inout Generator* self, in char* name);
-// SResult Generator_new_label(inout Generator* self, Label label);
 SResult Generator_append_label(inout Generator* self, in char* section, in char* name, bool global_flag, LabelType type);
+SResult Generator_end_label(inout Generator* self, in char* name);
 SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, bool flag);
 SResult Generator_addend_rela(inout Generator* self, in char* section);
 SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte);

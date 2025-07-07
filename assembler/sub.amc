@@ -5,6 +5,13 @@ pub as test() {
     nop();
 };
 
-pub fn num(val: i64@rax) {
-    val = 5;
-}
+pub fn double(val: i64@rax) {
+    nop();
+    nop();
+    add(val, val);
+};
+
+pub fn num(val: i64@rax, src: i64@rdi) {
+    mov(val, src);
+    double(val);
+};

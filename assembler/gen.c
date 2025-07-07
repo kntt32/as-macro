@@ -380,7 +380,7 @@ SResult Generator_addend_rela(inout Generator* self, in char* section) {
                 Generator_binary_len(self, section, &section_len),
                 (void)NULL
             );
-            rela->addend = section_len - rela->offset;
+            rela->addend = section_len - rela->offset - 0x8;
             rela->flag = true;
         }
     }

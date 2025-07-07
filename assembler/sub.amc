@@ -1,5 +1,10 @@
+import core_x64;
+
 pub as test() {
     nop();
     nop();
 };
 
+pub fn num(val: i64@rax) {
+    val = 5;
+}

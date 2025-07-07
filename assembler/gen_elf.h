@@ -19,12 +19,11 @@ Elf64_Shdr Elf64_Shdr_null(void);
 Elf64_Shdr Elf64_Shdr_shstrtab(StrTable self, inout RawBin* rawbin);
 void Elf64_Shdr_symtab_and_strtab(inout Vec* shdrs, in Generator* generator, inout StrTable* shstrtable, inout RawBin* rawbin);
 Elf64_Shdr Elf64_Shdr_from(in Section* section, inout StrTable* shstrtable, inout RawBin* rawbin);
+Elf64_Shdr Elf64_Shdr_rela(in Generator* generator, in char* section_name, in Vec* shdrs, inout StrTable* shstrtable, inout RawBin* rawbin);
 Elf64_Sym Elf64_Sym_null(void);
 
 StrTable StrTable_new(void);
 u32 StrTable_push(inout StrTable* self, in char* str);
-void StrTable_resolve(in StrTable* self, inout Vec* shdrs, inout u32* elf_offset);
-void StrTable_write(in StrTable* self, inout Vec* binary);
 u32 StrTable_size(in StrTable* self);
 u32 StrTable_rawbin(in StrTable* self, inout RawBin* rawbin);
 char* StrTable_str(in StrTable* self, u32 index);

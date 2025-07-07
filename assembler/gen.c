@@ -12,6 +12,7 @@ SResult Section_new(in char* name, out Section* section) {
 
     strcpy(section->name, name);
     section->binary = Vec_new(sizeof(u8));
+    strcpy(section->namespace, "\0");
 
     return SResult_new(NULL);
 }
@@ -273,9 +274,46 @@ SResult Generator_new_label(inout Generator* self, Label label) {
     return SResult_new(NULL);
 }
 
+static SResult get_namespace(in Generator* self, in char* section, out char namespace[256]) {
+    for(u32 i=0; i<Vec_len(&self->sections); i++) {
+        Section* ptr = Vec_index(&self->sections, i);
+        if(strcmp(ptr->name, section) == 0) {
+            snprintf(namespace, 256, "%.255s", ptr->namespace);
+            return SResult_new(NULL);
+        }
+    }
+
+    return SResult_new("undefined section");
+}
+
+static SResult set_section_namespace(inout Generator* self, in char* section, in char* name) {
+    for(u32 i=0; i<Vec_len(&self->sections); i++) {
+        Section* ptr = Vec_index(&self->sections, i);
+        if(strcmp(ptr->name, section) == 0) {
+            strncpy(ptr->namespace, name, 255);
+            return SResult_new(NULL);
+        }
+    }
+
+    return SResult_new("undefined section");
+}
+
 SResult Generator_append_label(inout Generator* self, in char* section, in char* name, bool global_flag, LabelType type) {
     Label label;
-    strncpy(label.name, name, 255);
+    if(name[0] == '.') {
+        char namespace[256];
+        SRESULT_UNWRAP(
+            get_namespace(self, section, namespace),
+            (void)NULL
+        );
+        snprintf(label.name, sizeof(label.name), "%.127s%.127s", namespace, name);
+    }else {
+        SRESULT_UNWRAP(
+            set_section_namespace(self, section, name),
+            (void)NULL
+        );
+        strncpy(label.name, name, 255);
+    }
     label.public_flag = global_flag;
     strncpy(label.section_name, section, 255);
     SRESULT_UNWRAP(
@@ -309,8 +347,17 @@ SResult Generator_end_label(inout Generator* self, in char* name) {
 
 SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, bool flag) {
     Rela rela;
-    strcpy(rela.label, label);
-    strcpy(rela.section_name, section);
+    if(label[0] == '.') {
+        char namespace[256];
+        SRESULT_UNWRAP(
+            get_namespace(self, section, namespace),
+            (void)NULL
+        );
+        snprintf(rela.label, sizeof(rela.label), "%.127s%.127s", namespace, label);
+    }else {
+        snprintf(rela.label, sizeof(rela.label), "%.255s", label);
+    }
+    snprintf(rela.section_name, sizeof(rela.section_name), "%.255s", section);
     rela.addend = 0;
     rela.flag = flag;
 

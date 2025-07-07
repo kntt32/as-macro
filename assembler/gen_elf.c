@@ -16,7 +16,14 @@ static Vec Elf64_shdrs(in Generator* generator, inout RawBin* rawbin, inout u32*
         Elf64_Shdr shdr = Elf64_Shdr_from(section, &shstrtable, rawbin);
         Vec_push(&shdrs, &shdr);
     }
+
     Elf64_Shdr_symtab_and_strtab(&shdrs, generator, &shstrtable, rawbin);
+
+    for(u32 i=0; i<Vec_len(&generator->sections); i++) {
+        Section* section = Vec_index(&generator->sections, i);
+        Elf64_Shdr rel_shdr = Elf64_Shdr_rela(generator, section->name, &shdrs, &shstrtable, rawbin);
+        Vec_push(&shdrs, &rel_shdr);
+    }
 
     Elf64_Shdr shdr_shstrtable = Elf64_Shdr_shstrtab(shstrtable, rawbin);
     Vec_push(&shdrs, &shdr_shstrtable);
@@ -131,21 +138,13 @@ Elf64_Shdr Elf64_Shdr_shstrtab(StrTable self, inout RawBin* rawbin) {
     header.sh_entsize = 0;
 
     StrTable_free(self);
-    
+
     return header;
 }
 
-Elf64_Sym Elf64_Sym_from(in Label* label, inout char parent_name[512], in Vec* shdrs, in StrTable* shstrtable, inout StrTable* strtable) {
-    char name[512];
-    if(label->name[0] == '.') {
-        snprintf(name, 512, "%.256s%.256s", parent_name, label->name);
-    }else {
-        strcpy(name, label->name);
-        strcpy(parent_name, label->name);
-    }
-
+Elf64_Sym Elf64_Sym_from(in Label* label, in Vec* shdrs, in StrTable* shstrtable, inout StrTable* strtable) {
     Elf64_Sym sym;
-    sym.st_name = StrTable_push(strtable, name);
+    sym.st_name = StrTable_push(strtable, label->name);
     u8 bind = (label->public_flag)?(STB_GLOBAL):(STB_LOCAL);
     u8 type;
     switch(label->type) {
@@ -176,12 +175,10 @@ Elf64_Sym Elf64_Sym_null(void) {
 
 static void Elf64_Shdr_symtab_and_strtab_get_sym(
     in Vec* labels, in Vec* shdrs, inout StrTable* shstrtable, inout StrTable* strtable, inout Vec* public_symbols, inout Vec* local_symbols) {
-    char parent_symbol[512] = "";
-
     for(u32 i=0; i<Vec_len(labels); i++) {
         Label* label = Vec_index(labels, i);
 
-        Elf64_Sym symbol = Elf64_Sym_from(label, parent_symbol, shdrs, shstrtable, strtable);
+        Elf64_Sym symbol = Elf64_Sym_from(label, shdrs, shstrtable, strtable);
         if(label->public_flag) {
             Vec_push(public_symbols, &symbol);
         }else {
@@ -256,7 +253,7 @@ Elf64_Shdr Elf64_Shdr_from(in Section* section, inout StrTable* shstrtable, inou
         header.sh_flags = SHF_ALLOC | SHF_EXECINSTR;
         header.sh_addr = 0;
         header.sh_offset = RawBin_push(rawbin, &section->binary);
-        header.sh_size = Vec_size(&section->binary);
+        header.sh_size = Vec_len(&section->binary);
         header.sh_link = 0;
         header.sh_info = 0;
         header.sh_addralign = 0x10;
@@ -266,6 +263,77 @@ Elf64_Shdr Elf64_Shdr_from(in Section* section, inout StrTable* shstrtable, inou
     }
 
     return header;
+}
+
+static u32 get_symbol_index(in Generator* generator, in char* section_name, in char* name) {
+    u32 index = 1;
+    bool flag = false;
+
+    do {
+        for(u32 i=0; i<Vec_len(&generator->labels); i++) {
+            Label* label = Vec_index(&generator->labels, i);
+            if(label->public_flag == flag) {
+                if(strcmp(label->name, name) == 0 && strcmp(label->section_name, section_name) == 0) {
+                    return index;
+                }
+                index++;
+            }
+        }
+        flag = !flag;
+    } while(flag);
+    
+    return 0;
+}
+
+Elf64_Rela Elf64_Rela_from(Rela* rela, in Generator* generator) {
+    assert(rela != NULL && generator != NULL);
+
+    u32 sym = get_symbol_index(generator, rela->section_name, rela->label);
+
+    Elf64_Rela elf_rela;
+    memset(&elf_rela, 0, sizeof(elf_rela));
+
+    elf_rela.r_offset = rela->offset;
+    elf_rela.r_addend = rela->addend;
+    elf_rela.r_info = ELF64_R_INFO(sym, R_X86_64_PC32);
+
+    return elf_rela;
+}
+
+static Vec Elf64_Shdr_rela_get_relas(in Generator* generator) {
+    Vec elf_relas = Vec_new(sizeof(Elf64_Rela));
+
+    for(u32 i=0; i<Vec_len(&generator->relas); i++) {
+        Rela* rela = Vec_index(&generator->relas, i);
+        Elf64_Rela elf_rela = Elf64_Rela_from(rela, generator);
+        Vec_push(&elf_relas, &elf_rela);
+    }
+
+    return elf_relas;
+}
+
+Elf64_Shdr Elf64_Shdr_rela(in Generator* generator, in char* section_name, in Vec* shdrs, inout StrTable* shstrtable, inout RawBin* rawbin) {
+    Vec elf_relas = Elf64_Shdr_rela_get_relas(generator);
+    
+    Elf64_Shdr shdr;
+    memset(&shdr, 0, sizeof(shdr));
+
+    char shdr_name[300];
+    snprintf(shdr_name, sizeof(shdr_name), ".rela%.256s", section_name);
+    shdr.sh_name = StrTable_push(shstrtable, shdr_name);
+    shdr.sh_type = SHT_RELA;
+    shdr.sh_flags = 0;
+    shdr.sh_addr = 0;
+    shdr.sh_offset = RawBin_push_arr(rawbin, Vec_as_ptr(&elf_relas), Vec_len(&elf_relas)*sizeof(Elf64_Rela));
+    shdr.sh_size = Vec_len(&elf_relas)*sizeof(Elf64_Rela);
+    shdr.sh_link = find_section(shdrs, shstrtable, ".symtab");
+    shdr.sh_info = find_section(shdrs, shstrtable, section_name);
+    shdr.sh_addralign = 8;
+    shdr.sh_entsize = sizeof(Elf64_Rela);
+
+    Vec_free(elf_relas);
+
+    return shdr;
 }
 
 StrTable StrTable_new(void) {
@@ -288,29 +356,6 @@ u32 StrTable_push(inout StrTable* self, in char* str) {
     Vec_push(&self->table, &null_char);
 
     return index;
-}
-
-void StrTable_resolve(in StrTable* self, inout Vec* shdrs, inout u32* elf_offset) {
-    assert(self != NULL && elf_offset != NULL && Vec_size(shdrs) == sizeof(Elf64_Shdr));
-    
-    for(u32 i=0; i<Vec_len(shdrs); i++) {
-        Elf64_Shdr* shdr = Vec_index(shdrs, i);
-        if(strcmp(StrTable_str(self, shdr->sh_name), ".shstrtab") == 0) {
-            shdr->sh_offset = *elf_offset;
-            shdr->sh_size = Vec_len(&self->table);
-        }
-    }
-
-    *elf_offset += Vec_len(&self->table) * sizeof(u8);
-}
-
-void StrTable_write(in StrTable* self, inout Vec* binary) {
-    assert(self != NULL && binary != NULL && Vec_size(binary) == sizeof(u8));
-    assert(sizeof(u8) == sizeof(char));
-
-    char* table_ptr = Vec_as_ptr(&self->table);
-    u32 len = Vec_len(&self->table);
-    Vec_append(binary, table_ptr, len);
 }
 
 u32 StrTable_size(in StrTable* self) {

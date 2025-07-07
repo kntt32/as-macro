@@ -184,6 +184,7 @@ typedef struct {
 typedef struct {
     char name[256];
     Vec binary;// Vec<u8>
+    char namespace[256];
 } Section;
 
 typedef enum {

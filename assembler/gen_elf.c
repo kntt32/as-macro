@@ -3,41 +3,42 @@
 #include <elf.h>
 #include "gen_elf.h"
 
-static Vec Elf64_shdrs(in Generator* generator, inout StrTable* shstrtable, inout RawBin* rawbin, inout u32* elf_offset) {
-    assert(generator != NULL && shstrtable != NULL && rawbin != NULL);
+static Vec Elf64_shdrs(in Generator* generator, inout RawBin* rawbin, inout u32* elf_offset) {
+    assert(generator != NULL && rawbin != NULL);
+    StrTable shstrtable = StrTable_new();
 
     Vec shdrs = Vec_new(sizeof(Elf64_Shdr));
     Elf64_Shdr shdr_null = Elf64_Shdr_null();
     Vec_push(&shdrs, &shdr_null);
-    Elf64_Shdr shdr_shstrtable = Elf64_shdr_shstrtab(shstrtable);
-    Vec_push(&shdrs, &shdr_shstrtable);
 
     for(u32 i=0; i<Vec_len(&generator->sections); i++) {
         Section* section = Vec_index(&generator->sections, i);
-        Elf64_Shdr shdr = Elf64_Shdr_from(section, shstrtable, rawbin);
+        Elf64_Shdr shdr = Elf64_Shdr_from(section, &shstrtable, rawbin);
         Vec_push(&shdrs, &shdr);
     }
-    Elf64_Shdr_symtab_and_strtab(&shdrs, generator, shstrtable, rawbin);
+    Elf64_Shdr_symtab_and_strtab(&shdrs, generator, &shstrtable, rawbin);
+
+    Elf64_Shdr shdr_shstrtable = Elf64_Shdr_shstrtab(shstrtable, rawbin);
+    Vec_push(&shdrs, &shdr_shstrtable);
 
     *elf_offset += sizeof(Elf64_Shdr) * Vec_len(&shdrs);
 
     return shdrs;
 }
 
-Vec Elf64_binary(Elf64_Ehdr ehdr, Vec shdrs, StrTable shstrtable, RawBin rawbin) {
+Vec Elf64_binary(Elf64_Ehdr ehdr, Vec shdrs, RawBin rawbin) {
     Vec binary = Vec_new(sizeof(u8));
+    ehdr.e_shstrndx = Vec_len(&shdrs) - 1;
     Vec_append(&binary, &ehdr, sizeof(Elf64_Ehdr));
     
     for(u32 i=0; i<Vec_len(&shdrs); i++) {
         Elf64_Shdr* shdr = Vec_index(&shdrs, i);
         Vec_append(&binary, shdr, sizeof(Elf64_Shdr));
     }
-    
-    StrTable_write(&shstrtable, &binary);
+
     RawBin_write(&rawbin, &binary);
     
     Vec_free(shdrs);
-    StrTable_free(shstrtable);
     RawBin_free(rawbin);
 
     return binary;
@@ -48,21 +49,18 @@ Vec Elf64(in Generator* generator) {
     // Shdr
     // StrTable
     // RawBin
-
-    StrTable shstrtable = StrTable_new();
     RawBin rawbin = RawBin_new();
 
     u32 elf_offset = 0;
     Elf64_Ehdr ehdr = Elf64_Ehdr_new(&elf_offset);
     ehdr.e_shoff = elf_offset;
-    Vec shdrs = Elf64_shdrs(generator, &shstrtable, &rawbin, &elf_offset);
+    Vec shdrs = Elf64_shdrs(generator, &rawbin, &elf_offset);
     ehdr.e_shnum = Vec_len(&shdrs);
 
     ehdr.e_shstrndx = 1;
-    StrTable_resolve(&shstrtable, &shdrs, &elf_offset);
-    RawBin_resolve(&rawbin, &shstrtable, &shdrs, &elf_offset);
+    RawBin_resolve(&rawbin, &shdrs, &elf_offset);
 
-    return Elf64_binary(ehdr, shdrs, shstrtable, rawbin);
+    return Elf64_binary(ehdr, shdrs, rawbin);
 }
 
 static void Elf64_Ehdr_set_magic(inout Elf64_Ehdr* self) {
@@ -119,19 +117,21 @@ Elf64_Shdr Elf64_Shdr_null(void) {
     return header;
 }
 
-Elf64_Shdr Elf64_shdr_shstrtab(inout StrTable* self) {
+Elf64_Shdr Elf64_Shdr_shstrtab(StrTable self, inout RawBin* rawbin) {
     Elf64_Shdr header;
-    header.sh_name = StrTable_push(self, ".shstrtab");
+    header.sh_name = StrTable_push(&self, ".shstrtab");
     header.sh_type = SHT_STRTAB;
     header.sh_flags = 0;
     header.sh_addr = 0;
-    header.sh_offset = 0;// resolve after
-    header.sh_size = 0;// resolve after
+    header.sh_offset = StrTable_rawbin(&self, rawbin);
+    header.sh_size = StrTable_size(&self);
     header.sh_link = 0;
     header.sh_info = 0;
     header.sh_addralign = 1;
     header.sh_entsize = 0;
 
+    StrTable_free(self);
+    
     return header;
 }
 
@@ -371,14 +371,12 @@ u32 RawBin_push_arr(inout RawBin* self, in void* ptr, u32 size) {
     return index;
 }
 
-void RawBin_resolve(in RawBin* self, in StrTable* shstrtable, inout Vec* shdrs, inout u32* elf_offset) {
+void RawBin_resolve(in RawBin* self, inout Vec* shdrs, inout u32* elf_offset) {
     assert(self != NULL && Vec_size(shdrs) == sizeof(Elf64_Shdr) && elf_offset != NULL);
 
     for(u32 i=0; i<Vec_len(shdrs); i++) {
         Elf64_Shdr* shdr = Vec_index(shdrs, i);
-        if(strcmp(StrTable_str(shstrtable, shdr->sh_name), ".shstrtab") != 0) {
-            shdr->sh_offset += *elf_offset;
-        }
+        shdr->sh_offset += *elf_offset;
     }
 
     *elf_offset += Vec_len(&self->bin) * sizeof(u8);

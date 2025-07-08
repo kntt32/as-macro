@@ -30,13 +30,13 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* r
 Data Data_from_register(Register reg) {
     if(Register_is_integer(reg)) {
         Data data = {
-            {"i64", Type_Integer, {}, 8, 8},
+            {"i64", "", Type_Integer, {}, 8, 8},
             {StorageType_reg, {.reg = reg}}
         };
         return data;
     }else if(Register_is_xmm(reg)) {
         Data data = {
-            {"f64", Type_Floating, {}, 8, 8},
+            {"f64", "", Type_Floating, {}, 8, 8},
             {StorageType_xmm, {.reg = reg}}
         };
         return data;
@@ -51,19 +51,19 @@ Data Data_from_imm(u64 imm) {
     Type type;
     u32 len = 0;;
     if(imm <= 0xff) {
-        Type tmp = {"i8", Type_Integer, {}, 1, 1};
+        Type tmp = {"i8", "", Type_Integer, {}, 1, 1};
         type = tmp;
         len = 1;
     }else if(imm <= 0xffff) {
-        Type tmp = {"i16", Type_Integer, {}, 2, 2};
+        Type tmp = {"i16", "", Type_Integer, {}, 2, 2};
         type = tmp;
         len = 2;
     }else if(imm <= 0xffffffff) {
-        Type tmp = {"i32", Type_Integer, {}, 4, 4};
+        Type tmp = {"i32", "", Type_Integer, {}, 4, 4};
         type = tmp;
         len = 4;
     }else {
-        Type tmp = {"i64", Type_Integer, {}, 8, 8};
+        Type tmp = {"i64", "", Type_Integer, {}, 8, 8};
         type = tmp;
         len = 8;
     }
@@ -82,7 +82,7 @@ Data Data_from_imm(u64 imm) {
 
 Data Data_from_label(in char* label) {
     Data data = {
-        {"i32", Type_Integer, {}, 4, 4},
+        {"i32", "", Type_Integer, {}, 4, 4},
         {StorageType_imm, {.imm = {Imm_Label, {.label = ""}}}}
     };
     strncpy(data.storage.body.imm.body.label, label, 255);
@@ -92,7 +92,7 @@ Data Data_from_label(in char* label) {
 
 Data Data_from_mem(Register reg, i32 offset) {
     Data data = {
-        {"i32", Type_Integer, {}, 4, 4},
+        {"i32", "", Type_Integer, {}, 4, 4},
         {StorageType_mem, {.mem = {reg, {Disp_Offset, {.offset = offset}}}}}
     };
     return data;
@@ -109,7 +109,7 @@ Data Data_clone(in Data* self) {
 
 Data Data_void(void) {
     Data data = {
-        {"void", Type_Integer, {}, 0, 1},
+        {"void", "", Type_Integer, {}, 0, 1},
         {StorageType_imm, {.imm = {Imm_Value, {.value = Vec_new(sizeof(u8))}}}}
     };
 

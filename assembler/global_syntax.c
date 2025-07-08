@@ -4,6 +4,8 @@
 #include "util.h"
 
 static bool GlobalSyntax_parse_struct_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
+
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "struct"))) {
         return false;
     }
@@ -15,6 +17,10 @@ static bool GlobalSyntax_parse_struct_definision(Parser parser, inout Generator*
     Type type;
     if(resolve_parsermsg(Type_parse_struct(&parser, generator, &type), generator)) {
         return true;
+    }
+
+    if(!public_flag) {
+        Type_restrict_namespace(&type, Parser_path(&parser));
     }
     
     if(resolve_sresult(Generator_add_type(generator, type), parser.offset, generator)) {
@@ -28,6 +34,8 @@ static bool GlobalSyntax_parse_struct_definision(Parser parser, inout Generator*
 }
 
 static bool GlobalSyntax_parse_enum_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
+
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "enum"))) {
         return false;
     }
@@ -41,6 +49,10 @@ static bool GlobalSyntax_parse_enum_definision(Parser parser, inout Generator* g
         return true;
     }
     
+    if(!public_flag) {
+        Type_restrict_namespace(&type, Parser_path(&parser));
+    }
+
     if(resolve_sresult(Generator_add_type(generator, type), parser.offset, generator)) {
         return true;
     }
@@ -79,6 +91,8 @@ static bool GlobalSyntax_parse_asmacro_definision(Parser parser, inout Generator
 }
 
 static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
+
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "type"))) {
         return false;
     }
@@ -95,6 +109,10 @@ static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* genera
     Type type;
     if(resolve_parsermsg(Type_parse(&parser, generator, &type), generator)) {
         return true;
+    }
+
+    if(!public_flag) {
+        Type_restrict_namespace(&type, Parser_path(&parser));
     }
 
     if(resolve_sresult(Generator_add_type(generator, type), parser.offset, generator)) {

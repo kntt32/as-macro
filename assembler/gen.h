@@ -12,6 +12,7 @@ struct Type;
 
 struct Type {
     char name[256];
+    char valid_path[256];
     enum {
         Type_Integer,
         Type_Ptr,
@@ -19,6 +20,7 @@ struct Type {
         Type_Struct,
         Type_Enum,
         Type_Floating,
+        Type_LazyPtr,
     } type;
     union {
         struct Type* t_ptr;
@@ -235,8 +237,10 @@ typedef struct {
 Vec Type_primitives(void);
 ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_parse_enum(inout Parser* parser, out Type* type);
+ParserMsg Type_parse_lazyptr(inout Parser* parser, out Type* type);
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type);
 Type Type_clone(in Type* self);
+void Type_restrict_namespace(inout Type* self, in char* namespace);
 bool Type_cmp(in Type* self, in Type* other);
 void Type_print(in Type* self);
 void Type_print_for_vec(void* ptr);

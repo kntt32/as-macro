@@ -468,8 +468,8 @@ static ParserMsg Asmacro_parse_encoding(inout Parser* parser, out Asmacro* asmac
 }
 
 ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmacro* asmacro) {
-    // as name ( args ) { proc }
-    // as name ( args ) : ( encoding )
+    // (pub) as name ( args ) { proc }
+    // (pub) as name ( args ) : ( encoding )
     assert(parser != NULL && generator != NULL && asmacro != NULL);
 
     Parser parser_copy = *parser;

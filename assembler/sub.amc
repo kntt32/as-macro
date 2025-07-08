@@ -5,7 +5,7 @@ pub as test() {
     nop();
 };
 
-pub fn double(val: i64@rax) {
+fn double(val: i64@rax) {
     nop();
     nop();
     add(val, val);

@@ -5,14 +5,14 @@
 
 Vec Type_primitives(void) {
     Type primitives[] = {
-        {"void", Type_Integer, {}, 0, 1},
-        {"bool", Type_Integer, {}, 1, 1},
-        {"i8",  Type_Integer, {}, 1, 1},
-        {"i16", Type_Integer, {}, 2, 2},
-        {"i32", Type_Integer, {}, 4, 4},
-        {"i64", Type_Integer, {}, 8, 8},
-        {"f32", Type_Floating, {}, 4, 4},
-        {"f64", Type_Floating, {}, 8, 8},
+        {"void", "", Type_Integer, {}, 0, 1},
+        {"bool", "", Type_Integer, {}, 1, 1},
+        {"i8",  "", Type_Integer, {}, 1, 1},
+        {"i16", "", Type_Integer, {}, 2, 2},
+        {"i32", "", Type_Integer, {}, 4, 4},
+        {"i64", "", Type_Integer, {}, 8, 8},
+        {"f32", "", Type_Floating, {}, 4, 4},
+        {"f64", "", Type_Floating, {}, 8, 8},
     };
     Vec types = Vec_from(primitives, LEN(primitives), sizeof(Type));
 
@@ -189,6 +189,28 @@ ParserMsg Type_parse_array(inout Parser* parser, in Generator* generator, out Ty
     return ParserMsg_new(parser->offset, NULL);
 }
 
+ParserMsg Type_parse_lazyptr(inout Parser* parser, out Type* type) {
+    assert(parser != NULL && type != NULL);
+
+    Parser parser_copy = *parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_ident(&parser_copy, type->name),
+        (void)NULL
+    );
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, "*"),
+        (void)NULL
+    );
+
+    type->type = Type_LazyPtr;
+    type->size = 8;
+    type->align = 8;
+
+    *parser = parser_copy;
+    return ParserMsg_new(parser->offset, NULL);
+}
+
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type) {
     Parser parser_copy = *parser;
 
@@ -198,21 +220,33 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
             Type_parse_array(&parser_copy, generator, type),
             (void)NULL
         );
+        strcpy(type->valid_path, "");
     }else if(strcmp(token, "struct") == 0) {
         PARSERMSG_UNWRAP(
             Type_parse_struct(&parser_copy, generator, type),
             (void)NULL
         );
+        strcpy(type->valid_path, "");
     }else if(strcmp(token, "enum") == 0) {
         PARSERMSG_UNWRAP(
             Type_parse_enum(&parser_copy, type),
             (void)NULL
         );
-    }else {
-        SResult result = Generator_get_type(generator, token, type);
-        if(!SResult_is_success(result)) {
-            return ParserMsg_from_sresult(result, parser->offset);
-        }
+        strcpy(type->valid_path, "");
+    }else if(!SResult_is_success(
+        Generator_get_type(generator, token, type)
+    )) {
+        parser_copy = *parser;
+
+        PARSERMSG_UNWRAP(
+            Type_parse_lazyptr(&parser_copy, type),
+            (void)NULL
+        );
+        strcpy(type->valid_path, "");
+    }
+
+    if(type->valid_path[0] != '\0' && strcmp(Parser_path(&parser_copy), type->valid_path) != 0) {
+        return ParserMsg_new(parser->offset, "out of namespace");
     }
 
     Type_parse_ref(&parser_copy, type);
@@ -220,6 +254,10 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
     *parser = parser_copy;
 
     return ParserMsg_new(parser->offset, NULL);
+}
+
+void Type_restrict_namespace(inout Type* self, in char* namespace) {
+    snprintf(self->valid_path, 256, "%.255s", namespace);
 }
 
 bool Type_cmp(in Type* self, in Type* other) {
@@ -255,6 +293,8 @@ bool Type_cmp(in Type* self, in Type* other) {
             break;
         case Type_Floating:
             break;
+        case Type_LazyPtr:
+            break;
     }
     return true;
 }
@@ -283,12 +323,14 @@ Type Type_clone(in Type* self) {
             break;
         case Type_Floating:
             break;
+        case Type_LazyPtr:
+            break;
     }
     return type;
 }
 
 void Type_print(in Type* self) {
-    printf("Type { name: %s, type: %d, body: ", self->name, self->type);
+    printf("Type { name: %s, valid_path: %s, type: %d, body: ", self->name, self->valid_path, self->type);
     switch(self->type) {
         case Type_Integer:
             printf("none");
@@ -313,6 +355,8 @@ void Type_print(in Type* self) {
         case Type_Floating:
             printf("none");
             break;
+        case Type_LazyPtr:
+            printf("none");
     }
     printf(", size: %u, align: %lu }", self->size, self->align);
 }
@@ -341,6 +385,8 @@ void Type_free(Type self) {
             Vec_free(self.body.t_enum);
             break;
         case Type_Floating:
+            break;
+        case Type_LazyPtr:
             break;
     }
 }

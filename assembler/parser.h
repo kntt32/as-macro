@@ -25,6 +25,7 @@ void Offset_seek(inout Offset* self, char* token);
 void Offset_print(in Offset* self);
 
 Parser Parser_new(in char* src, in char* path);
+Parser Parser_empty(Offset offset);
 void Parser_print(in Parser* self);
 char* Parser_path(in Parser* self);
 void Parser_skip_space(inout Parser* self);
@@ -33,6 +34,7 @@ bool Parser_is_empty(in Parser* self);
 bool Parser_start_with(in Parser* self, in char* keyword);
 bool Parser_start_with_symbol(in Parser* self, in char* symbol);
 Parser Parser_split(inout Parser* self, in char* symbol);
+Parser Parser_rsplit(inout Parser* self, in char* symbol);
 ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]);
 ParserMsg Parser_parse_keyword(inout Parser* self, in char* keyword);
 ParserMsg Parser_parse_symbol(inout Parser* self, in char* symbol);

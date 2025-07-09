@@ -60,7 +60,7 @@ VariableManager VariableManager_clone(in VariableManager* self) {
 }
 
 void VariableManager_free(VariableManager self) {
-    Vec_free(self.variables);
+    Vec_free_all(self.variables, Variable_free_for_vec);
 }
 
 void VariableManager_free_for_vec(inout void* ptr) {
@@ -82,6 +82,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
         Syntax_build_assignment,
+        Syntax_build_dot_operator,
         Syntax_build_variable_expression,
     };
     
@@ -518,7 +519,7 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
     
     Variable variable;
     i32 stack_offset = variable_manager->stack_offset;
-    if(resolve_parsermsg(Variable_parse(&parser, generator, &stack_offset, &variable), generator)) {
+    if(resolve_parsermsg(Variable_parse(&parser, generator, &variable_manager->stack_offset, &variable), generator)) {
         return true;
     }
 
@@ -532,7 +533,6 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
         Data_free(sub_data);
     }
 
-    variable_manager->stack_offset = stack_offset;
     VariableManager_push(variable_manager, variable);
     
     check_parser(&parser, generator);
@@ -589,6 +589,41 @@ bool Syntax_build_assignment(Parser parser, inout Generator* generator, inout Va
     if(resolve_sresult(expand_asmacro("mov", Parser_path(&parser), mov_args, generator, variable_manager, data), parser.offset, generator)) {
         *data = Data_void();
     }
+
+    return true;
+}
+
+bool Syntax_build_dot_operator(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    assert(generator != NULL && variable_manager != NULL && data != NULL);
+
+    Parser left = Parser_rsplit(&parser, ".");
+    if(Parser_is_empty(&left) || Parser_is_empty(&parser)) {
+        return false;
+    }
+
+    Data left_data;
+    if(resolve_sresult(
+        Syntax_build(left, generator, variable_manager, &left_data), left.offset, generator
+    )) {
+        return true;
+    }
+    char element[256];
+    if(resolve_parsermsg(
+        Parser_parse_ident(&parser, element), generator
+    )) {
+        Data_free(left_data);
+        return true;
+    }
+    check_parser(&parser, generator);
+
+    if(resolve_sresult(
+        Data_dot_operator(&left_data, element, data), parser.offset, generator
+    )) {
+        Data_free(left_data);
+        return true;
+    }
+    
+    Data_free(left_data);
 
     return true;
 }

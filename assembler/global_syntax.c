@@ -186,7 +186,7 @@ static bool GlobalSyntax_parse_import(Parser parser, inout Generator* generator,
 }
 
 static ParserMsg function_definision_parse_arguments(Parser parser, in Generator* generator, inout VariableManager* variable_manager, inout Vec* arguments) {
-    i32 stack_offset = 0;
+    i32 stack_offset = 16;
     
     while(!Parser_is_empty(&parser)) {
         Parser parser_copy = parser;
@@ -196,15 +196,18 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
             Variable_parse(&parser_copy, generator, &dummy, &variable),
             (void)NULL
         );
-        u32 size = variable.data.type.size;
-        u32 align = variable.data.type.align;
-        stack_offset -= size;
-        stack_offset = (stack_offset - align + 1)/align*align;
+        if(variable.data.storage.type == StorageType_mem) {
+            u32 size = variable.data.type.size;
+            u32 align = variable.data.type.align;
+            stack_offset += size;
+            stack_offset = (stack_offset + align - 1)/align*align;
+        }
         
         Variable_free(variable);
-        
+
+        dummy = stack_offset;
         PARSERMSG_UNWRAP(
-            Variable_parse(&parser, generator, &stack_offset, &variable),
+            Variable_parse(&parser, generator, &dummy, &variable),
             (void)NULL
         );
         VariableManager_push(variable_manager, Variable_clone(&variable));
@@ -233,7 +236,7 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
 
     char name[256];
     Parser paren_parser;
-    VariableManager variable_manager = VariableManager_new(8);
+    VariableManager variable_manager = VariableManager_new(0);
     Vec arguments = Vec_new(sizeof(Variable));
     Parser block_parser;
 
@@ -293,12 +296,69 @@ void GlobalSyntax_check_asmacro(inout GlobalSyntax* self, inout Generator* gener
     }
 }
 
+static SResult enter_function(inout Generator* generator, inout VariableManager* variable_manager) {
+    Data data;
+
+    Vec push_rbp_args = Vec_new(sizeof(Data));
+    Data data_push_rbp = Data_from_register(Rbp);
+    Vec_push(&push_rbp_args, &data_push_rbp);
+    SRESULT_UNWRAP(
+        expand_asmacro("push", "", push_rbp_args, generator, variable_manager, &data),
+        (void)NULL
+    );
+    Data_free(data);
+
+    Vec mov_rbp_rsp_args = Vec_new(sizeof(Data));
+    Data data_mov_rbp = Data_from_register(Rbp);
+    Data data_mov_rsp = Data_from_register(Rsp);
+    Vec_push(&mov_rbp_rsp_args, &data_mov_rbp);
+    Vec_push(&mov_rbp_rsp_args, &data_mov_rsp);
+    SRESULT_UNWRAP(
+        expand_asmacro("mov", "", mov_rbp_rsp_args, generator, variable_manager, &data),
+        (void)NULL
+    );
+    Data_free(data);
+
+    return SResult_new(NULL);
+}
+
+static SResult leave_function(inout Generator* generator, inout VariableManager* variable_manager) {
+    Data data;
+
+    Vec mov_rsp_rbp_args = Vec_new(sizeof(Data));
+    Data data_mov_rsp = Data_from_register(Rsp);
+    Data data_mov_rbp = Data_from_register(Rbp);
+    Vec_push(&mov_rsp_rbp_args, &data_mov_rsp);
+    Vec_push(&mov_rsp_rbp_args, &data_mov_rbp);
+    SRESULT_UNWRAP(
+        expand_asmacro("mov", "", mov_rsp_rbp_args, generator, variable_manager, &data),
+        (void)NULL
+    );
+    Data_free(data);
+
+    Vec pop_rbp_args = Vec_new(sizeof(Data));
+    Data data_pop_rbp = Data_from_register(Rbp);
+    Vec_push(&pop_rbp_args, &data_pop_rbp);
+    SRESULT_UNWRAP(
+        expand_asmacro("pop", "", pop_rbp_args, generator, variable_manager, &data),
+        (void)NULL
+    );
+    Data_free(data);
+
+    return SResult_new(NULL);
+}
+
 static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, inout Generator* generator) {
     Parser parser = self->body.function_definision.proc_parser;
     VariableManager* variable_manager = &self->body.function_definision.variable_manager;
     
     resolve_sresult(
         Generator_append_label(generator, ".text", self->body.function_definision.name, self->body.function_definision.public_flag, Label_Func),
+        parser.offset,
+        generator
+    );
+    resolve_sresult(
+        enter_function(generator, variable_manager),
         parser.offset,
         generator
     );
@@ -317,6 +377,9 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
     resolve_sresult(
         Generator_append_label(generator, ".text", ".ret", false, Label_Notype),
         parser.offset, generator
+    );
+    resolve_sresult(
+        leave_function(generator, variable_manager), parser.offset, generator
     );
     Data data;
     if(!resolve_sresult(

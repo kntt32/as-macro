@@ -97,7 +97,7 @@ typedef struct {
 } Index;
 
 typedef struct {
-    enum { Disp_None, Disp_Offset, Disp_Label } type;
+    enum { Disp_Offset, Disp_Label } type;
     union {
         i32 offset;
         char label[256];
@@ -241,6 +241,7 @@ ParserMsg Type_parse_lazyptr(inout Parser* parser, out Type* type);
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type);
 Type Type_clone(in Type* self);
 void Type_restrict_namespace(inout Type* self, in char* namespace);
+SResult Type_dot_element(in Type* self, in char* element, out u32* offset, out Type* type);
 bool Type_cmp(in Type* self, in Type* other);
 void Type_print(in Type* self);
 void Type_print_for_vec(void* ptr);
@@ -293,18 +294,20 @@ bool Imm_cmp(in Imm* self, in Imm* other);
 Imm Imm_clone(in Imm* self);
 void Imm_free(Imm self);
 
-ParserMsg Storage_parse(inout Parser* parser, in i32* rbp_offset, out Storage* storage);
+ParserMsg Storage_parse(inout Parser* parser, i32 stack_offset, in Type* type, out Storage* storage);
+SResult Storage_add_offset(inout Storage* self, i32 offset);
 bool Storage_cmp(in Storage* self, in Storage* other);
 void Storage_print(in Storage* self);
 Storage Storage_clone(in Storage* self);
 void Storage_free(Storage self);
 
-ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Data* data);
+ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, out Data* data);
 Data Data_from_register(Register reg);
 Data Data_from_imm(u64 imm);
 Data Data_from_label(in char* label);
 Data Data_from_mem(Register reg, i32 offset);
 Data Data_clone(in Data* self);
+SResult Data_dot_operator(in Data* left, in char* element, out Data* data);
 Data Data_void(void);
 void Data_print(in Data* self);
 void Data_print_for_vec(in void* ptr);

@@ -25,6 +25,8 @@ static Vec Elf64_shdrs(in Generator* generator, inout RawBin* rawbin, inout u32*
         Vec_push(&shdrs, &rel_shdr);
     }
 
+    Elf64_Shdr_note_gnustack(&shdrs, &shstrtable);
+
     Elf64_Shdr shdr_shstrtable = Elf64_Shdr_shstrtab(shstrtable, rawbin);
     Vec_push(&shdrs, &shdr_shstrtable);
 
@@ -146,7 +148,7 @@ Elf64_Sym Elf64_Sym_from(in Label* label, in Vec* shdrs, in StrTable* shstrtable
     Elf64_Sym sym;
     sym.st_name = StrTable_push(strtable, label->name);
     u8 bind = (label->public_flag)?(STB_GLOBAL):(STB_LOCAL);
-    u8 type;
+    u8 type = 0;
     switch(label->type) {
         case Label_Func:
             type = STT_FUNC;
@@ -196,19 +198,19 @@ static void Elf64_Shdr_symtab_and_strtab_push_symtab_shdr(inout Vec* shdrs, in V
     shdr.sh_type = SHT_SYMTAB;
     shdr.sh_flags = 0;
     shdr.sh_addr = 0;
-    shdr.sh_offset = RawBin_push_arr(rawbin, &null_symbol, sizeof(null_symbol));
-    RawBin_push_arr(rawbin, Vec_as_ptr(local_symbols), Vec_len(local_symbols)*sizeof(Elf64_Sym));
-    RawBin_push_arr(rawbin, Vec_as_ptr(public_symbols), Vec_len(public_symbols)*sizeof(Elf64_Sym));
+    shdr.sh_offset = RawBin_push(rawbin, &null_symbol, sizeof(null_symbol), 0x8);
+    RawBin_push(rawbin, Vec_as_ptr(local_symbols), Vec_len(local_symbols)*sizeof(Elf64_Sym), 0x8);
+    RawBin_push(rawbin, Vec_as_ptr(public_symbols), Vec_len(public_symbols)*sizeof(Elf64_Sym), 0x8);
     shdr.sh_size = (1 + Vec_len(local_symbols) + Vec_len(public_symbols))*sizeof(Elf64_Sym);
     shdr.sh_link = Vec_len(shdrs) + 1;
     shdr.sh_info = 1 + Vec_len(local_symbols);
-    shdr.sh_addralign = 8;
+    shdr.sh_addralign = 0x8;
     shdr.sh_entsize = sizeof(Elf64_Sym);
 
     Vec_push(shdrs, &shdr);
 }
 
-void Elf64_Shdr_symtab_and_strtab_push_strtab_shdr(inout Vec* shdrs, inout StrTable* shstrtable, in StrTable* strtable, inout RawBin* rawbin) {
+static void Elf64_Shdr_symtab_and_strtab_push_strtab_shdr(inout Vec* shdrs, inout StrTable* shstrtable, in StrTable* strtable, inout RawBin* rawbin) {
     Elf64_Shdr shdr;
     memset(&shdr, 0, sizeof(shdr));
 
@@ -252,7 +254,7 @@ Elf64_Shdr Elf64_Shdr_from(in Section* section, inout StrTable* shstrtable, inou
         header.sh_type = SHT_PROGBITS;
         header.sh_flags = SHF_ALLOC | SHF_EXECINSTR;
         header.sh_addr = 0;
-        header.sh_offset = RawBin_push(rawbin, &section->binary);
+        header.sh_offset = RawBin_push(rawbin, Vec_as_ptr(&section->binary), Vec_len(&section->binary), 0x10);
         header.sh_size = Vec_len(&section->binary);
         header.sh_link = 0;
         header.sh_info = 0;
@@ -263,6 +265,26 @@ Elf64_Shdr Elf64_Shdr_from(in Section* section, inout StrTable* shstrtable, inou
     }
 
     return header;
+}
+
+void Elf64_Shdr_note_gnustack(inout Vec* shdrs, inout StrTable* shstrtable) {
+    assert(shdrs != NULL && shstrtable != NULL);
+
+    Elf64_Shdr shdr;
+    memset(&shdr, 0, sizeof(shdr));
+
+    shdr.sh_name = StrTable_push(shstrtable, ".note.GNU-stack");
+    shdr.sh_type = SHT_PROGBITS;
+    shdr.sh_flags = 0;
+    shdr.sh_addr = 0;
+    shdr.sh_offset = 0;
+    shdr.sh_size = 0;
+    shdr.sh_link = 0;
+    shdr.sh_info = 0;
+    shdr.sh_addralign = 0;
+    shdr.sh_entsize = 0;
+
+    Vec_push(shdrs, &shdr);
 }
 
 static u32 get_symbol_index(in Generator* generator, in char* section_name, in char* name) {
@@ -324,11 +346,11 @@ Elf64_Shdr Elf64_Shdr_rela(in Generator* generator, in char* section_name, in Ve
     shdr.sh_type = SHT_RELA;
     shdr.sh_flags = 0;
     shdr.sh_addr = 0;
-    shdr.sh_offset = RawBin_push_arr(rawbin, Vec_as_ptr(&elf_relas), Vec_len(&elf_relas)*sizeof(Elf64_Rela));
+    shdr.sh_offset = RawBin_push(rawbin, Vec_as_ptr(&elf_relas), Vec_len(&elf_relas)*sizeof(Elf64_Rela), 0x8);
     shdr.sh_size = Vec_len(&elf_relas)*sizeof(Elf64_Rela);
     shdr.sh_link = find_section(shdrs, shstrtable, ".symtab");
     shdr.sh_info = find_section(shdrs, shstrtable, section_name);
-    shdr.sh_addralign = 8;
+    shdr.sh_addralign = 0x8;
     shdr.sh_entsize = sizeof(Elf64_Rela);
 
     Vec_free(elf_relas);
@@ -363,7 +385,7 @@ u32 StrTable_size(in StrTable* self) {
 }
 
 u32 StrTable_rawbin(in StrTable* self, inout RawBin* rawbin) {
-    return RawBin_push(rawbin, &self->table);
+    return RawBin_push(rawbin, Vec_as_ptr(&self->table), StrTable_size(self), 0x1);
 }
 
 char* StrTable_str(in StrTable* self, u32 index) {
@@ -399,20 +421,19 @@ RawBin RawBin_new(void) {
     return self;
 }
 
-u32 RawBin_push(inout RawBin* self, in Vec* bin) {
-    assert(Vec_size(bin) == sizeof(u8));
+u32 RawBin_push(inout RawBin* self, in void* ptr, u32 size, u32 align) {
+    assert(self != NULL && ptr != NULL && align != 0);
+
+    while(Vec_len(&self->bin)%align != 0) {
+        u8 byte = 0x00;
+        Vec_push(&self->bin, &byte);
+    }
     
     u32 index = Vec_len(&self->bin);
-    for(u32 i=0; i<Vec_len(bin); i++) {
-        Vec_push(&self->bin, Vec_index(bin, i));
+    for(u32 i=0; i<size; i++) {
+        Vec_push(&self->bin, ptr + i);
     }
 
-    return index;
-}
-
-u32 RawBin_push_arr(inout RawBin* self, in void* ptr, u32 size) {
-    u32 index = Vec_len(&self->bin);
-    Vec_append(&self->bin, ptr, size);
     return index;
 }
 

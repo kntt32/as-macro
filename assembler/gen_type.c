@@ -63,6 +63,7 @@ ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out T
     if(!ParserMsg_is_success(Parser_parse_ident(&parser_copy, type->name))) {
         type->name[0] = '\0';
     }
+    type->valid_path[0] = '\0';
 
     Parser block_parser;
     PARSERMSG_UNWRAP(
@@ -111,6 +112,7 @@ ParserMsg Type_parse_enum(inout Parser* parser, out Type* type) {
     if(!ParserMsg_is_success(Parser_parse_ident(&parser_copy, type->name))) {
         type->name[0] = '\0';
     }
+    type->valid_path[0] = '\0';
 
     Parser block_parser;
     PARSERMSG_UNWRAP(
@@ -180,7 +182,8 @@ ParserMsg Type_parse_array(inout Parser* parser, in Generator* generator, out Ty
         free(child_type)
     );
 
-    snprintf(type->name, 256, "[%.200s]", child_type->name);
+    snprintf(type->name, 256, "[%.200s; %u]", child_type->name, *len);
+    type->valid_path[0] = '\0';
 
     type->size = *len * child_type->size;
     type->align = child_type->align;
@@ -197,6 +200,7 @@ ParserMsg Type_parse_lazyptr(inout Parser* parser, out Type* type) {
         Parser_parse_ident(&parser_copy, type->name),
         (void)NULL
     );
+    type->valid_path[0] = '\0';
 
     PARSERMSG_UNWRAP(
         Parser_parse_symbol(&parser_copy, "*"),
@@ -220,19 +224,16 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
             Type_parse_array(&parser_copy, generator, type),
             (void)NULL
         );
-        strcpy(type->valid_path, "");
     }else if(strcmp(token, "struct") == 0) {
         PARSERMSG_UNWRAP(
             Type_parse_struct(&parser_copy, generator, type),
             (void)NULL
         );
-        strcpy(type->valid_path, "");
     }else if(strcmp(token, "enum") == 0) {
         PARSERMSG_UNWRAP(
             Type_parse_enum(&parser_copy, type),
             (void)NULL
         );
-        strcpy(type->valid_path, "");
     }else if(!SResult_is_success(
         Generator_get_type(generator, token, type)
     )) {
@@ -242,7 +243,6 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
             Type_parse_lazyptr(&parser_copy, type),
             (void)NULL
         );
-        strcpy(type->valid_path, "");
     }
 
     if(type->valid_path[0] != '\0' && strcmp(Parser_path(&parser_copy), type->valid_path) != 0) {
@@ -260,6 +260,24 @@ void Type_restrict_namespace(inout Type* self, in char* namespace) {
     snprintf(self->valid_path, 256, "%.255s", namespace);
 }
 
+SResult Type_dot_element(in Type* self, in char* element, out u32* offset, out Type* type) {
+    assert(self != NULL && element != NULL && offset != NULL && type != NULL);
+
+    if(self->type != Type_Struct) {
+        return SResult_new("expected structure");
+    }
+    for(u32 i=0; i<Vec_len(&self->body.t_struct); i++) {
+        StructMember* struct_member = Vec_index(&self->body.t_struct, i);
+        if(strcmp(struct_member->name, element) == 0) {
+            *offset = struct_member->offset;
+            *type = Type_clone(&struct_member->type);
+
+            return SResult_new(NULL);
+        }
+    }
+
+    return SResult_new("unknown structure element");
+}
 bool Type_cmp(in Type* self, in Type* other) {
     if(strcmp(self->name, other->name) != 0
         || self->type != other->type

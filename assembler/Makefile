@@ -25,7 +25,7 @@ gen.o: gen.c types.h register.h parser.h gen.h
 gen_type.o: gen_type.c gen.h
 gen_encode.o: gen_type.c gen.h
 gen_storage.o: gen_storage.c gen.h
-gen_data.o: gen_data.c gen.h
+gen_data.o: gen_data.c gen.h util.h
 gen_asmacro.o: gen_asmacro.c gen.h
 gen_variable.o: gen_variable.c gen.h
 gen_elf.o: gen_elf.c gen_elf.h

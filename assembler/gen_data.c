@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <assert.h>
 #include "gen.h"
+#include "util.h"
 
-ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Data* data) {
-    assert(parser != NULL && generator != NULL && rbp_offset != NULL && data != NULL);
+ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, out Data* data) {
+    assert(parser != NULL && generator != NULL && stack_offset != NULL && data != NULL);
     // Data @ Storage
     Parser parser_copy = *parser;
 
@@ -15,12 +16,12 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* r
         Parser_parse_symbol(&parser_copy, "@"),
         Type_free(data->type)
     );
-    *rbp_offset = (*rbp_offset + data->type.align - 1)/data->type.size*data->type.size;
+    *stack_offset -= data->type.size;
+    *stack_offset = (*stack_offset - (i32)data->type.align + 1)/(i32)data->type.align*(i32)data->type.align;
     PARSERMSG_UNWRAP(
-        Storage_parse(&parser_copy, rbp_offset, &data->storage),
+        Storage_parse(&parser_copy, *stack_offset, &data->type, &data->storage),
         Type_free(data->type)
     );
-    *rbp_offset += data->type.size;
 
     *parser = parser_copy;
 
@@ -105,6 +106,24 @@ Data Data_clone(in Data* self) {
     data.storage = Storage_clone(&self->storage);
     
     return data;
+}
+
+SResult Data_dot_operator(in Data* left, in char* element, out Data* data) {
+    assert(left != NULL && data != NULL);
+
+    u32 offset = 0;
+    SRESULT_UNWRAP(
+        Type_dot_element(&left->type, element, &offset, &data->type),
+        (void)NULL
+    );
+
+    data->storage = Storage_clone(&left->storage);
+    SRESULT_UNWRAP(
+        Storage_add_offset(&data->storage, offset),
+        Storage_free(data->storage);Type_free(data->type);
+    );
+
+    return SResult_new(NULL);
 }
 
 Data Data_void(void) {

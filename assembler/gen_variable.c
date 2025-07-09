@@ -2,7 +2,7 @@
 #include <assert.h>
 #include "gen.h"
 
-ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable) {
+ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, out Variable* variable) {
     // name: Data
     Parser parser_copy = *parser;
 
@@ -15,7 +15,7 @@ ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i3
         (void)NULL
     );
     PARSERMSG_UNWRAP(
-        Data_parse(&parser_copy, generator, rbp_offset, &variable->data),
+        Data_parse(&parser_copy, generator, stack_offset, &variable->data),
         (void)NULL
     );
 

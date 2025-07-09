@@ -59,6 +59,11 @@ Parser Parser_new(in char* src, in char* path) {
     return parser;
 }
 
+Parser Parser_empty(Offset offset) {
+    Parser parser = {NULL, 0, offset};
+    return parser;
+}
+
 void Parser_print(in Parser* self) {
     assert(self != NULL);
 
@@ -154,6 +159,26 @@ Parser Parser_split(inout Parser* self, in char* symbol) {
     }
 
     return parser;
+}
+
+Parser Parser_rsplit(inout Parser* self, in char* symbol) {
+    assert(self != NULL && symbol != NULL);
+
+    u32 len = self->len;
+
+    Parser left = *self;
+    left.len = 0;
+    Parser self_copy = *self;
+    while(!Parser_is_empty(&self_copy)) {
+        if(ParserMsg_is_success(Parser_parse_symbol(&self_copy, symbol))) {
+            *self = self_copy;
+            left.len = len - self->len - strlen(symbol);
+        }else {
+            Parser_skip(&self_copy);
+        }
+    }
+    
+    return left;
 }
 
 void Parser_skip(inout Parser* self) {

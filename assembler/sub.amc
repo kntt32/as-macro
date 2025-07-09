@@ -1,5 +1,10 @@
 import core_x64;
 
+struct Point {
+    x: i64,
+    y: i64
+};
+
 pub as test() {
     nop();
     nop();
@@ -12,6 +17,10 @@ fn double(val: i64@rax) {
 };
 
 pub fn num(val: i64@rax, src: i64@rdi) {
-    mov(val, src);
+    val = src;
+    let ptr: Point@stack;
+    ptr.x = 5;
+    ptr.y = 3;
+    val = ptr.y;
     double(val);
 };

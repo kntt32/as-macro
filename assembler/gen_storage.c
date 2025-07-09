@@ -7,9 +7,6 @@ u64 Disp_size(in Disp* self) {
     u64 size = 0;
     
     switch(self->type) {
-        case Disp_None:
-            size = 0;
-            break;
         case Disp_Offset:
             size = (self->body.offset < 256)?(8):(32);
             break;
@@ -26,9 +23,6 @@ u64 Disp_value(in Disp* self) {
     u64 value = 0;
 
     switch(self->type) {
-        case Disp_None:
-            value = 0;
-            break;
         case Disp_Offset:
             value = (u32)self->body.offset;
             break;
@@ -51,9 +45,6 @@ SResult Disp_set_label(in Disp* self, inout Generator* generator) {
 void Disp_print(in Disp* self) {
     printf("Disp { type: %d, body: ", self->type);
     switch(self->type) {
-        case Disp_None:
-            printf("none");
-            break;
         case Disp_Offset:
             printf(".offset: %d", self->body.offset);
             break;
@@ -73,8 +64,6 @@ bool Memory_cmp(in Memory* self, in Memory* other) {
         return false;
     }
     switch(self->disp.type) {
-        case Disp_None:
-            break;
         case Disp_Offset:
             if(self->disp.body.offset != other->disp.body.offset) {
                 return false;
@@ -159,8 +148,11 @@ void Imm_free(Imm self) {
     }
 }
 
-ParserMsg Storage_parse(inout Parser* parser, in i32* rbp_offset, out Storage* storage) {
+ParserMsg Storage_parse(inout Parser* parser, i32 stack_offset, in Type* type, out Storage* storage) {
     if(ParserMsg_is_success(Register_parse(parser, &storage->body.reg))) {
+        if(type->type == Type_Array || type->type == Type_Struct) {
+            return ParserMsg_new(parser->offset, "array of struct can't store on register or xmm'");
+        }
         if(Register_is_integer(storage->body.reg)) {
             storage->type = StorageType_reg;
         }else if(Register_is_xmm(storage->body.reg)) {
@@ -176,12 +168,27 @@ ParserMsg Storage_parse(inout Parser* parser, in i32* rbp_offset, out Storage* s
         Memory* mem = &storage->body.mem;
         mem->base = Rbp;
         mem->disp.type = Disp_Offset;
-        mem->disp.body.offset = *rbp_offset;
+        mem->disp.body.offset = stack_offset;
     }else {
         return ParserMsg_new(parser->offset, "expected storage");
     }
 
     return ParserMsg_new(parser->offset, NULL);
+}
+
+SResult Storage_add_offset(inout Storage* self, i32 offset) {
+    if(self->type != StorageType_mem) {
+        return SResult_new("expected memory storage");
+    }
+
+    Disp* disp = &self->body.mem.disp;
+    if(disp->type != Disp_Offset) {
+        return SResult_new("expected disp offset");
+    }
+
+    disp->body.offset += offset;
+
+    return SResult_new(NULL);
 }
 
 bool Storage_cmp(in Storage* self, in Storage* other) {

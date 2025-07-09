@@ -20,3 +20,14 @@ u64 get_file_size(FILE* stream) {
     return size;
 }
 
+i32 floor_div(i32 x, i32 y) {
+    i32 q = x/y;
+    if((x < 0 && 0 < y) || (0 < x && y < 0)) {
+        if(x % y != 0) {
+            q --;
+        }
+    }
+
+    return q;
+}
+

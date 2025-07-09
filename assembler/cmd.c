@@ -43,7 +43,7 @@ void Cmd_interpreter(int argc, char* argv[]) {
         
         GlobalSyntaxTree global_syntax_tree = GlobalSyntaxTree_new();
         GlobalSyntaxTree_parse(&global_syntax_tree, parser);
-        Generator generator = GlobalSyntaxTree_build((global_syntax_tree));
+        Generator generator = GlobalSyntaxTree_build(global_syntax_tree);
         printf("%s:\n", path);
         Generator_print(&generator);
         printf("\n\n");

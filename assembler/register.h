@@ -54,17 +54,12 @@ typedef enum {
 } Register;
 
 SResult Register_get_addreg_code(Register self, out u8* value);
-
 SResult Register_get_reg_code(Register self, out u8* value);
-
 SResult Register_get_modrm_base_code(Register self, out u8* value);
-
 bool Register_is_volatile(Register self);
-
 ParserMsg Register_parse(Parser* parser, Register* ptr);
-
 void Register_print(in Register self);
-
+void Register_print_for_vec(in void* ptr);
 bool Register_is_integer(Register self);
-
 bool Register_is_xmm(Register self);
+

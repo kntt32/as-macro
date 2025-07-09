@@ -16,10 +16,8 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* s
         Parser_parse_symbol(&parser_copy, "@"),
         Type_free(data->type)
     );
-    *stack_offset -= data->type.size;
-    *stack_offset = (*stack_offset - (i32)data->type.align + 1)/(i32)data->type.align*(i32)data->type.align;
     PARSERMSG_UNWRAP(
-        Storage_parse(&parser_copy, *stack_offset, &data->type, &data->storage),
+        Storage_parse(&parser_copy, stack_offset, &data->type, &data->storage),
         Type_free(data->type)
     );
 
@@ -91,9 +89,9 @@ Data Data_from_label(in char* label) {
     return data;
 }
 
-Data Data_from_mem(Register reg, i32 offset) {
+Data Data_from_mem(Register reg, i32 offset, Type type) {
     Data data = {
-        {"i32", "", Type_Integer, {}, 4, 4},
+        type,
         {StorageType_mem, {.mem = {reg, {Disp_Offset, {.offset = offset}}}}}
     };
     return data;

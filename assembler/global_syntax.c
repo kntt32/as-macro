@@ -197,10 +197,10 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
             (void)NULL
         );
         if(variable.data.storage.type == StorageType_mem) {
-            u32 size = variable.data.type.size;
-            u32 align = variable.data.type.align;
-            stack_offset += size;
+            i32 size = variable.data.type.size;
+            i32 align = variable.data.type.align;
             stack_offset = (stack_offset + align - 1)/align*align;
+            stack_offset += size;
         }
         
         Variable_free(variable);
@@ -212,7 +212,7 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
         );
         VariableManager_push(variable_manager, Variable_clone(&variable));
         Vec_push(arguments, &variable);
-        
+ 
         if(!Parser_is_empty(&parser)) {
             PARSERMSG_UNWRAP(
                 Parser_parse_symbol(&parser, ","),

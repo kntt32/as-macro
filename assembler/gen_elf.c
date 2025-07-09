@@ -422,7 +422,9 @@ RawBin RawBin_new(void) {
 }
 
 u32 RawBin_push(inout RawBin* self, in void* ptr, u32 size, u32 align) {
-    assert(self != NULL && ptr != NULL && align != 0);
+    assert(self != NULL);
+    assert(size == 0 || ptr != NULL);
+    assert(align != 0);
 
     while(Vec_len(&self->bin)%align != 0) {
         u8 byte = 0x00;

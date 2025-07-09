@@ -31,3 +31,12 @@ i32 floor_div(i32 x, i32 y) {
     return q;
 }
 
+i32 ceil_div(i32 a, i32 b) {
+    i32 q = a / b;
+    if ((a % b != 0) && ((a > 0 && b > 0) || (a < 0 && b < 0))) {
+        q++;
+    }
+
+    return q;
+}
+

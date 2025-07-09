@@ -231,7 +231,7 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(in Vec*
             expand_asmacro("push", "", args, generator, variable_manager, &data),
             (void)NULL
         );
-        variable_manager->stack_offset += 8;
+        variable_manager->stack_offset -= 8;
 
         Data_free(data);
     }
@@ -341,23 +341,24 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_stack_args(in Asmac
         }
 
         Type* asmacro_argvar_type = &asmacro_argvar->data.type;
-        u32 size = asmacro_argvar_type->size;
-        u64 align = asmacro_argvar_type->align;
+        i32 size = asmacro_argvar_type->size;
+        i32 align = asmacro_argvar_type->align;
         Memory* memory = &asmacro_argvar_storage->body.mem;
-        assert(memory->base == Rsp);
+        assert(memory->base == Rbp);
         assert(memory->disp.type == Disp_Offset);
-        i32 push_offset = (variable_manager->stack_offset+align-1)/align*align;
-        i32 call_stack_offset = (push_offset - memory->disp.body.offset + 0x0f)/0x10*0x10;
-        push_offset = call_stack_offset + memory->disp.body.offset;
+        i32 push_offset = (variable_manager->stack_offset - size - align + 1)/align*align;
+        i32 call_stack_offset = (push_offset - memory->disp.body.offset - 0x0f)/0x10*0x10;
+        push_offset = call_stack_offset +  memory->disp.body.offset;
 
         SRESULT_UNWRAP(
-            sub_rsp(push_offset+size-variable_manager->stack_offset, generator, variable_manager),
+            sub_rsp(variable_manager->stack_offset-push_offset, generator, variable_manager),
             (void)NULL
         );
 
         Vec mov_args = Vec_new(sizeof(Data));
-        Data mov_arg_dst = Data_from_mem(Rbp, push_offset);
-        Data mov_arg_src = Data_clone(Vec_index(arguments, i));
+        Data* mov_arg_src_ptr = Vec_index(arguments, i);
+        Data mov_arg_dst = Data_from_mem(Rbp, push_offset, Type_clone(&mov_arg_src_ptr->type));
+        Data mov_arg_src = Data_clone(mov_arg_src_ptr);
         Vec_push(&mov_args, &mov_arg_dst);
         Vec_push(&mov_args, &mov_arg_src);
         Data data;
@@ -399,7 +400,7 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper(in Asmacro* asmacro, in 
     Data_free(data);
 
     SRESULT_UNWRAP(
-        sub_rsp(stack_offset_before_push-variable_manager->stack_offset, generator, variable_manager),
+        sub_rsp(variable_manager->stack_offset - stack_offset_before_push, generator, variable_manager),
         (void)NULL
     );
     variable_manager->stack_offset = stack_offset_before_push;
@@ -450,7 +451,7 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
     }
 
     if(Vec_len(&arguments) != 0) {
-        *data = Data_clone(Vec_index(&arguments, Vec_len(&arguments)-1));
+        *data = Data_clone(Vec_index(&arguments, 0));
     }else {
         *data = Data_void();
     }
@@ -572,6 +573,7 @@ bool Syntax_build_assignment(Parser parser, inout Generator* generator, inout Va
     if(Parser_is_empty(&right_parser)) {
         return false;
     }
+    *data = Data_void();
     Data left_data;
     Data right_data;
 
@@ -625,6 +627,14 @@ bool Syntax_build_dot_operator(Parser parser, inout Generator* generator, inout 
     
     Data_free(left_data);
 
+    return true;
+}
+
+bool Syntax_build_arrow_operator(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    assert(generator != NULL && variable_manager != NULL && data != NULL);
+
+    TODO();
+    
     return true;
 }
 

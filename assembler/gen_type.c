@@ -460,7 +460,7 @@ void StructMember_clone_for_vec(out void* dst, in void* src) {
 }
 
 bool StructMember_cmp(in StructMember* self, in StructMember* other) {
-    return strcmp(self->name, other->name)
+    return strcmp(self->name, other->name) == 0
         && self->offset == other->offset
         && Type_cmp(&self->type, &other->type);
 }

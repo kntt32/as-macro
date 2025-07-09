@@ -294,7 +294,7 @@ bool Imm_cmp(in Imm* self, in Imm* other);
 Imm Imm_clone(in Imm* self);
 void Imm_free(Imm self);
 
-ParserMsg Storage_parse(inout Parser* parser, i32 stack_offset, in Type* type, out Storage* storage);
+ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, in Type* type, out Storage* storage);
 SResult Storage_add_offset(inout Storage* self, i32 offset);
 bool Storage_cmp(in Storage* self, in Storage* other);
 void Storage_print(in Storage* self);
@@ -305,7 +305,7 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* s
 Data Data_from_register(Register reg);
 Data Data_from_imm(u64 imm);
 Data Data_from_label(in char* label);
-Data Data_from_mem(Register reg, i32 offset);
+Data Data_from_mem(Register reg, i32 offset, Type type);
 Data Data_clone(in Data* self);
 SResult Data_dot_operator(in Data* left, in char* element, out Data* data);
 Data Data_void(void);

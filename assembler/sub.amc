@@ -10,17 +10,25 @@ pub as test() {
     nop();
 };
 
-fn double(val: i64@rax) {
-    nop();
-    nop();
-    add(val, val);
+pub as mov(dst: Point@mem, src: Point@mem) {
+    push(rax);
+    let a: i64@rax;
+    a = src.x;
+    dst.x = a;
+    a = src.y;
+    dst.y = a;
+    pop(rax);
+};
+
+fn addptr(val: i64@rax, ptr: Point@stack) {
+    val = ptr.x;
+    add(val, ptr.y);
 };
 
 pub fn num(val: i64@rax, src: i64@rdi) {
     val = src;
     let ptr: Point@stack;
-    ptr.x = 5;
+    ptr.x = src;
     ptr.y = 3;
-    val = ptr.y;
-    double(val);
+    addptr(val, ptr);
 };

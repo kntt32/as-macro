@@ -124,13 +124,13 @@ Argument Argument_from(in Variable* variable) {
 }
 
 bool Argument_match_with(in Argument* self, in Data* data) {
-    Storage storage = data->storage;
+    Storage* storage = &data->storage;
     switch(self->storage_type) {
         case Argument_Trait:
-            if(!((self->storage.trait.reg_flag && storage.type == StorageType_reg)
-                || (self->storage.trait.mem_flag && storage.type == StorageType_mem)
-                || (self->storage.trait.imm_flag && storage.type == StorageType_imm)
-                || (self->storage.trait.xmm_flag && storage.type == StorageType_xmm))) {
+            if(!((self->storage.trait.reg_flag && storage->type == StorageType_reg)
+                || (self->storage.trait.mem_flag && storage->type == StorageType_mem)
+                || (self->storage.trait.imm_flag && storage->type == StorageType_imm)
+                || (self->storage.trait.xmm_flag && storage->type == StorageType_xmm))) {
                 return false;
             }
             if(data->storage.type == StorageType_imm && (self->type.type == Type_Integer || self->type.type == Type_Floating) && self->type.type == data->type.type) {
@@ -140,7 +140,7 @@ bool Argument_match_with(in Argument* self, in Data* data) {
             }
             break;
         case Argument_Storage:
-            if(!Storage_cmp(&storage, &self->storage.storage)) {
+            if(!Storage_cmp(storage, &self->storage.storage)) {
                 return false;
             }
             break;

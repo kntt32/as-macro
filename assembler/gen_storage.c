@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "gen.h"
+#include "util.h"
 
 u64 Disp_size(in Disp* self) {
     assert(self != NULL);
@@ -148,7 +149,7 @@ void Imm_free(Imm self) {
     }
 }
 
-ParserMsg Storage_parse(inout Parser* parser, i32 stack_offset, in Type* type, out Storage* storage) {
+ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, in Type* type, out Storage* storage) {
     if(ParserMsg_is_success(Register_parse(parser, &storage->body.reg))) {
         if(type->type == Type_Array || type->type == Type_Struct) {
             return ParserMsg_new(parser->offset, "array of struct can't store on register or xmm'");
@@ -164,11 +165,13 @@ ParserMsg Storage_parse(inout Parser* parser, i32 stack_offset, in Type* type, o
         storage->body.imm.type = Imm_Value;
         storage->body.imm.body.value = Vec_new(sizeof(u8));
     }else if(ParserMsg_is_success(Parser_parse_keyword(parser, "stack"))) {
+        *stack_offset -= type->size;
+        *stack_offset = ceil_div(*stack_offset - (i32)type->align + 1, type->align)*type->align;
         storage->type = StorageType_mem;
         Memory* mem = &storage->body.mem;
         mem->base = Rbp;
         mem->disp.type = Disp_Offset;
-        mem->disp.body.offset = stack_offset;
+        mem->disp.body.offset = *stack_offset;
     }else {
         return ParserMsg_new(parser->offset, "expected storage");
     }

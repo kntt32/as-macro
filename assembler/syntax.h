@@ -3,27 +3,17 @@
 #include "gen.h"
 
 typedef struct {
-    u32 base_index;
-    Vec stored_regs;// Vec<Register>
-} VariableBlock;
-
-typedef struct {
     Vec variables;
     i32 stack_offset;
-    Vec blocks;// Vec<VariableBlock>
 } VariableManager;
-
-void VariableBlock_print(in VariableBlock* self);
-void VariableBlock_print_for_vec(in void* ptr);
-void VariableBlock_free(VariableBlock self);
-void VariableBlock_free_for_vec(inout void* ptr);
 
 VariableManager VariableManager_new(i32 stack_offset);
 i32* VariableManager_stack_offset(in VariableManager* self);
-SResult VariableManager_push(inout VariableManager* self, inout Generator* generator, Variable variable);
+void VariableManager_push(inout VariableManager* self, Variable variable);
 SResult VariableManager_get(inout VariableManager* self, in char* name, out Variable* variable);
 void VariableManager_print(in VariableManager* self);
 void VariableManager_print_for_vec(in void* ptr);
+VariableManager VariableManager_clone(in VariableManager* self);
 void VariableManager_free(VariableManager self);
 void VariableManager_free_for_vec(inout void* ptr);
 

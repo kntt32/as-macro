@@ -176,8 +176,3 @@ void Register_print(in Register self) {
     return;
 }
 
-void Register_print_for_vec(in void* ptr) {
-    Register* reg = ptr;
-    Register_print(*reg);
-}
-

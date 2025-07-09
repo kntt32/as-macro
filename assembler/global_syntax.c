@@ -210,7 +210,7 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
             Variable_parse(&parser, generator, &dummy, &variable),
             (void)NULL
         );
-        VariableManager_push(variable_manager, generator, Variable_clone(&variable));
+        VariableManager_push(variable_manager, Variable_clone(&variable));
         Vec_push(arguments, &variable);
  
         if(!Parser_is_empty(&parser)) {

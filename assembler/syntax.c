@@ -247,6 +247,9 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_asmacro_expansion,
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
+        Syntax_build_true_expression,
+        Syntax_build_false_expression,
+        Syntax_build_null_expression,
         Syntax_build_assignment,
         Syntax_build_dot_operator,
         Syntax_build_refer_operator,
@@ -741,6 +744,45 @@ bool Syntax_build_imm_expression(Parser parser, inout Generator* generator, inou
     
     *data = Data_from_imm(imm);
     
+    check_parser(&parser, generator);
+    return true;
+}
+
+bool Syntax_build_true_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    assert(generator != NULL && variable_manager != NULL && data != NULL);
+
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "true"))) {
+        return false;
+    }
+
+    *data = Data_true();
+
+    check_parser(&parser, generator);
+    return true;
+}
+
+bool Syntax_build_false_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    assert(generator != NULL && variable_manager != NULL && data != NULL);
+
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "false"))) {
+        return false;
+    }
+
+    *data = Data_false();
+
+    check_parser(&parser, generator);
+    return true;
+}
+
+bool Syntax_build_null_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    assert(generator != NULL && variable_manager != NULL && data != NULL);
+
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "null"))) {
+        return false;
+    }
+
+    *data = Data_null();
+
     check_parser(&parser, generator);
     return true;
 }

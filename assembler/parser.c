@@ -196,6 +196,12 @@ void Parser_skip(inout Parser* self) {
         return;
     }
 
+    Vec string;
+    if(ParserMsg_is_success(Parser_parse_string(self, &string))) {
+        Vec_free(string);
+        return;
+    }
+
     Parser_read(self);
 }
 
@@ -276,6 +282,56 @@ ParserMsg Parser_parse_number(inout Parser* self, out u64* value) {
         Parser_read(self);
     }
 
+    Parser_skip_space(self);
+    return ParserMsg_new(self->offset, NULL);
+}
+
+ParserMsg Parser_parse_string(inout Parser* self, out Vec* string) {
+    static struct { char expr; char code; } ESCAPE_SEQUENCES[] = {
+        {'\\', '\\'}, {'\'', '\''}, {'\"', '\"'}, {'?', '?'}, {'a', '\a'}, {'b', '\b'},
+        {'f', '\f'}, {'n', '\n'}, {'r', '\r'}, {'t', '\t'}, {'v', '\v'}, {'0', '\0'},
+    };
+    assert(self != NULL);
+    assert(string != NULL);
+
+    Parser self_copy = *self;
+
+    if(Parser_read(&self_copy) != '\"') {
+        return ParserMsg_new(self->offset, "expected symbol '\"'");
+    }
+
+    bool escape_sequence_flag = false;
+    *string = Vec_new(sizeof(char));
+
+    loop {
+        char c = Parser_read(&self_copy);
+        if(escape_sequence_flag) {
+            escape_sequence_flag = false;
+
+            for(u32 i=0; i<LEN(ESCAPE_SEQUENCES); i++) {
+                if(c == ESCAPE_SEQUENCES[i].expr) {
+                    Vec_push(string, &ESCAPE_SEQUENCES[i].code);
+                    break;
+                }
+            }
+        }else {
+            if(c == '\"') {
+                break;
+            }
+            if(c == '\0') {
+                Vec_free(*string);
+                return ParserMsg_new(self_copy.offset, "expected symbol '\"'");
+            }
+            if(c == '\\') {
+                escape_sequence_flag = true;
+                continue;
+            }
+
+            Vec_push(string, &c);
+        }
+    }
+
+    *self = self_copy;
     Parser_skip_space(self);
     return ParserMsg_new(self->offset, NULL);
 }

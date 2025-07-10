@@ -97,6 +97,60 @@ Data Data_from_mem(Register reg, i32 offset, Type type) {
     return data;
 }
 
+Data Data_true(void) {
+    Vec true_vec = Vec_new(sizeof(u8));
+    u8 true_u8 = 1;
+    Vec_push(&true_vec, &true_u8);
+    Imm imm = {
+        Imm_Value,
+        {.value = true_vec}
+    };
+    Data data = {
+        {"bool", "", Type_Integer, {}, 1, 1},
+        {StorageType_imm, {.imm = imm}}
+    };
+
+    return data;
+}
+
+Data Data_false(void) {
+    Vec false_vec = Vec_new(sizeof(u8));
+    u8 false_u8 = 0;
+    Vec_push(&false_vec, &false_u8);
+    Imm imm = {
+        Imm_Value,
+        {.value = false_vec}
+    };
+    Data data = {
+        {"bool", "", Type_Integer, {}, 1, 1},
+        {StorageType_imm, {.imm = imm}}
+    };
+
+    return data;
+}
+
+Data Data_null(void) {
+    Vec null_vec = Vec_new(sizeof(u8));
+    for(u32 i=0; i<8; i++) {
+        u8 zero = 0;
+        Vec_push(&null_vec, &zero);
+    }
+    Imm imm = {
+        Imm_Value,
+        {.value = null_vec}
+    };
+
+    Type* void_type_ptr = malloc(sizeof(Type));
+    UNWRAP_NULL(void_type_ptr);
+    *void_type_ptr = Type_void();
+    Data data = {
+        {"void*", "", Type_Ptr, {.t_ptr = void_type_ptr}, 8, 8},
+        {StorageType_imm, {.imm = imm}}
+    };
+
+    return data;
+}
+
 Data Data_clone(in Data* self) {
     Data data;
     

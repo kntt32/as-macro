@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include "vec.h"
 
 typedef struct {
     char path[256];
@@ -39,6 +40,7 @@ ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]);
 ParserMsg Parser_parse_keyword(inout Parser* self, in char* keyword);
 ParserMsg Parser_parse_symbol(inout Parser* self, in char* symbol);
 ParserMsg Parser_parse_number(inout Parser* self, out u64* value);
+ParserMsg Parser_parse_string(inout Parser* self, out Vec* string);
 ParserMsg Parser_parse_block(inout Parser* self, out Parser* parser);
 ParserMsg Parser_parse_paren(inout Parser* self, out Parser* parser);
 ParserMsg Parser_parse_index(inout Parser* self, out Parser* parser);

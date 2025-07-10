@@ -26,6 +26,8 @@ fn test() {
 
 pub fn num(val: i64@rax, src: i64@rdi) {
     test();
+    let flag: bool@rsi;
+    flag = true;
     let ptr: Point@stack;
     ptr.x = src;
     ptr.y = 3;

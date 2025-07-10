@@ -308,6 +308,14 @@ SResult Type_refer_operator(in Type* src, in Generator* generator, out Type* typ
     return SResult_new(NULL);
 }
 
+Type Type_void(void) {
+    Type type = {
+        "void", "", Type_Integer, {}, 0, 1
+    };
+
+    return type;
+}
+
 bool Type_cmp(in Type* self, in Type* other) {
     if(strcmp(self->name, other->name) != 0
         || self->type != other->type

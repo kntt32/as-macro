@@ -44,12 +44,13 @@ void Cmd_interpreter(int argc, char* argv[]) {
         GlobalSyntaxTree global_syntax_tree = GlobalSyntaxTree_new();
         GlobalSyntaxTree_parse(&global_syntax_tree, parser);
         Generator generator = GlobalSyntaxTree_build(global_syntax_tree);
-        printf("%s:\n", path);
-        Generator_print(&generator);
-        printf("\n\n");
-        Vec elf_binary = Elf64(&generator);
-        Vec_save(elf_binary, "result.o");
-
+        
+        if(Generator_is_error(&generator)) {
+            Cmd_print_errors(&generator);
+        }else {
+            Vec elf_binary = Elf64(&generator);
+            Vec_save(elf_binary, "result.o");
+        }
         Generator_free(generator);
 
         free(file_str);
@@ -61,6 +62,19 @@ void Cmd_interpreter(int argc, char* argv[]) {
 catch:
     Vec_free(pathes);
     return;
+}
+
+void Cmd_print_errors(in Generator* generator) {
+    for(u32 i=0; i<Vec_len(&generator->errors); i++) {
+        Error* error = Vec_index(&generator->errors, i);
+        Offset* offset = &error->offset;
+        char* msg = error->msg;
+
+        fprintf(stderr, "%s:%d:%d: \x1b[1;31merror:\x1b[0m %s\n",
+            offset->path, offset->line, offset->column,
+            msg
+        );
+    }
 }
 
 

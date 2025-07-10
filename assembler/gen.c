@@ -436,6 +436,10 @@ SResult Generator_binary_len(in Generator* self, in char* name, out u32* len) {
     return SResult_new(NULL);
 }
 
+bool Generator_is_error(in Generator* self) {
+    return Vec_len(&self->errors) != 0;
+}
+
 void Generator_print(in Generator* self) {
     printf("Generator { types: ");
     Vec_print(&self->types, Type_print_for_vec);

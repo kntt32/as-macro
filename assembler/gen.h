@@ -394,6 +394,7 @@ SResult Generator_addend_rela(inout Generator* self, in char* section);
 SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte);
 SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte);
 SResult Generator_binary_len(in Generator* self, in char* name, out u32* len);
+bool Generator_is_error(in Generator* self);
 void Generator_print(in Generator* self);
 void Generator_free(Generator self);
 bool resolve_sresult(SResult result, Offset offset, inout Generator* generator);

@@ -30,5 +30,10 @@ pub fn num(val: i64@rax, src: i64@rdi) {
     let ptr: Point@stack;
     ptr.x = src;
     ptr.y = 3;
+    add(ptr.x, 7);
     addptr(val, ptr);
+    add(val, 1);
+    abc(val, 3);
 };
+
+

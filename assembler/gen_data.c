@@ -92,7 +92,7 @@ Data Data_from_label(in char* label) {
 Data Data_from_mem(Register reg, i32 offset, Type type) {
     Data data = {
         type,
-        {StorageType_mem, {.mem = {reg, {Disp_Offset, {.offset = offset}}}}}
+        {StorageType_mem, {.mem = {reg, {offset, ""}}}}
     };
     return data;
 }

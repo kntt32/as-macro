@@ -98,11 +98,8 @@ typedef struct {
 } Index;
 
 typedef struct {
-    enum { Disp_Offset, Disp_Label } type;
-    union {
-        i32 offset;
-        char label[256];
-    } body;
+    i32 offset;
+    char label[256];
 } Disp;
 
 typedef struct {
@@ -284,7 +281,7 @@ AsmEncoding AsmEncoding_clone(in AsmEncoding* self);
 void AsmEncoding_free(AsmEncoding self);
 
 u64 Disp_size(in Disp* self);
-u64 Disp_value(in Disp* self);
+i32 Disp_value(in Disp* self);
 SResult Disp_set_label(in Disp* self, inout Generator* generator);
 void Disp_print(in Disp* self);
 

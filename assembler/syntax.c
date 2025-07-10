@@ -512,10 +512,10 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_stack_args(in Asmac
         i32 align = asmacro_argvar_type->align;
         Memory* memory = &asmacro_argvar_storage->body.mem;
         assert(memory->base == Rbp);
-        assert(memory->disp.type == Disp_Offset);
+        assert(memory->disp.label[0] == '\0');
         i32 push_offset = (variable_manager->stack_offset - size - align + 1)/align*align;
-        i32 call_stack_offset = (push_offset - memory->disp.body.offset - 0x0f)/0x10*0x10;
-        push_offset = call_stack_offset +  memory->disp.body.offset;
+        i32 call_stack_offset = (push_offset - memory->disp.offset - 0x0f)/0x10*0x10;
+        push_offset = call_stack_offset + memory->disp.offset;
 
         SRESULT_UNWRAP(
             sub_rsp(variable_manager->stack_offset-push_offset, generator, variable_manager),
@@ -833,8 +833,6 @@ bool Syntax_build_refer_operator(Parser parser, inout Generator* generator, inou
 }
 
 bool Syntax_build_variable_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-    (void)generator;
-    
     char name[256];
     if(!ParserMsg_is_success(Parser_parse_ident(&parser, name))) {
         return false;
@@ -852,7 +850,36 @@ bool Syntax_build_variable_expression(Parser parser, inout Generator* generator,
     check_parser(&parser, generator);
     return true;
 }
+/*
+bool Syntax_build_if_branch(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    assert(generator != NULL);
+    assert(variable_manager != NULL);
+    assert(data != NULL);
 
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "if"))) {
+        return false;
+    }
+
+    *data = Data_void();
+
+    Parser condition_parser;
+    if(resolve_parsermsg(
+        Parser_parse_paren(&parser, &condition_parser), generator
+    )) {
+        return true;
+    }
+
+    Parser true_parser;
+    if(resolve_parsermsg(
+        Parser_parse_block(&parser, &true_oarser), generator
+    )) {
+        return true;
+    }
+
+
+    return true;
+}
+*/
 bool Syntax_build_return(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "return"))) {
         return false;

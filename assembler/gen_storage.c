@@ -7,76 +7,41 @@ u64 Disp_size(in Disp* self) {
     assert(self != NULL);
     u64 size = 0;
     
-    switch(self->type) {
-        case Disp_Offset:
-            size = (self->body.offset < 256)?(8):(32);
-            break;
-        case Disp_Label:
-            size = 8;
-            break;
+    if(self->label[0] != '\0') {
+        size = 4;
+    }else {
+        size = (-128 <= self->offset && self->offset < 128)?(8):(32);
     }
 
     return size;
 }
 
-u64 Disp_value(in Disp* self) {
+i32 Disp_value(in Disp* self) {
     assert(self != NULL);
-    u64 value = 0;
-
-    switch(self->type) {
-        case Disp_Offset:
-            value = (u32)self->body.offset;
-            break;
-        case Disp_Label:
-            value = 0;
-            break;
-    }
-
-    return value;
+    return self->offset;
 }
 
 SResult Disp_set_label(in Disp* self, inout Generator* generator) {
-    if(self->type == Disp_Label) {
-        return Generator_append_rela(generator, ".text", self->body.label, false);
+    if(self->label[0] != '\0') {
+        return Generator_append_rela(generator, ".text", self->label, false);
     }
 
     return SResult_new(NULL);
 }
 
 void Disp_print(in Disp* self) {
-    printf("Disp { type: %d, body: ", self->type);
-    switch(self->type) {
-        case Disp_Offset:
-            printf(".offset: %d", self->body.offset);
-            break;
-        case Disp_Label:
-            printf(".label: %s", self->body.label);
-            break;
-    }
-    printf(" }");
+    printf("Disp { offset: %d, label: %s }", self->offset, self->label);
 }
 
 bool Memory_cmp(in Memory* self, in Memory* other) {
     if(self->base != other->base) {
         return false;
-    }
+    } 
 
-    if(self->disp.type != other->disp.type) {
+    if(self->disp.offset != other->disp.offset || strcmp(self->disp.label, other->disp.label) != 0) {
         return false;
     }
-    switch(self->disp.type) {
-        case Disp_Offset:
-            if(self->disp.body.offset != other->disp.body.offset) {
-                return false;
-            }
-            break;
-        case Disp_Label:
-            if(strcmp(self->disp.body.label, other->disp.body.label) != 0) {
-                return false;
-            }
-             break;
-    }
-
+    
     return true;
 }
 
@@ -170,8 +135,8 @@ ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, in Type* 
         storage->type = StorageType_mem;
         Memory* mem = &storage->body.mem;
         mem->base = Rbp;
-        mem->disp.type = Disp_Offset;
-        mem->disp.body.offset = *stack_offset;
+        mem->disp.label[0] = '\0';
+        mem->disp.offset = *stack_offset;
     }else {
         return ParserMsg_new(parser->offset, "expected storage");
     }
@@ -185,11 +150,7 @@ SResult Storage_add_offset(inout Storage* self, i32 offset) {
     }
 
     Disp* disp = &self->body.mem.disp;
-    if(disp->type != Disp_Offset) {
-        return SResult_new("expected disp offset");
-    }
-
-    disp->body.offset += offset;
+    disp->offset += offset;
 
     return SResult_new(NULL);
 }
@@ -197,7 +158,7 @@ SResult Storage_add_offset(inout Storage* self, i32 offset) {
 Storage Storage_refer_reg(Register reg) {
     Storage storage = {
         StorageType_mem,
-        {.mem = {reg, {Disp_Offset, {.offset = 0}}}}
+        {.mem = {reg, {0, ""}}}
     };
 
     return storage;

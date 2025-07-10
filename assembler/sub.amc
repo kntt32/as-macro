@@ -22,16 +22,18 @@ fn addptr(val: i64@rax, ptr: Point@stack) {
 
 fn test() {
     let array: [i32; 5]@stack;
+    let a: i32@rax;
+    a = 109012983;
 };
 
 pub fn num(val: i64@rax, src: i64@rdi) {
-    test();
     let flag: bool@rsi;
     flag = true;
     let ptr: Point@stack;
     ptr.x = src;
     ptr.y = 3;
     addptr(val, ptr);
+    test();
 };
 
 

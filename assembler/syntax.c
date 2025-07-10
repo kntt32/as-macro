@@ -62,21 +62,7 @@ static VariableBlock* get_last_block(in VariableManager* self) {
     return block;
 }
 
-static SResult store_variable(inout VariableManager* self, in Variable* variable, inout Generator* generator) {
-    Storage* storage = &variable->data.storage;
-   
-    Register reg;
-    switch(storage->type) {
-        case StorageType_reg:
-            reg = storage->body.reg;
-            break;
-        case StorageType_xmm:
-            reg = storage->body.xmm;
-            break;
-        default:
-            return SResult_new(NULL);
-    }
-
+static SResult store_reg(inout VariableManager* self, Register reg, inout Generator* generator) {
     Data reg_data = Data_from_register(reg);
     Vec push_arg = Vec_new(sizeof(Data));
     Vec_push(&push_arg, &reg_data);
@@ -93,6 +79,29 @@ static SResult store_variable(inout VariableManager* self, in Variable* variable
     StoredReg stored_reg = {reg, self->stack_offset};
     Vec_push(&last_block->stored_regs, &stored_reg);
 
+    return SResult_new(NULL);
+}
+
+static SResult store_variable(inout VariableManager* self, in Variable* variable, inout Generator* generator) {
+    Storage* storage = &variable->data.storage;
+   
+    Register reg;
+    switch(storage->type) {
+        case StorageType_reg:
+            reg = storage->body.reg;
+            break;
+        case StorageType_xmm:
+            reg = storage->body.xmm;
+            break;
+        default:
+            return SResult_new(NULL);
+    }
+
+    SRESULT_UNWRAP(
+        store_reg(self, reg, generator),
+        (void)NULL
+    );
+    
     return SResult_new(NULL);
 }
 
@@ -126,6 +135,27 @@ SResult VariableManager_push(inout VariableManager* self, Variable variable, ino
                     (void)NULL
                 );
                 break;
+            }
+        }
+
+        if(i == 0) {
+            Storage* storage = &variable.data.storage;
+            Register reg;
+            switch(storage->type) {
+                case StorageType_reg:
+                    reg = storage->body.reg;
+                    break;
+                case StorageType_xmm:
+                    reg = storage->body.xmm;
+                    break;
+                default:
+                    continue;
+            }
+            if(!Register_is_volatile(reg)) {
+                SRESULT_UNWRAP(
+                    store_reg(self, reg, generator),
+                    (void)NULL
+                );
             }
         }
     }

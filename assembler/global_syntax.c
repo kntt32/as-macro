@@ -357,6 +357,7 @@ static SResult leave_function(inout Generator* generator, inout VariableManager*
 static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, inout Generator* generator) {
     Parser parser = self->body.function_definision.proc_parser;
     VariableManager* variable_manager = &self->body.function_definision.variable_manager;
+    VariableManager_new_block(variable_manager);
     
     resolve_sresult(
         Generator_append_label(generator, ".text", self->body.function_definision.name, self->body.function_definision.public_flag, Label_Func),
@@ -384,6 +385,12 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
         Generator_append_label(generator, ".text", ".ret", false, Label_Notype),
         parser.offset, generator
     );
+
+    resolve_sresult(
+        VariableManager_delete_block(variable_manager, generator),
+        parser.offset, generator
+    );
+
     resolve_sresult(
         leave_function(generator, variable_manager), parser.offset, generator
     );

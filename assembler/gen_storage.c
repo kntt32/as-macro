@@ -194,6 +194,15 @@ SResult Storage_add_offset(inout Storage* self, i32 offset) {
     return SResult_new(NULL);
 }
 
+Storage Storage_refer_reg(Register reg) {
+    Storage storage = {
+        StorageType_mem,
+        {.mem = {reg, {Disp_Offset, {.offset = 0}}}}
+    };
+
+    return storage;
+}
+
 bool Storage_cmp(in Storage* self, in Storage* other) {
     if(self->type != other->type) {
         return false;

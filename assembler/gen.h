@@ -27,6 +27,7 @@ struct Type {
         struct { struct Type* type; u32 len; } t_array;
         Vec t_struct;// Vec<StructMember>
         Vec t_enum;// Vec<EnumMember>
+        char t_lazy_ptr[256];
     } body;
     u32 size;
     u64 align;
@@ -242,6 +243,7 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
 Type Type_clone(in Type* self);
 void Type_restrict_namespace(inout Type* self, in char* namespace);
 SResult Type_dot_element(in Type* self, in char* element, out u32* offset, out Type* type);
+SResult Type_refer_operator(in Type* src, in Generator* generator, out Type* type);
 bool Type_cmp(in Type* self, in Type* other);
 void Type_print(in Type* self);
 void Type_print_for_vec(void* ptr);
@@ -296,6 +298,7 @@ void Imm_free(Imm self);
 
 ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, in Type* type, out Storage* storage);
 SResult Storage_add_offset(inout Storage* self, i32 offset);
+Storage Storage_refer_reg(Register reg);
 bool Storage_cmp(in Storage* self, in Storage* other);
 void Storage_print(in Storage* self);
 Storage Storage_clone(in Storage* self);
@@ -308,6 +311,7 @@ Data Data_from_label(in char* label);
 Data Data_from_mem(Register reg, i32 offset, Type type);
 Data Data_clone(in Data* self);
 SResult Data_dot_operator(in Data* left, in char* element, out Data* data);
+SResult Data_ref(Data src, in Generator* generator, out Data* data);
 Data Data_void(void);
 void Data_print(in Data* self);
 void Data_print_for_vec(in void* ptr);

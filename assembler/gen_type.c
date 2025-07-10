@@ -23,7 +23,7 @@ static void Type_parse_ref(inout Parser* parser, inout Type* type) {
     while(ParserMsg_is_success(Parser_parse_symbol(parser, "*"))) {
         Type* child = malloc(sizeof(Type));
         memcpy(child, type, sizeof(Type));
-        
+
         strncat(type->name, "*", sizeof(type->name) - strlen(type->name) - 1);
         type->type = Type_Ptr;
         type->body.t_ptr = child;
@@ -207,6 +207,9 @@ ParserMsg Type_parse_lazyptr(inout Parser* parser, out Type* type) {
         (void)NULL
     );
 
+    strcpy(type->body.t_lazy_ptr, type->name);
+    strncat(type->name, "*", 255 - strlen(type->name) - 1);
+
     type->type = Type_LazyPtr;
     type->size = 8;
     type->align = 8;
@@ -278,6 +281,29 @@ SResult Type_dot_element(in Type* self, in char* element, out u32* offset, out T
 
     return SResult_new("unknown structure element");
 }
+
+SResult Type_refer_operator(in Type* src, in Generator* generator, out Type* type) {
+    assert(src != NULL);
+    assert(generator != NULL);
+    assert(type != NULL);
+
+    switch(src->type) {
+        case Type_Ptr:
+            *type = Type_clone(src->body.t_ptr);
+            break;
+        case Type_LazyPtr:
+            SRESULT_UNWRAP(
+                Generator_get_type(generator, src->body.t_lazy_ptr, type),
+                (void)NULL
+            );
+            break;
+        default:
+            return SResult_new("expected pointer");
+    }
+
+    return SResult_new(NULL);
+}
+
 bool Type_cmp(in Type* self, in Type* other) {
     if(strcmp(self->name, other->name) != 0
         || self->type != other->type
@@ -374,7 +400,7 @@ void Type_print(in Type* self) {
             printf("none");
             break;
         case Type_LazyPtr:
-            printf("none");
+            printf(".lazy_ptr: %s", self->body.t_lazy_ptr);
     }
     printf(", size: %u, align: %lu }", self->size, self->align);
 }

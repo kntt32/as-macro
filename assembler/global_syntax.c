@@ -257,6 +257,7 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
 
     Asmacro wrapper_asmacro = Asmacro_new_fn_wrapper(name, arguments, (public_flag)?(""):(Parser_path(&parser)));
     if(resolve_sresult(Generator_add_asmacro(generator, wrapper_asmacro), parser.offset, generator)) {
+        VariableManager_free(variable_manager);
         return true;
     }
 

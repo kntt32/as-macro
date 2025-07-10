@@ -5,11 +5,6 @@ struct Point {
     y: i64
 };
 
-pub as test() {
-    nop();
-    nop();
-};
-
 pub as mov(dst: Point@mem, src: Point@mem) {
     push(rax);
     let a: i64@rax;
@@ -25,15 +20,16 @@ fn addptr(val: i64@rax, ptr: Point@stack) {
     add(val, ptr.y);
 };
 
+fn test() {
+    let array: [i32; 5]@stack;
+};
+
 pub fn num(val: i64@rax, src: i64@rdi) {
-    val = src;
+    test();
     let ptr: Point@stack;
     ptr.x = src;
     ptr.y = 3;
-    add(ptr.x, 7);
     addptr(val, ptr);
-    add(val, 1);
-    abc(val, 3);
 };
 
 

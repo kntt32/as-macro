@@ -133,6 +133,31 @@ Data Data_void(void) {
     return data;
 }
 
+SResult Data_ref(Data src, in Generator* generator, out Data* data) {
+    assert(generator != NULL);
+    assert(data != NULL);
+
+    SRESULT_UNWRAP(
+        Type_refer_operator(&src.type, generator, &data->type),
+        Data_free(src)
+    );
+
+    Storage* src_storage = &src.storage;
+    Storage* data_storage = &data->storage;
+    switch(src_storage->type) {
+        case StorageType_reg:
+            *data_storage = Storage_refer_reg(src_storage->body.reg);
+            break;
+        default:
+            Data_free(src);
+            return SResult_new("expected register");
+    }
+
+    Data_free(src);
+
+    return SResult_new(NULL);
+}
+
 void Data_print(in Data* self) {
     printf("Data { type: ");
     Type_print(&self->type);

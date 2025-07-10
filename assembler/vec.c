@@ -33,7 +33,9 @@ Vec Vec_clone(in Vec* self, optional in void (*clone)(void* dst, void* src)) {
     vec.capacity = self->capacity;
 
     if(clone == NULL) {
-        memcpy(vec.ptr, self->ptr, vec.len * vec.size);
+        if(vec.len != 0) {
+            memcpy(vec.ptr, self->ptr, vec.len * vec.size);
+        }
     }else {
         for(u32 i=0; i<vec.len; i++) {
             void* ptr = vec.ptr + vec.size * i;

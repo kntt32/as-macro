@@ -249,6 +249,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_imm_expression,
         Syntax_build_assignment,
         Syntax_build_dot_operator,
+        Syntax_build_refer_operator,
         Syntax_build_variable_expression,
     };
     
@@ -807,11 +808,27 @@ bool Syntax_build_dot_operator(Parser parser, inout Generator* generator, inout 
     return true;
 }
 
-bool Syntax_build_arrow_operator(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+bool Syntax_build_refer_operator(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     assert(generator != NULL && variable_manager != NULL && data != NULL);
+    if(!ParserMsg_is_success(Parser_parse_symbol(&parser, "*"))) {
+        return false;
+    }
 
-    TODO();
-    
+    Data ptr_data;
+    if(resolve_sresult(
+        Syntax_build(parser, generator, variable_manager, &ptr_data), parser.offset, generator
+    )) {
+        *data = Data_void();
+        return true;
+    }
+
+    if(resolve_sresult(
+        Data_ref(ptr_data, generator, data), parser.offset, generator
+    )) {
+        *data = Data_void();
+        return true;
+    }
+
     return true;
 }
 

@@ -30,7 +30,7 @@ gen_asmacro.o: gen_asmacro.c gen.h
 gen_variable.o: gen_variable.c gen.h
 gen_elf.o: gen_elf.c gen_elf.h
 syntax.o: syntax.c types.h gen.h syntax.h util.h
-global_syntax.o: global_syntax.c global_syntax.h
+global_syntax.o: global_syntax.c global_syntax.h syntax.h
 cmd.o: cmd.c types.h vec.h gen.h global_syntax.h cmd.h util.h
 
 types.h:

@@ -8,8 +8,48 @@
 
 static SResult sub_rsp(i32 value, inout Generator* generator, inout VariableManager* variable_manager);
 
+void StoredReg_print(in StoredReg* self) {
+    printf("StoredReg { reg: ");
+    Register_print(self->reg);
+    printf(", stack_offset: %d }", self->stack_offset);
+}
+
+void StoredReg_print_for_vec(in void* ptr) {
+    StoredReg_print(ptr);
+}
+
+void VariableBlock_print(in VariableBlock* self) {
+    printf("VariableBlock { stack_offset: %d, variables_base: %u, stored_regs: ", self->stack_offset, self->variables_base);
+    Vec_print(&self->stored_regs, StoredReg_print_for_vec);
+    printf(" }");
+}
+
+void VariableBlock_print_for_vec(in void* ptr) {
+    VariableBlock_print(ptr);
+}
+
+void VariableBlock_free(VariableBlock self) {
+    Vec_free(self.stored_regs);
+}
+
+void VariableBlock_free_for_vec(inout void* ptr) {
+    VariableBlock* self = ptr;
+    VariableBlock_free(*self);
+}
+
 VariableManager VariableManager_new(i32 stack_offset) {
-    VariableManager variable_manager = {Vec_new(sizeof(Variable)), stack_offset};
+    VariableManager variable_manager = {
+        Vec_new(sizeof(Variable)),
+        stack_offset,
+        Vec_new(sizeof(VariableBlock))
+    };
+    VariableBlock block = {
+        stack_offset,
+        0,
+        Vec_new(sizeof(StoredReg))
+    };
+    Vec_push(&variable_manager.blocks, &block);
+
     return variable_manager;
 }
 
@@ -17,23 +57,93 @@ i32* VariableManager_stack_offset(in VariableManager* self) {
     return &self->stack_offset;
 }
 
-void VariableManager_push(inout VariableManager* self, Variable variable) {
-    for(u32 i=0; i<Vec_len(&self->variables); i++) {
+static VariableBlock* get_last_block(in VariableManager* self) {
+    VariableBlock* block = Vec_index(&self->blocks, Vec_len(&self->blocks)-1);
+    return block;
+}
+
+static SResult store_variable(inout VariableManager* self, in Variable* variable, inout Generator* generator) {
+    Storage* storage = &variable->data.storage;
+   
+    Register reg;
+    switch(storage->type) {
+        case StorageType_reg:
+            reg = storage->body.reg;
+            break;
+        case StorageType_xmm:
+            reg = storage->body.xmm;
+            break;
+        default:
+            return SResult_new(NULL);
+    }
+
+    Data reg_data = Data_from_register(reg);
+    Vec push_arg = Vec_new(sizeof(Data));
+    Vec_push(&push_arg, &reg_data);
+
+    Data data;
+    SRESULT_UNWRAP(
+        expand_asmacro("push", "", push_arg, generator, self, &data),
+        (void)NULL
+    );
+    Data_free(data);
+
+    self->stack_offset -= 8;
+    VariableBlock* last_block = get_last_block(self);
+    StoredReg stored_reg = {reg, self->stack_offset};
+    Vec_push(&last_block->stored_regs, &stored_reg);
+
+    return SResult_new(NULL);
+}
+
+static bool is_stored(in VariableManager* self, in Variable* variable, u32 variable_index) {
+    for(u32 i=variable_index+1; i<Vec_len(&self->variables); i++) {
         Variable* ptr = Vec_index(&self->variables, i);
-        if(strcmp(ptr->name, variable.name) == 0 || Storage_cmp(&ptr->data.storage, &variable.data.storage)) {
-            Variable removed_var;
-            Vec_remove(&self->variables, i, &removed_var);
-            Variable_free(removed_var);
-            i--;
+        if(Storage_cmp(&variable->data.storage, &ptr->data.storage)) {
+            return true;
         }
     }
+
+    return false;
+}
+
+SResult VariableManager_push(inout VariableManager* self, Variable variable, inout Generator* generator) {
+    VariableBlock* block = get_last_block(self);
+    u32 variable_base = block->variables_base;
+    
+    for(i32 i=Vec_len(&self->variables)-1; 0<=i; i--) {
+        Variable* ptr = Vec_index(&self->variables, i);
+        
+        bool doubling_storage_flag = Storage_cmp(&ptr->data.storage, &variable.data.storage);
+
+        if(doubling_storage_flag) {
+            if((i32)variable_base <= i) {
+                ptr->name[0] = '\0';
+                break;
+            }else {
+                SRESULT_UNWRAP(
+                    store_variable(self, ptr, generator),
+                    (void)NULL
+                );
+                break;
+            }
+        }
+    }
+
+    Vec_push(&self->variables, &variable);
+
+    return SResult_new(NULL);
+}
+
+void VariableManager_push_alias(inout VariableManager* self, Variable variable) {
+    assert(self != NULL);
     Vec_push(&self->variables, &variable);
 }
 
 SResult VariableManager_get(inout VariableManager* self, in char* name, out Variable* variable) {
-    for(u32 i=0; i<Vec_len(&self->variables); i++) {
+    for(i32 i=Vec_len(&self->variables)-1; 0<=i; i--) {
         Variable* ptr = Vec_index(&self->variables, i);
-        if(strcmp(ptr->name, name) == 0) {
+        if(strcmp(ptr->name, name) == 0 && !is_stored(self, ptr, i)) {
             *variable = Variable_clone(ptr);
             return SResult_new(NULL);
         }
@@ -44,23 +154,79 @@ SResult VariableManager_get(inout VariableManager* self, in char* name, out Vari
     return SResult_new(msg);
 }
 
+void VariableManager_new_block(inout VariableManager* self) {
+    assert(self != NULL);
+
+    VariableBlock block = {
+        self->stack_offset, Vec_len(&self->variables), Vec_new(sizeof(StoredReg))
+    };
+
+    Vec_push(&self->blocks, &block);
+}
+
+static SResult restore_variable(in StoredReg* stored_reg, inout Generator* generator, inout VariableManager* variable_manager) {
+    Vec mov_args = Vec_new(sizeof(Data));
+    Type type = {"i64", "", Type_Integer, {}, 8, 8};
+    Data mov_src = Data_from_mem(Rbp, stored_reg->stack_offset, type);
+    Data mov_dst = Data_from_register(stored_reg->reg);
+    Vec_push(&mov_args, &mov_src);
+    Vec_push(&mov_args, &mov_dst);
+
+    Data data;
+    SRESULT_UNWRAP(
+        expand_asmacro("mov", "", mov_args, generator, variable_manager, &data),
+        (void)NULL
+    );
+
+    Data_free(data);
+    return SResult_new(NULL);
+}
+
+SResult VariableManager_delete_block(inout VariableManager* self, inout Generator* generator) {
+    assert(self != NULL && generator != NULL);
+
+    VariableBlock block;
+    Vec_pop(&self->blocks, &block);
+
+    for(i32 i=Vec_len(&self->variables)-1; (i32)block.variables_base<=i; i--) {
+        Variable variable;
+        Vec_pop(&self->variables, &variable);
+        Variable_free(variable);
+    }
+    assert(Vec_len(&self->variables) == block.variables_base);
+
+    for(i32 i=Vec_len(&block.stored_regs)-1; 0<=i; i--) {
+        StoredReg* stored_reg = Vec_index(&block.stored_regs, i);
+        SRESULT_UNWRAP(
+            restore_variable(stored_reg, generator, self),
+            VariableBlock_free(block)
+        );
+    }
+
+    SRESULT_UNWRAP(
+        sub_rsp(self->stack_offset - block.stack_offset, generator, self),
+        VariableBlock_free(block)
+    );
+    self->stack_offset = block.stack_offset;
+    VariableBlock_free(block);
+
+    return SResult_new(NULL);
+}
+
 void VariableManager_print(in VariableManager* self) {
     printf("VariableManager { variables: ");
     Vec_print(&self->variables, Variable_print_for_vec);
-    printf(", stack_offset: %d }", self->stack_offset);
+    printf(", stack_offset: %d, blocks: ", self->stack_offset);
+    Vec_print(&self->blocks, VariableBlock_print_for_vec);
 }
 
 void VariableManager_print_for_vec(in void* ptr) {
     VariableManager_print(ptr);
 }
 
-VariableManager VariableManager_clone(in VariableManager* self) {
-    VariableManager variable_manager = {Vec_clone(&self->variables, Variable_clone_for_vec), self->stack_offset};
-    return variable_manager;
-}
-
 void VariableManager_free(VariableManager self) {
     Vec_free_all(self.variables, Variable_free_for_vec);
+    Vec_free_all(self.blocks, VariableBlock_free_for_vec);
 }
 
 void VariableManager_free_for_vec(inout void* ptr) {
@@ -183,7 +349,7 @@ static void Syntax_build_asmacro_expansion_useroperator(in Asmacro* asmacro, in 
         strcpy(variable.name, arg->name);
         variable.data = Data_clone(data);
 
-        VariableManager_push(variable_manager, variable);
+        VariableManager_push_alias(variable_manager, variable);
     }
 
     while(!Parser_is_empty(&proc_parser)) {
@@ -403,7 +569,7 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper(in Asmacro* asmacro, in 
         sub_rsp(variable_manager->stack_offset - stack_offset_before_push, generator, variable_manager),
         (void)NULL
     );
-    variable_manager->stack_offset = stack_offset_before_push;
+    assert(variable_manager->stack_offset == stack_offset_before_push);
     SRESULT_UNWRAP(
         Syntax_build_asmacro_expansion_fnwrapper_pop_nonvolatile_args(arguments, variable_manager, generator),
         (void)NULL
@@ -432,11 +598,13 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
         Vec_free_all(arguments, Data_free_for_vec)
     );
 
+    VariableManager_new_block(variable_manager);
+
     switch(asmacro.type) {
         case Asmacro_AsmOperator:
             SRESULT_UNWRAP(
                 Syntax_build_asmacro_expansion_asmoperator(&asmacro, &arguments, generator),
-                Asmacro_free(asmacro);Vec_free_all(arguments, Data_free_for_vec)
+                Asmacro_free(asmacro);Vec_free_all(arguments, Data_free_for_vec);
             );
             break;
         case Asmacro_UserOperator:
@@ -457,6 +625,11 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
     }
     Asmacro_free(asmacro);
     Vec_free_all(arguments, Data_free_for_vec);
+
+    SRESULT_UNWRAP(
+        VariableManager_delete_block(variable_manager, generator),
+        (void)NULL
+    );
 
     return SResult_new(NULL);
 }
@@ -534,7 +707,11 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
         Data_free(sub_data);
     }
 
-    VariableManager_push(variable_manager, variable);
+    resolve_sresult(
+        VariableManager_push(variable_manager, variable, generator),
+        parser.offset,
+        generator
+    );
     
     check_parser(&parser, generator);
     return true;

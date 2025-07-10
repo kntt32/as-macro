@@ -146,6 +146,26 @@ bool Argument_match_with(in Argument* self, in Data* data) {
             break;
     }
 
+    Type* self_type = &self->type;
+    u32 data_type_size = data->type.size;
+    if(strcmp(self_type->name, "b8") == 0) {
+        if(data_type_size == 1) {
+            return true;
+        }
+    }else if(strcmp(self_type->name, "b16") == 0) {
+        if(data_type_size == 2) {
+            return true;
+        }
+    }else if(strcmp(self_type->name, "b32") == 0) {
+        if(data_type_size == 4) {
+            return true;
+        }
+    }else if(strcmp(self_type->name, "b64") == 0) {
+        if(data_type_size == 8) {
+            return true;
+        }
+    }
+
     if(!Type_cmp(&self->type, &data->type)) {
         return false;
     }

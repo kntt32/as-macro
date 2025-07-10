@@ -13,6 +13,10 @@ Vec Type_primitives(void) {
         {"i64", "", Type_Integer, {}, 8, 8},
         {"f32", "", Type_Floating, {}, 4, 4},
         {"f64", "", Type_Floating, {}, 8, 8},
+        {"b8", "", Type_Integer, {}, 1, 1},
+        {"b16", "", Type_Integer, {}, 2, 2},
+        {"b32", "", Type_Integer, {}, 4, 4},
+        {"b64", "", Type_Integer, {}, 8, 8}
     };
     Vec types = Vec_from(primitives, LEN(primitives), sizeof(Type));
 

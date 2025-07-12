@@ -111,6 +111,7 @@ static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* genera
         return true;
     }
 
+    type = Type_as_alias(type, name);
     if(!public_flag) {
         Type_restrict_namespace(&type, Parser_path(&parser));
     }

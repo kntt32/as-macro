@@ -317,6 +317,14 @@ Type Type_void(void) {
     return type;
 }
 
+Type Type_as_alias(Type self, in char* name) {
+    assert(name != NULL);
+
+    snprintf(self.name, 256, "%.255s", name);
+    
+    return self;
+}
+
 bool Type_cmp(in Type* self, in Type* other) {
     if(strcmp(self->name, other->name) != 0
         || self->type != other->type
@@ -413,7 +421,8 @@ void Type_print(in Type* self) {
             printf("none");
             break;
         case Type_LazyPtr:
-            printf(".lazy_ptr: %s", self->body.t_lazy_ptr);
+            printf(".t_lazy_ptr: %s", self->body.t_lazy_ptr);
+            break;
     }
     printf(", size: %u, align: %lu }", self->size, self->align);
 }

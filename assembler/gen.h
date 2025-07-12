@@ -28,6 +28,7 @@ struct Type {
         Vec t_struct;// Vec<StructMember>
         Vec t_enum;// Vec<EnumMember>
         char t_lazy_ptr[256];
+        struct Type* t_alias;
     } body;
     u32 size;
     u64 align;
@@ -240,6 +241,7 @@ ParserMsg Type_parse_lazyptr(inout Parser* parser, out Type* type);
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type);
 Type Type_clone(in Type* self);
 void Type_restrict_namespace(inout Type* self, in char* namespace);
+Type Type_as_alias(Type self, in char* name);
 SResult Type_dot_element(in Type* self, in char* element, out u32* offset, out Type* type);
 SResult Type_refer_operator(in Type* src, in Generator* generator, out Type* type);
 bool Type_cmp(in Type* self, in Type* other);

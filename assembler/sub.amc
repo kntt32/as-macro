@@ -31,7 +31,6 @@ fn test() {
 };
 
 pub fn num(val: i64@rax, src: i64@rdi) {
-    recursive();
     let flag: bool@rsi;
     flag = true;
     let ptr: Point@stack;

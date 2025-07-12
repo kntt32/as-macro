@@ -48,6 +48,9 @@ cmd.h: types.h
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+%.h:
+	touch $@ -c
+
 run: asm.elf
 	./asm.elf $(ARGS)
 
@@ -55,5 +58,5 @@ debug: asm.elf
 	gdb asm.elf
 
 clean:
-	rm -f *.elf *.o
+	rm -f *.elf *.o *.out
 

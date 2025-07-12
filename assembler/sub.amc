@@ -15,6 +15,10 @@ pub as mov(dst: Point@mem, src: Point@mem) {
     pop(rax);
 };
 
+as recursive() {
+    recursive();
+};
+
 fn addptr(val: i64@rax, ptr: Point@stack) {
     val = ptr.x;
     add(val, ptr.y);
@@ -27,6 +31,7 @@ fn test() {
 };
 
 pub fn num(val: i64@rax, src: i64@rdi) {
+    recursive();
     let flag: bool@rsi;
     flag = true;
     let ptr: Point@stack;

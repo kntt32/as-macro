@@ -7,6 +7,7 @@ Vec Type_primitives(void) {
     Type primitives[] = {
         {"void", "", Type_Integer, {}, 0, 1},
         {"bool", "", Type_Integer, {}, 1, 1},
+        {"char", "", Type_Integer, {}, 1, 1},
         {"i8",  "", Type_Integer, {}, 1, 1},
         {"i16", "", Type_Integer, {}, 2, 2},
         {"i32", "", Type_Integer, {}, 4, 4},

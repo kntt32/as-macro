@@ -6,6 +6,11 @@
 #include <errno.h>
 #include "parser.h"
 
+static struct { char expr; char code; } ESCAPE_SEQUENCES[] = {
+    {'\\', '\\'}, {'\'', '\''}, {'\"', '\"'}, {'?', '?'}, {'a', '\a'}, {'b', '\b'},
+    {'f', '\f'}, {'n', '\n'}, {'r', '\r'}, {'t', '\t'}, {'v', '\v'}, {'0', '\0'},
+};
+
 Offset Offset_new(in char* path) {
     assert(path != NULL);
 
@@ -16,6 +21,13 @@ Offset Offset_new(in char* path) {
     offset.column = 1;
 
     return offset;
+}
+
+bool Offset_cmp(in Offset* self, in Offset* other) {
+    assert(self != NULL && other != NULL);
+    return strcmp(self->path, other->path) == 0
+        && self->line == other->line
+        && self->column == other->column;
 }
 
 void Offset_seek_char(inout Offset* self, char c) {
@@ -74,6 +86,24 @@ void Parser_print(in Parser* self) {
     printf("\", len: %lu, offset: ", self->len);
     Offset_print(&self->offset);
     printf(" }");
+}
+
+bool Parser_cmp(in Parser* self, in Parser* other) {
+    assert(self != NULL && other != NULL);
+    
+    if(!Offset_cmp(&self->offset, &other->offset)) {
+        return false;
+    }
+    
+    if(self->len != other->len) {
+        return false;
+    }
+    
+    if(self->len != 0 && strncmp(self->src, other->src, self->len) != 0) {
+        return false;
+    }
+    
+    return true;
 }
 
 char* Parser_path(in Parser* self) {
@@ -202,6 +232,11 @@ void Parser_skip(inout Parser* self) {
         return;
     }
 
+    char code;
+    if(ParserMsg_is_success(Parser_parse_char(self, &code))) {
+        return;
+    }
+
     Parser_read(self);
 }
 
@@ -287,10 +322,6 @@ ParserMsg Parser_parse_number(inout Parser* self, out u64* value) {
 }
 
 ParserMsg Parser_parse_string(inout Parser* self, out Vec* string) {
-    static struct { char expr; char code; } ESCAPE_SEQUENCES[] = {
-        {'\\', '\\'}, {'\'', '\''}, {'\"', '\"'}, {'?', '?'}, {'a', '\a'}, {'b', '\b'},
-        {'f', '\f'}, {'n', '\n'}, {'r', '\r'}, {'t', '\t'}, {'v', '\v'}, {'0', '\0'},
-    };
     assert(self != NULL);
     assert(string != NULL);
 
@@ -329,6 +360,42 @@ ParserMsg Parser_parse_string(inout Parser* self, out Vec* string) {
 
             Vec_push(string, &c);
         }
+    }
+
+    *self = self_copy;
+    Parser_skip_space(self);
+    return ParserMsg_new(self->offset, NULL);
+}
+
+ParserMsg Parser_parse_char(inout Parser* self, out char* code) {
+    assert(self != NULL);
+    assert(code != NULL);
+
+    Parser self_copy = *self;
+
+    if(Parser_read(&self_copy) != '\'') {
+        return ParserMsg_new(self->offset, "expected symbol \"\'\"");
+    }
+
+    *code = Parser_read(&self_copy);
+    if(*code == '\\') {
+        *code = Parser_read(&self_copy);
+        for(i32 i=LEN(ESCAPE_SEQUENCES)-1; 0<=i; i--) {
+            if(*code == ESCAPE_SEQUENCES[i].expr) {
+                *code = ESCAPE_SEQUENCES[i].code;
+                break;
+            }
+
+            if(i == 0) {
+                return ParserMsg_new(self_copy.offset, "unexpected escape sequence");
+            }
+        }
+    }else if(*code == '\0') {
+        return ParserMsg_new(self_copy.offset, "expected charactor literal");
+    }
+
+    if(Parser_read(&self_copy) != '\'') {
+        return ParserMsg_new(self_copy.offset, "expected symbol \"\'\"");
     }
 
     *self = self_copy;

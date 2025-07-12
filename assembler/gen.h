@@ -226,6 +226,7 @@ typedef struct {
     Vec asmacroes;// Vec<Asmacro>
     Vec errors;// Vec<Error>
     Vec imports;// Vec<Imports>
+    Vec expand_stack;// Vec<Asmacro>
     
     Vec sections;// Vec<Section>
     Vec labels;// Vec<Label>
@@ -303,6 +304,7 @@ Storage Storage_clone(in Storage* self);
 void Storage_free(Storage self);
 
 ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, out Data* data);
+bool Data_cmp(in Data* self, in Data* other);
 Data Data_from_register(Register reg);
 Data Data_from_imm(u64 imm);
 Data Data_from_label(in char* label);
@@ -310,6 +312,7 @@ Data Data_from_mem(Register reg, i32 offset, Type type);
 Data Data_true(void);
 Data Data_false(void);
 Data Data_null(void);
+Data Data_from_char(u8 code);
 Data Data_clone(in Data* self);
 SResult Data_dot_operator(in Data* left, in char* element, out Data* data);
 SResult Data_ref(Data src, in Generator* generator, out Data* data);
@@ -320,6 +323,8 @@ void Data_free(Data self);
 void Data_free_for_vec(inout void* ptr);
 
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable);
+bool Variable_cmp(in Variable* self, in Variable* other);
+bool Variable_cmp_for_vec(in void* left, in void* right);
 Variable Variable_clone(in Variable* self);
 void Variable_clone_for_vec(out void* dst, in void* src);
 SResult Variable_get_stack_offset(in Variable* self, out i32* rbp_offset);
@@ -353,6 +358,7 @@ Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */, 
 SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes, in char* path);
 void Asmacro_print(in Asmacro* self);
 void Asmacro_print_for_vec(in void* ptr);
+bool Asmacro_cmp(in Asmacro* self, in Asmacro* other);
 Asmacro Asmacro_clone(in Asmacro* self);
 void Asmacro_free(Asmacro self);
 void Asmacro_free_for_vec(inout void* ptr);
@@ -399,6 +405,8 @@ SResult Generator_addend_rela(inout Generator* self, in char* section);
 SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte);
 SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte);
 SResult Generator_binary_len(in Generator* self, in char* name, out u32* len);
+SResult Generator_asmacro_expand_check(inout Generator* self, Asmacro asmacro);
+void Generator_finish_asmacro_expand(inout Generator* self);
 bool Generator_is_error(in Generator* self);
 void Generator_print(in Generator* self);
 void Generator_free(Generator self);

@@ -280,6 +280,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_true_expression,
         Syntax_build_false_expression,
         Syntax_build_null_expression,
+        Syntax_build_char_expression,
         Syntax_build_assignment,
         Syntax_build_dot_operator,
         Syntax_build_refer_operator,
@@ -632,6 +633,12 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
         Vec_free_all(arguments, Data_free_for_vec)
     );
 
+    SRESULT_UNWRAP(
+        Generator_asmacro_expand_check(generator, Asmacro_clone(&asmacro)),
+        Vec_free_all(arguments, Data_free_for_vec);
+        Asmacro_free(asmacro);
+    );
+
     VariableManager_new_block(variable_manager);
 
     switch(asmacro.type) {
@@ -664,6 +671,8 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
         VariableManager_delete_block(variable_manager, generator),
         (void)NULL
     );
+
+    Generator_finish_asmacro_expand(generator);
 
     return SResult_new(NULL);
 }
@@ -814,6 +823,26 @@ bool Syntax_build_null_expression(Parser parser, inout Generator* generator, ino
     *data = Data_null();
 
     check_parser(&parser, generator);
+    return true;
+}
+
+bool Syntax_build_char_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    assert(generator != NULL && variable_manager != NULL && data != NULL);
+
+    if(!Parser_start_with_symbol(&parser, "\'")) {
+        return false;
+    }
+
+    char code = '\0';
+    if(resolve_parsermsg(
+        Parser_parse_char(&parser, &code), generator
+    )) {
+        *data = Data_void();
+        return true;
+    }
+
+    *data = Data_from_char(code);
+
     return true;
 }
 

@@ -26,6 +26,12 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* s
     return ParserMsg_new(parser->offset, NULL);
 }
 
+bool Data_cmp(in Data* self, in Data* other) {
+    assert(self != NULL && other != NULL);
+    
+    return Type_cmp(&self->type, &other->type) && Storage_cmp(&self->storage, &other->storage);
+}
+
 Data Data_from_register(Register reg) {
     if(Register_is_integer(reg)) {
         Data data = {
@@ -146,6 +152,17 @@ Data Data_null(void) {
     Data data = {
         {"void*", "", Type_Ptr, {.t_ptr = void_type_ptr}, 8, 8},
         {StorageType_imm, {.imm = imm}}
+    };
+
+    return data;
+}
+
+Data Data_from_char(u8 code) {
+    Vec data_vec = Vec_new(sizeof(u8));
+    Vec_push(&data_vec, &code);
+    Data data = {
+        {"char", "", Type_Integer, {}, 1, 1},
+        {StorageType_imm, {.imm = {Imm_Value, {.value = data_vec}}}}
     };
 
     return data;

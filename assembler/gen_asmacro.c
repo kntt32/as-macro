@@ -566,6 +566,7 @@ SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes, in char* path) {
 
 bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other) {
     return strcmp(self->name, other->name) == 0
+        && strcmp(self->valid_path, other->valid_path) == 0
         && Vec_cmp(&self->arguments, &other->arguments, Argument_cmp_for_vec);
 }
 

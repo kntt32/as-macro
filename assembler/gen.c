@@ -131,6 +131,7 @@ Generator Generator_new() {
         Vec_new(sizeof(Asmacro)),
         Vec_new(sizeof(Error)),
         Vec_new(sizeof(Import)),
+        Vec_new(sizeof(Asmacro)),
         Vec_new(sizeof(Section)),
         Vec_new(sizeof(Label)),
         Vec_new(sizeof(Rela))
@@ -436,6 +437,32 @@ SResult Generator_binary_len(in Generator* self, in char* name, out u32* len) {
     return SResult_new(NULL);
 }
 
+SResult Generator_asmacro_expand_check(inout Generator* self, Asmacro asmacro) {
+    assert(self != NULL);
+    
+    for(u32 i=0; i<Vec_len(&self->expand_stack); i++) {
+        Asmacro* ptr = Vec_index(&self->expand_stack, i);
+        if(Asmacro_cmp_signature(ptr, &asmacro)) {
+            Asmacro_free(asmacro);
+            char msg[256];
+            snprintf(msg, 256, "asmacro \"%.200s\" expand to infinite size", asmacro.name);
+            return SResult_new(msg);
+        }
+    }
+    
+    Vec_push(&self->expand_stack, &asmacro);
+    
+    return SResult_new(NULL);
+}
+
+void Generator_finish_asmacro_expand(inout Generator* self) {
+    assert(self != NULL);
+    
+    Asmacro asmacro;
+    Vec_pop(&self->expand_stack, &asmacro);
+    Asmacro_free(asmacro);
+}
+
 bool Generator_is_error(in Generator* self) {
     return Vec_len(&self->errors) != 0;
 }
@@ -451,6 +478,8 @@ void Generator_print(in Generator* self) {
     Vec_print(&self->errors, Error_print_for_vec);
     printf(", imports: ");
     Vec_print(&self->imports, Import_print_for_vec);
+    printf(", expand_stack: ");
+    Vec_print(&self->expand_stack, Asmacro_print_for_vec);
     printf(", sections: ");
     Vec_print(&self->sections, Section_print_for_vec);
     printf(", labels: ");
@@ -466,6 +495,7 @@ void Generator_free(Generator self) {
     Vec_free_all(self.asmacroes, Asmacro_free_for_vec);
     Vec_free(self.errors);
     Vec_free_all(self.imports, Import_free_for_vec);
+    Vec_free_all(self.expand_stack, Asmacro_free_for_vec);
     Vec_free_all(self.sections, Section_free_for_vec);
     Vec_free(self.labels);
     Vec_free(self.relas);

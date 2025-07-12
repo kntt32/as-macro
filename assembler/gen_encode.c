@@ -171,6 +171,9 @@ static SResult ModRmType_encode_rex_prefix_reg(in AsmArgs* args, inout u8* rex_p
 
 static SResult ModRmType_encode_rex_prefix_regmem_reg(in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
     assert(args != NULL && rex_prefix != NULL && rex_prefix_needed_flag != NULL);
+    if(!args->regmem_flag || args->regmem_type != AsmArgs_Rm_Reg) {
+        return SResult_new("unexpected encoding rule");
+    }
 
     u8 code = 0;
     SRESULT_UNWRAP(
@@ -191,6 +194,9 @@ static SResult ModRmType_encode_rex_prefix_regmem_reg(in AsmArgs* args, inout u8
 }
 
 static SResult ModRmType_encode_rex_prefix_regmem_mem(in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
+    if(!args->regmem_flag || args->regmem_type != AsmArgs_Rm_Mem) {
+        return SResult_new("unexpected encoding rule");
+    }
     Memory* memory = &args->regmem.mem;
 
     u8 code = 0;
@@ -263,7 +269,7 @@ SResult ModRmType_encode_rex_prefix(in ModRmType* self, in AsmArgs* args, inout 
             SRESULT_UNWRAP(
                 ModRmType_encode_rex_prefix_regmem(self, args, rex_prefix, rex_prefix_needed_flag),
                 (void)NULL
-            )
+            );
             break;
         case ModRmType_Digit:
             SRESULT_UNWRAP(
@@ -304,6 +310,7 @@ static SResult ModRmType_encode_reg(in ModRmType* self, in AsmArgs* args, inout 
 }
 
 static SResult ModRmType_encode_mod_and_rm_mem(in AsmArgs* args, inout u8* mod, inout u8* code, inout bool* sib_flag, inout u8* sib) {
+    assert(args->regmem_flag && args->regmem_type == AsmArgs_Rm_Mem);
     Memory* memory = &args->regmem.mem;
     u8 disp_size = Disp_size(&memory->disp);
 
@@ -379,6 +386,10 @@ static SResult ModRmType_encode_mod_and_rm(in AsmArgs* args, inout u8* mod_rm, i
 }
 
 static SResult ModRmType_encode_disp(u8 mod, in AsmArgs* args, inout Generator* generator) {
+    if(mod == 0b00 || mod == 0b11) {
+        return SResult_new(NULL);
+    }
+    assert(args->regmem_flag && args->regmem_type== AsmArgs_Rm_Mem);
     Disp* disp = &args->regmem.mem.disp;
     u64 disp_value = Disp_value(disp);
     u32 len = 0;
@@ -408,7 +419,7 @@ static SResult ModRmType_encode_disp(u8 mod, in AsmArgs* args, inout Generator* 
 }
 
 SResult ModRmType_encode(in ModRmType* self, in AsmArgs* args, inout Generator* generator) {
-    assert(self != NULL && args != NULL && generator != NULL);
+    assert(self != NULL && args != NULL && generator != NULL && args->regmem_flag);
 
     u8 mod_rm = 0;
     SRESULT_UNWRAP(
@@ -457,7 +468,7 @@ SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmA
             );
             break;
         case AsmEncodingElement_AddReg:
-            if(args->reg_type != AsmArgs_Reg_Reg) {
+            if(args->reg_flag && args->reg_type != AsmArgs_Reg_Reg) {
                 return SResult_new("expecting integer register argument");
             }
             u8 addreg_code;

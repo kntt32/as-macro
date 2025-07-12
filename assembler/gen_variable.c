@@ -23,6 +23,20 @@ ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i3
     return ParserMsg_new(parser->offset, NULL);
 }
 
+bool Variable_cmp(in Variable* self, in Variable* other) {
+    assert(self != NULL && other != NULL);
+    
+    if(strcmp(self->name, other->name) != 0 || !Data_cmp(&self->data, &other->data)) {
+        return false;
+    }
+    
+    return true;
+}
+
+bool Variable_cmp_for_vec(in void* left, in void* right) {
+    return Variable_cmp(left, right);
+}
+
 Variable Variable_clone(in Variable* self) {
     Variable variable;
     

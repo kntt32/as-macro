@@ -284,6 +284,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_assignment,
         Syntax_build_dot_operator,
         Syntax_build_refer_operator,
+        Syntax_build_subscript_operator,
         Syntax_build_variable_expression,
     };
     
@@ -707,6 +708,7 @@ bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, i
         return false;
     }
 
+    *data = Data_void();
     Vec arguments;
 
     if(resolve_sresult(
@@ -720,6 +722,7 @@ bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, i
         expand_asmacro(name, Parser_path(&parser), arguments, generator, variable_manager, data),
         parser.offset, generator
     )) {
+        *data = Data_void();
         return true;
     }
     
@@ -882,6 +885,8 @@ bool Syntax_build_dot_operator(Parser parser, inout Generator* generator, inout 
         return false;
     }
 
+    *data = Data_void();
+
     Data left_data;
     if(resolve_sresult(
         Syntax_build(left, generator, variable_manager, &left_data), left.offset, generator
@@ -901,6 +906,7 @@ bool Syntax_build_dot_operator(Parser parser, inout Generator* generator, inout 
         Data_dot_operator(&left_data, element, data), parser.offset, generator
     )) {
         Data_free(left_data);
+        *data = Data_void();
         return true;
     }
     
@@ -915,11 +921,12 @@ bool Syntax_build_refer_operator(Parser parser, inout Generator* generator, inou
         return false;
     }
 
+    *data = Data_void();
+
     Data ptr_data;
     if(resolve_sresult(
         Syntax_build(parser, generator, variable_manager, &ptr_data), parser.offset, generator
     )) {
-        *data = Data_void();
         return true;
     }
 
@@ -930,6 +937,50 @@ bool Syntax_build_refer_operator(Parser parser, inout Generator* generator, inou
         return true;
     }
 
+    return true;
+}
+
+bool Syntax_build_subscript_operator(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    assert(generator != NULL && variable_manager != NULL && data != NULL);
+
+    Parser left_parser = Parser_split(&parser, "[");
+    if(Parser_is_empty(&left_parser) || Parser_is_empty(&parser)) {
+        return false;
+    }
+
+    *data = Data_void();
+
+    Parser index_parser = Parser_split(&parser, "]");
+    if(Parser_is_empty(&index_parser)) {
+        Generator_add_error(generator, Error_new(parser.offset, "expected index"));
+        return true;
+    }
+
+    Data left_data;
+    if(resolve_sresult(
+        Syntax_build(left_parser, generator, variable_manager, &left_data),
+        parser.offset, generator
+    )) {
+        return true;
+    }
+
+    Data index_data;
+    if(resolve_sresult(
+        Syntax_build(index_parser, generator, variable_manager, &index_data),
+        parser.offset, generator
+    )) {
+        Data_free(left_data);
+        return true;
+    }
+
+    if(resolve_sresult(
+        Data_subscript(left_data, index_data, data),
+        parser.offset, generator
+    )) {
+        *data = Data_void();
+    }
+
+    check_parser(&parser, generator);
     return true;
 }
 
@@ -951,36 +1002,7 @@ bool Syntax_build_variable_expression(Parser parser, inout Generator* generator,
     check_parser(&parser, generator);
     return true;
 }
-/*
-bool Syntax_build_if_branch(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-    assert(generator != NULL);
-    assert(variable_manager != NULL);
-    assert(data != NULL);
 
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "if"))) {
-        return false;
-    }
-
-    *data = Data_void();
-
-    Parser condition_parser;
-    if(resolve_parsermsg(
-        Parser_parse_paren(&parser, &condition_parser), generator
-    )) {
-        return true;
-    }
-
-    Parser true_parser;
-    if(resolve_parsermsg(
-        Parser_parse_block(&parser, &true_oarser), generator
-    )) {
-        return true;
-    }
-
-
-    return true;
-}
-*/
 bool Syntax_build_return(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "return"))) {
         return false;

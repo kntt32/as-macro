@@ -195,6 +195,65 @@ SResult Data_dot_operator(in Data* left, in char* element, out Data* data) {
     return SResult_new(NULL);
 }
 
+SResult Data_as_integer(in Data* self, out u64* integer) {
+    if(self->type.type != Type_Integer && self->type.size <= 8) {
+        return SResult_new("expected integer");
+    }
+    if(self->storage.type != StorageType_imm) {
+        return SResult_new("expected imm");
+    }
+
+    Imm* imm = &self->storage.body.imm;
+    if(imm->type != Imm_Value) {
+        return SResult_new("expected imm value");
+    }
+    
+    *integer = 0;
+    Vec* value = &imm->body.value;
+    assert(Vec_len(value) <= 8);
+    for(u32 i=0; i<Vec_len(value); i++) {
+        u8* byte_ptr = Vec_index(value, i);
+        u8 byte = *byte_ptr;
+        *integer |= byte << (i*8);
+    }
+
+    return SResult_new(NULL);
+}
+
+static SResult Data_subscript_helper(in Data* src, in Data* index, out Data* data) {
+    u64 integ = 0;
+    SRESULT_UNWRAP(
+        Data_as_integer(index, &integ),
+        (void)NULL
+    );
+
+    SRESULT_UNWRAP(
+        Type_subscript(&src->type, integ, &data->type),
+        (void)NULL
+    );
+
+    SRESULT_UNWRAP(
+        Storage_subscript(&src->storage, integ, data->type.size, &data->storage),
+        (void)NULL
+    );
+
+    return SResult_new(NULL);
+}
+
+SResult Data_subscript(Data src, Data index, out Data* data) {
+    assert(data != NULL);
+
+    SRESULT_UNWRAP(
+        Data_subscript_helper(&src, &index, data),
+        Data_free(src);Data_free(index);
+    );
+
+    Data_free(src);
+    Data_free(index);
+
+    return SResult_new(NULL);
+}
+
 Data Data_void(void) {
     Data data = {
         {"void", "", Type_Integer, {}, 0, 1},

@@ -164,6 +164,68 @@ Storage Storage_refer_reg(Register reg) {
     return storage;
 }
 
+static SResult Storage_subscript_imm(in Storage* self, u32 index, u32 size, out Storage* storage) {
+    assert(self->type == StorageType_imm);
+
+    Imm* self_imm = &self->body.imm;
+    if(self_imm->type != Imm_Value) {
+        return SResult_new("expected imm");
+    }
+
+    Imm imm;
+    imm.type = Imm_Value;
+    imm.body.value = Vec_new(sizeof(u8));
+
+    if(Vec_len(&self_imm->body.value) <= size*(index + 1)) {
+        return SResult_new("out of range");
+    }
+    for(u32 i=0; i<size; i++) {
+        u8* byte_ptr = Vec_index(&self_imm->body.value, size*index + i);
+        Vec_push(&imm.body.value, byte_ptr);
+    }
+
+    storage->type = StorageType_imm;
+    storage->body.imm = imm;
+
+    return SResult_new(NULL);
+}
+
+static SResult Storage_subscript_mem(in Storage* self, u32 index, u32 size, out Storage* storage) {
+    assert(self->type == StorageType_mem);
+
+    *storage = Storage_clone(self);
+    assert(
+        SResult_is_success(
+            Storage_add_offset(storage, index*size)
+        )
+    );
+
+    return SResult_new(NULL);
+}
+
+SResult Storage_subscript(in Storage* self, u32 index, u32 size, out Storage* storage) {
+    assert(self != NULL && storage != NULL);
+
+    switch(self->type) {
+        case StorageType_imm:
+            SRESULT_UNWRAP(
+                Storage_subscript_imm(self, index, size, storage),
+                (void)NULL
+            );
+            break;
+        case StorageType_mem:
+            SRESULT_UNWRAP(
+                Storage_subscript_mem(self, index, size, storage),
+                (void)NULL
+            );
+            break;
+        default:
+            return SResult_new("expected imm or memory");
+    }
+
+    return SResult_new(NULL);
+}
+
 bool Storage_cmp(in Storage* self, in Storage* other) {
     if(self->type != other->type) {
         return false;

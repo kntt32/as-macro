@@ -24,10 +24,15 @@ fn addptr(val: i64@rax, ptr: Point@stack) {
     add(val, ptr.y);
 };
 
-fn test() {
-    let array: [i32; 5]@stack;
-    let a: i32@rax;
-    a = 109012983;
+fn test(n: i64@rax) {
+    let array: [i64; 5]@stack;
+    array[0] = 82;
+    array[1] = 72;
+    array[2] = 21;
+    array[3] = 46;
+    array[4] = 19;
+
+    n = array[3];
 };
 
 pub fn num(val: i64@rax, src: i64@rdi) {
@@ -37,7 +42,7 @@ pub fn num(val: i64@rax, src: i64@rdi) {
     ptr.x = src;
     ptr.y = 3;
     addptr(val, ptr);
-    test();
+    test(val);
 };
 
 

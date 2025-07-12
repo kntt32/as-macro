@@ -309,6 +309,26 @@ SResult Type_refer_operator(in Type* src, in Generator* generator, out Type* typ
     return SResult_new(NULL);
 }
 
+SResult Type_subscript(in Type* self, u32 index, out Type* type) {
+    assert(self != NULL && type != NULL);
+
+    switch(self->type) {
+        case Type_Ptr:
+            *type = Type_clone(self->body.t_ptr);
+            break;
+        case Type_Array:
+            if(self->body.t_array.len <= index) {
+                return SResult_new("out of range");
+            }
+            *type = Type_clone(self->body.t_array.type);
+            break;
+        default:
+            return SResult_new("expected pointer or array");
+    }
+
+    return SResult_new(NULL);
+}
+
 Type Type_void(void) {
     Type type = {
         "void", "", Type_Integer, {}, 0, 1

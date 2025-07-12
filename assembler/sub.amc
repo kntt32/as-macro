@@ -64,6 +64,7 @@ pub fn num(val: i64@rax, src: i64@rdi) {
     ptr.y = 3;
     addptr(val, ptr);
     test(val);
+    val = alignof i64;
 
     write_test();
 };

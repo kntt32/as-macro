@@ -285,6 +285,8 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_dot_operator,
         Syntax_build_refer_operator,
         Syntax_build_subscript_operator,
+        Syntax_build_sizeof_operator,
+        Syntax_build_alignof_operator,
         Syntax_build_variable_expression,
     };
     
@@ -1000,6 +1002,70 @@ bool Syntax_build_variable_expression(Parser parser, inout Generator* generator,
     *data = variable.data;
     
     check_parser(&parser, generator);
+    return true;
+}
+
+bool Syntax_build_sizeof_operator(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    assert(generator != NULL && variable_manager != NULL && data != NULL);
+
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "sizeof"))) {
+        return false;
+    }
+
+    u32 size = 0;
+
+    Data expr_data;
+    Type type;
+    if(ParserMsg_is_success(
+        Type_parse(&parser, generator, &type)
+    )) {
+        size = type.size;
+        Type_free(type);
+        check_parser(&parser, generator);
+    }else if(!resolve_sresult(
+        Syntax_build(parser, generator, variable_manager, &expr_data), parser.offset, generator
+    )) {
+        size = expr_data.type.size;
+        Data_free(expr_data);
+    }else {
+        *data = Data_void();
+        return true;
+    }
+
+    *data = Data_from_imm(size);
+
+    return true;
+}
+
+bool Syntax_build_alignof_operator(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    assert(generator != NULL && variable_manager != NULL && data != NULL);
+
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "alignof"))) {
+        return false;
+    }
+
+    u32 align = 1;
+
+    Data expr_data;
+    Type type;
+    if(ParserMsg_is_success(
+        Type_parse(&parser, generator, &type)
+    )) {
+        align = type.align;
+        Type_free(type);
+        check_parser(&parser, generator);
+    }else if(!resolve_sresult(
+        Syntax_build(parser, generator, variable_manager, &expr_data), parser.offset, generator
+    )) {
+        align = expr_data.type.align;
+        Data_free(expr_data);
+    }else {
+        *data = Data_void();
+        return true;
+    }
+    
+    *data = Data_from_imm(align);
+
     return true;
 }
 

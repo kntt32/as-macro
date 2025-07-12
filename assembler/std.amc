@@ -1,0 +1,8 @@
+import core_x64;
+
+pub as write(fd: i64@rdi, msg: char*@rsi, len: i64@rdx) {
+    let number: i64@rax;
+    number = 1;
+    syscall();
+};
+

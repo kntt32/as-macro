@@ -1,4 +1,5 @@
 import core_x64;
+import std;
 
 struct Point {
     x: i64,
@@ -35,6 +36,26 @@ fn test(n: i64@rax) {
     n = array[3];
 };
 
+fn write_test() {
+    let str: [char; 6]@stack;
+    str[0] = 'h';
+    str[1] = 'e';
+    str[2] = 'l';
+    str[3] = 'l';
+    str[4] = 'o';
+    str[5] = '\n';
+
+    let fd: i64@rdi;
+    let msg: char*@rsi;
+    let len: i64@rdx;
+
+    fd = 1;
+    lea(msg, str[0]);
+    len = 6;
+
+    write(fd, msg, len);
+};
+
 pub fn num(val: i64@rax, src: i64@rdi) {
     let flag: bool@rsi;
     flag = true;
@@ -43,6 +64,8 @@ pub fn num(val: i64@rax, src: i64@rdi) {
     ptr.y = 3;
     addptr(val, ptr);
     test(val);
+
+    write_test();
 };
 
 

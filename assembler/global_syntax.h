@@ -24,7 +24,6 @@ typedef struct {
 } GlobalSyntaxTree;
 
 ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax);
-void GlobalSyntax_check_asmacro(inout GlobalSyntax* self, inout Generator* generator);
 void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator);
 void GlobalSyntax_print(in GlobalSyntax* self);
 void GlobalSyntax_free(GlobalSyntax self);

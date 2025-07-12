@@ -437,8 +437,8 @@ static ParserMsg Asmacro_parse_proc(inout Parser* parser, out Asmacro* asmacro) 
         (void)NULL
     );
     
-    asmacro->type = Asmacro_UserOperator;
-    asmacro->body.user_operator = block_parser;
+    asmacro->type = Asmacro_UserMacro;
+    asmacro->body.user_macro = block_parser;
 
     return ParserMsg_new(parser->offset, NULL);
 }
@@ -461,9 +461,9 @@ static ParserMsg Asmacro_parse_encoding(inout Parser* parser, out Asmacro* asmac
         (void)NULL
     );
 
-    asmacro->type = Asmacro_AsmOperator;
+    asmacro->type = Asmacro_AsmMacro;
     PARSERMSG_UNWRAP(
-        AsmEncoding_parse(&paren_parser, &sizes, &asmacro->body.asm_operator),
+        AsmEncoding_parse(&paren_parser, &sizes, &asmacro->body.asm_macro),
         (void)NULL
     );
 
@@ -476,10 +476,10 @@ static ParserMsg Asmacro_parse_encoding(inout Parser* parser, out Asmacro* asmac
             case 8:
                 break;
             default:
-                AsmEncoding_free(asmacro->body.asm_operator);
+                AsmEncoding_free(asmacro->body.asm_macro);
                 return ParserMsg_new(parser->offset, "operand size must be 1, 2, 4 or 8 byte");
         }
-        asmacro->body.asm_operator.operand_size = argument->type.size * 8;
+        asmacro->body.asm_macro.operand_size = argument->type.size * 8;
     }
 
     *parser = parser_copy;
@@ -578,13 +578,13 @@ void Asmacro_print(in Asmacro* self) {
     printf(", type: %d, body: ", self->type);
 
     switch(self->type) {
-        case Asmacro_AsmOperator:
-            printf(".asm_operator: ");
-            AsmEncoding_print(&self->body.asm_operator);
+        case Asmacro_AsmMacro:
+            printf(".asm_macro: ");
+            AsmEncoding_print(&self->body.asm_macro);
             break;
-        case Asmacro_UserOperator:
-            printf(".user_operator: ");
-            Parser_print(&self->body.user_operator);
+        case Asmacro_UserMacro:
+            printf(".user_macro: ");
+            Parser_print(&self->body.user_macro);
             break;
         case Asmacro_FnWrapper:
             printf(".fn_wrapper: ");
@@ -608,11 +608,11 @@ Asmacro Asmacro_clone(in Asmacro* self) {
     asmacro.type = self->type;
 
     switch(self->type) {
-        case Asmacro_AsmOperator:
-            asmacro.body.asm_operator = AsmEncoding_clone(&self->body.asm_operator);
+        case Asmacro_AsmMacro:
+            asmacro.body.asm_macro = AsmEncoding_clone(&self->body.asm_macro);
             break;
-        case Asmacro_UserOperator:
-            asmacro.body.user_operator = self->body.user_operator;
+        case Asmacro_UserMacro:
+            asmacro.body.user_macro = self->body.user_macro;
             break;
         case Asmacro_FnWrapper:
             asmacro.body.fn_wrapper = Vec_clone(&self->body.fn_wrapper, Variable_clone_for_vec);
@@ -625,10 +625,10 @@ Asmacro Asmacro_clone(in Asmacro* self) {
 void Asmacro_free(Asmacro self) {
     Vec_free_all(self.arguments, Argument_free_for_vec);
     switch(self.type) {
-        case Asmacro_AsmOperator:
-            AsmEncoding_free(self.body.asm_operator);
+        case Asmacro_AsmMacro:
+            AsmEncoding_free(self.body.asm_macro);
             break;
-        case Asmacro_UserOperator:
+        case Asmacro_UserMacro:
             break;
         case Asmacro_FnWrapper:
             Vec_free_all(self.body.fn_wrapper, Variable_free_for_vec);

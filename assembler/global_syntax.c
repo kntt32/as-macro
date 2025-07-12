@@ -292,17 +292,6 @@ ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out Glob
     return ParserMsg_new(parser.offset, "unknown global syntax");
 }
 
-void GlobalSyntax_check_asmacro(inout GlobalSyntax* self, inout Generator* generator) {
-    (void)generator;
-    if(self->type != GlobalSyntax_AsmacroDefinision) {
-        return;
-    }
-
-    if(self->body.asmacro_definision.type == Asmacro_UserOperator) {
-        TODO();
-    }
-}
-
 static SResult enter_function(inout Generator* generator, inout VariableManager* variable_manager) {
     Data data;
 
@@ -509,13 +498,6 @@ void GlobalSyntaxTree_parse(inout GlobalSyntaxTree* self, Parser parser) {
     }
 }
 
-void GlobalSyntaxTree_check_asmacro(inout GlobalSyntaxTree* self) {
-    for(u32 i=0; i<Vec_len(&self->global_syntaxes); i++) {
-        GlobalSyntax* global_syntax = Vec_index(&self->global_syntaxes, i);
-        GlobalSyntax_check_asmacro(global_syntax, &self->generator);
-    }
-}
-
 Generator GlobalSyntaxTree_build(inout GlobalSyntaxTree self) {
     for(u32 i=0; i<Vec_len(&self.global_syntaxes); i++) {
         GlobalSyntax* global_syntax = Vec_index(&self.global_syntaxes, i);
@@ -538,3 +520,4 @@ void GlobalSyntaxTree_free(GlobalSyntaxTree self) {
     Generator_free(self.generator);
     Vec_free_all(self.global_syntaxes, GlobalSyntax_free_for_vec);
 }
+

@@ -359,7 +359,7 @@ static SResult Syntax_build_asmacro_expansion_get_info(
     return SResult_new(NULL);
 }
 
-static SResult Syntax_build_asmacro_expansion_asmoperator(in Asmacro* asmacro, in Vec* arguments, inout Generator* generator) {
+static SResult Syntax_build_asmacro_expansion_asmmacro(in Asmacro* asmacro, in Vec* arguments, inout Generator* generator) {
     AsmArgs asm_args;
 
     SRESULT_UNWRAP(
@@ -367,7 +367,7 @@ static SResult Syntax_build_asmacro_expansion_asmoperator(in Asmacro* asmacro, i
         (void)NULL
     );
     SRESULT_UNWRAP(
-        AsmEncoding_encode(&asmacro->body.asm_operator, &asm_args, generator),
+        AsmEncoding_encode(&asmacro->body.asm_macro, &asm_args, generator),
         (void)NULL
     );
 
@@ -376,8 +376,8 @@ static SResult Syntax_build_asmacro_expansion_asmoperator(in Asmacro* asmacro, i
     return SResult_new(NULL);
 }
 
-static void Syntax_build_asmacro_expansion_useroperator(in Asmacro* asmacro, in Vec* dataes, inout Generator* generator, inout VariableManager* variable_manager) {
-    Parser proc_parser = asmacro->body.user_operator;
+static void Syntax_build_asmacro_expansion_usermacro(in Asmacro* asmacro, in Vec* dataes, inout Generator* generator, inout VariableManager* variable_manager) {
+    Parser proc_parser = asmacro->body.user_macro;
     
     for(u32 i=0; i<Vec_len(dataes); i++) {
         Argument* arg = Vec_index(&asmacro->arguments, i);
@@ -645,14 +645,14 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
     VariableManager_new_block(variable_manager);
 
     switch(asmacro.type) {
-        case Asmacro_AsmOperator:
+        case Asmacro_AsmMacro:
             SRESULT_UNWRAP(
-                Syntax_build_asmacro_expansion_asmoperator(&asmacro, &arguments, generator),
+                Syntax_build_asmacro_expansion_asmmacro(&asmacro, &arguments, generator),
                 Asmacro_free(asmacro);Vec_free_all(arguments, Data_free_for_vec);
             );
             break;
-        case Asmacro_UserOperator:
-            Syntax_build_asmacro_expansion_useroperator(&asmacro, &arguments, generator, variable_manager);
+        case Asmacro_UserMacro:
+            Syntax_build_asmacro_expansion_usermacro(&asmacro, &arguments, generator, variable_manager);
             break;
         case Asmacro_FnWrapper:
             SRESULT_UNWRAP(

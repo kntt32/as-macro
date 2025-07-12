@@ -174,10 +174,10 @@ typedef struct {
     char valid_path[256];// public: \0
 
     Vec arguments;// Vec<Argument>
-    enum { Asmacro_AsmOperator, Asmacro_UserOperator, Asmacro_FnWrapper } type;
+    enum { Asmacro_AsmMacro, Asmacro_UserMacro, Asmacro_FnWrapper } type;
     union {
-        AsmEncoding asm_operator;
-        Parser user_operator;
+        AsmEncoding asm_macro;
+        Parser user_macro;
         Vec fn_wrapper;// Vec<Variable>
     } body;
 } Asmacro;

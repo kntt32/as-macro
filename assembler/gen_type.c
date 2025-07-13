@@ -365,9 +365,11 @@ static ParserMsg Type_initialize_str(in Type* self, inout Parser* parser, inout 
 static ParserMsg Type_initialize_struct(in Type* self, inout Parser* parser, inout Vec* bin) {
     Parser parser_copy = *parser;
 
-    PARSERMSG_UNWRAP(
-        Parser_parse_keyword(&parser_copy, self->name), (void)NULL
-    );
+    if(self->name[0] != '\0') {
+        PARSERMSG_UNWRAP(
+            Parser_parse_keyword(&parser_copy, self->name), (void)NULL
+        );
+    }
     PARSERMSG_UNWRAP(
         Parser_parse_symbol(&parser_copy, "{"), (void)NULL
     );

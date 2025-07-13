@@ -313,6 +313,7 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* s
 bool Data_cmp(in Data* self, in Data* other);
 Data Data_from_register(Register reg);
 Data Data_from_imm(u64 imm);
+Data Data_from_imm_bin(Vec bin, Type type);
 Data Data_from_label(in char* label);
 Data Data_from_mem(Register reg, i32 offset, in optional char* label, Type type);
 Data Data_true(void);
@@ -331,7 +332,8 @@ void Data_free(Data self);
 void Data_free_for_vec(inout void* ptr);
 
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable);
-ParserMsg Variable_parse_global(inout Parser* parser, bool public_flag, inout Generator* generator);
+ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, inout Generator* generator);
+ParserMsg Variable_parse_const(inout Parser* parser, bool public_flag, inout Generator* generator);
 void Variable_restrict_namespace(inout Variable* self, in char* namespace);
 bool Variable_cmp(in Variable* self, in Variable* other);
 bool Variable_cmp_for_vec(in void* left, in void* right);

@@ -1,13 +1,14 @@
 import std;
 
 static string: [char; 20] = "Hello, World!\n";
+const stdout: i64 = 1;
 
 pub fn main() {
     let fd: i64@rdi;
     let msg: char*@rsi;
     let len: i64@rdx;
 
-    fd = 1;
+    fd = stdout;
     lea(msg, string[0]);
     len = 14;
 

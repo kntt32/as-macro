@@ -85,6 +85,17 @@ Data Data_from_imm(u64 imm) {
     return data;
 }
 
+Data Data_from_imm_bin(Vec bin, Type type) {
+    assert(type.size == Vec_len(&bin));
+
+    Data data = {
+        type,
+        {StorageType_imm, {.imm = {Imm_Value, {.value = bin}}}}
+    };
+
+    return data;
+}
+
 Data Data_from_label(in char* label) {
     Data data = {
         {"i32", "", Type_Integer, {}, 4, 4},

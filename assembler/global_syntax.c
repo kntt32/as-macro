@@ -273,7 +273,7 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
     return true;
 }
 
-static bool GlobalSyntax_parse_global_variable(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+static bool GlobalSyntax_parse_static_variable(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
     // (pub) static $name: $type (= expr);
 
     bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
@@ -282,16 +282,40 @@ static bool GlobalSyntax_parse_global_variable(Parser parser, inout Generator* g
     }
 
     global_syntax->ok_flag = false;
-    global_syntax->type = GlobalSyntax_GlobalVariable;
+    global_syntax->type = GlobalSyntax_StaticVariable;
 
     if(resolve_parsermsg(
-        Variable_parse_global(&parser, public_flag, generator), generator
+        Variable_parse_static(&parser, public_flag, generator), generator
     )) {
         return true;
     }
 
-    global_syntax->ok_flag = true;
+    check_parser(&parser, generator);
 
+    global_syntax->ok_flag = true;
+    return true;
+}
+
+static bool GlobalSyntax_parse_const_variable(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    // (pub) const $name: $type = expr;
+
+    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "const"))) {
+        return false;
+    }
+
+    global_syntax->ok_flag = false;
+    global_syntax->type = GlobalSyntax_ConstVariable;
+
+    if(resolve_parsermsg(
+        Variable_parse_const(&parser, public_flag, generator), generator
+    )) {
+        return true;
+    }
+
+    check_parser(&parser, generator);
+
+    global_syntax->ok_flag = true;
     return true;
 }
 
@@ -303,7 +327,8 @@ ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out Glob
         GlobalSyntax_parse_type_alias,
         GlobalSyntax_parse_import,
         GlobalSyntax_parse_function_definision,
-        GlobalSyntax_parse_global_variable
+        GlobalSyntax_parse_static_variable,
+        GlobalSyntax_parse_const_variable
     };
     
     for(u32 i=0; i<LEN(BUILDERS); i++) {
@@ -434,7 +459,7 @@ void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
         case GlobalSyntax_TypeAlias:
         case GlobalSyntax_AsmacroDefinision:
         case GlobalSyntax_Import:
-        case GlobalSyntax_GlobalVariable:
+        case GlobalSyntax_StaticVariable:
             break;
         case GlobalSyntax_FunctionDefinision:
             GlobalSyntax_build_function_definision(self, generator);
@@ -471,7 +496,7 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
         case GlobalSyntax_Import:
             printf(".none");
             break;
-        case GlobalSyntax_GlobalVariable:
+        case GlobalSyntax_StaticVariable:
             break;
     }
     printf(" }");
@@ -497,7 +522,7 @@ void GlobalSyntax_free(GlobalSyntax self) {
         case GlobalSyntax_FunctionDefinision:
             VariableManager_free(self.body.function_definision.variable_manager);
             break;
-        case GlobalSyntax_GlobalVariable:
+        case GlobalSyntax_StaticVariable:
             break;
     }
 }

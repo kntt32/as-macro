@@ -75,10 +75,10 @@ void ModRmType_print(in ModRmType* self) {
 
 static ParserMsg AsmEncodingElement_parse_imm_and_addreg(inout Parser* parser, out AsmEncodingElement* asm_encoding_element) {
     static struct { char str[5]; u8 imm_field; } IMMS[4] = {
-        {"ib", 8}, {"iw", 16}, {"id", 32}, {"iq", 64}
+        {"ib", 1}, {"iw", 2}, {"id", 4}, {"iq", 8}
     };
     static struct { char str[5]; u8 add_reg_field; } ADD_REGS[4] = {
-        {"rb", 8}, {"rw", 16}, {"rd", 32}, {"rq", 64}
+        {"rb", 1}, {"rw", 2}, {"rd", 4}, {"rq", 8}
     };
 
     Parser parser_copy = *parser;
@@ -162,7 +162,7 @@ static SResult ModRmType_encode_rex_prefix_reg(in ModRmType* self, in AsmArgs* a
         *rex_prefix |= REX_R;
         *rex_prefix_needed_flag = true;
     }
-    if(self->memsize == 8 && (modrmreg_code & REG_REX)) {
+    if(self->memsize == 1 && (modrmreg_code & REG_REX)) {
         *rex_prefix_needed_flag = true;
     }
 
@@ -186,7 +186,7 @@ static SResult ModRmType_encode_rex_prefix_regmem_reg(in ModRmType* self, in Asm
         *rex_prefix_needed_flag = true;
     }
 
-    if(self->memsize == 8 && (code & MODRMBASE_REX)) {
+    if(self->memsize == 1 && (code & MODRMBASE_REX)) {
         *rex_prefix_needed_flag = true;
     }
 
@@ -224,7 +224,7 @@ static SResult ModRmType_encode_rex_prefix_regmem_mem(in ModRmType* self, in Asm
                 *rex_prefix_needed_flag = true;
                 *rex_prefix |= REX_B;
             }
-            if(self->memsize == 8 && (code & MODRMBASE_REX)) {
+            if(self->memsize == 1 && (code & MODRMBASE_REX)) {
                 *rex_prefix_needed_flag = true;
             }
             break;
@@ -468,7 +468,7 @@ SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmA
                 Register_get_addreg_code(args->reg.reg, &addreg_code),
                 (void)NULL
             );
-            if(self->body.add_reg == 8 && addreg_code & ADDREG_REX) {
+            if(self->body.add_reg == 1 && addreg_code & ADDREG_REX) {
                 *rex_prefix_need_flag = true;
             }
             if(addreg_code & ADDREG_REXB) {
@@ -499,7 +499,7 @@ static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in Asm
         case Imm_Value:
         {
             u32 vec_len = Vec_len(&imm->body.value);
-            for(u32 i=0; i<self->body.imm/8; i++) {
+            for(u32 i=0; i<self->body.imm; i++) {
                 u8 byte = (i < vec_len)?(*(u8*)Vec_index(&imm->body.value, i)):(0);
                 SRESULT_UNWRAP(
                     Generator_append_binary(generator, ".text", byte),
@@ -605,13 +605,13 @@ ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmE
     Parser parser_copy = *parser;
 
     if(ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "quad"))) {
-        asm_encoding->default_operand_size = 64;
+        asm_encoding->default_operand_size = 8;
     }else {
         PARSERMSG_UNWRAP(
             Parser_parse_keyword(&parser_copy, "double"),
             (void)NULL
         );
-        asm_encoding->default_operand_size = 32;
+        asm_encoding->default_operand_size = 4;
     }
     PARSERMSG_UNWRAP(
         Parser_parse_symbol(&parser_copy, ":"),
@@ -635,7 +635,7 @@ ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmE
         }
     }
     
-    asm_encoding->operand_size = 32;
+    asm_encoding->operand_size = 4;
     asm_encoding->encoding_elements = elements;
 
     *parser = parser_copy;
@@ -644,30 +644,30 @@ ParserMsg AsmEncoding_parse(inout Parser* parser, in AsmArgSize* sizes, out AsmE
 
 static SResult AsmEncoding_encode_prefix_set_defaults(in AsmEncoding* self, inout bool* x66_prefix_needed_flag, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
     switch(self->default_operand_size) {
-        case 32:
+        case 4:
             switch(self->operand_size) {
-                case 8:
+                case 1:
                     break;
-                case 16:
+                case 2:
                     *x66_prefix_needed_flag = true;
                     break;
-                case 32:
+                case 4:
                     break;
-                case 64:
+                case 8:
                     *rex_prefix_needed_flag = true;
                     *rex_prefix |= REX_W;
                     break;
                 default: PANIC("unreachable");
             }
             break;
-        case 64:
+        case 8:
             switch(self->operand_size) {
-                case 16:
+                case 2:
                     *x66_prefix_needed_flag = true;
                     break;
-                case 32:
+                case 4:
                     break;
-                case 64:
+                case 8:
                     *rex_prefix |= REX_W;
                     break;
                 default: PANIC("unreachable");
@@ -705,7 +705,7 @@ static SResult AsmEncoding_encode_prefix(in AsmEncoding* self, in AsmArgs* args,
             (void)NULL
         );
     }
-    if(rex_prefix_needed_flag && (self->operand_size == 8 || (rex_prefix & 0x0f) != 0)) {
+    if(rex_prefix_needed_flag) {
         SRESULT_UNWRAP(
             Generator_append_binary(generator, ".text", rex_prefix),
             (void)NULL

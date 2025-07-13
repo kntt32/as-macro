@@ -19,6 +19,7 @@ struct Type {
         Type_Array,
         Type_Struct,
         Type_Enum,
+        // Type_Union,
         Type_Floating,
         Type_LazyPtr,
         Type_Fn,
@@ -28,6 +29,7 @@ struct Type {
         struct { struct Type* type; u32 len; } t_array;
         Vec t_struct;// Vec<StructMember>
         Vec t_enum;// Vec<EnumMember>
+        Vec t_union;// Vec<UnionMember>
         char t_lazy_ptr[256];
         struct Type* t_alias;
         Vec t_fn;// Vec<Data>
@@ -49,9 +51,11 @@ typedef struct {
     u32 value;
 } EnumMember;
 
+typedef StructMember UnionMember;
+
 typedef struct {
-    u8 reg;// 0, 8, 16, 32, 64
-    u8 regmem;// 0, 8, 16, 32, 64
+    u8 reg;// 0, 1, 2, 4, 8
+    u8 regmem;// 0, 1, 2, 4, 8
 } AsmArgSize;
 
 typedef struct {
@@ -61,9 +65,9 @@ typedef struct {
     } type;
     union {
         u8 digit;// 0~7
-        u8 r;// 8, 16, 32, 64 size of reg field register
+        u8 r;// 0, 1, 2, 4, 8 size of reg field register
     } body;
-    u8 memsize;// 8, 16, 32, 64 size of regmem field operand
+    u8 memsize;// 0, 1, 2, 4, 8 size of regmem field operand
 } ModRmType;
 
 typedef struct {
@@ -75,16 +79,16 @@ typedef struct {
     } type;
     union {
         u8 value;
-        u8 imm;// size of immidiate value (8, 16, 32, 64)
+        u8 imm;// size of immidiate value (1, 2, 4, 8)
         ModRmType mod_rm;// modrm type
-        u8 add_reg;// register size to add (8, 16, 32, 64)
+        u8 add_reg;// register size to add (1, 2, 4, 8)
     } body;
 } AsmEncodingElement;
 
 typedef struct {
     Vec encoding_elements;// Vec<AsmEncodingElement>
-    u8 default_operand_size;// 32, 64
-    u8 operand_size;// 8, 16, 32, 64
+    u8 default_operand_size;// 4, 8
+    u8 operand_size;// 1, 2, 4, 8
 } AsmEncoding;
 
 typedef enum {

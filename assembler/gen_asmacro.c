@@ -493,7 +493,7 @@ static ParserMsg Asmacro_parse_encoding(inout Parser* parser, out Asmacro* asmac
                 AsmEncoding_free(asmacro->body.asm_macro);
                 return ParserMsg_new(parser->offset, "operand size must be 1, 2, 4 or 8 byte");
         }
-        asmacro->body.asm_macro.operand_size = argument->type.size * 8;
+        asmacro->body.asm_macro.operand_size = argument->type.size;
     }
 
     *parser = parser_copy;

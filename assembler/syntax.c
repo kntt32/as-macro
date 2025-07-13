@@ -746,15 +746,9 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
         return true;
     }
 
-    Vec sub_args = Vec_new(sizeof(Data));
-    Data sub_arg_rsp = Data_from_register(Rsp);
-    Data sub_arg_imm = Data_from_imm(stack_offset - variable_manager->stack_offset);
-    Vec_push(&sub_args, &sub_arg_rsp);
-    Vec_push(&sub_args, &sub_arg_imm);
-    Data sub_data;
-    if(!resolve_sresult(expand_asmacro("sub", "", sub_args, generator, variable_manager, &sub_data), parser.offset, generator)) {
-        Data_free(sub_data);
-    }
+    resolve_sresult(
+        sub_rsp(stack_offset - variable_manager->stack_offset, generator, variable_manager), parser.offset, generator
+    );
 
     resolve_sresult(
         VariableManager_push(variable_manager, variable, generator),

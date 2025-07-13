@@ -137,7 +137,7 @@ ParserMsg AsmEncodingElement_parse(inout Parser* parser, in AsmArgSize* sizes, o
     return ParserMsg_new(parser->offset, NULL);
 }
 
-static SResult ModRmType_encode_rex_prefix_reg(in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
+static SResult ModRmType_encode_rex_prefix_reg(in ModRmType* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
     if(!args->reg_flag) {
         return SResult_new("expected register argument");
     }
@@ -162,14 +162,14 @@ static SResult ModRmType_encode_rex_prefix_reg(in AsmArgs* args, inout u8* rex_p
         *rex_prefix |= REX_R;
         *rex_prefix_needed_flag = true;
     }
-    if(modrmreg_code & REG_REX) {
+    if(self->memsize == 8 && (modrmreg_code & REG_REX)) {
         *rex_prefix_needed_flag = true;
     }
 
     return SResult_new(NULL);
 }
 
-static SResult ModRmType_encode_rex_prefix_regmem_reg(in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
+static SResult ModRmType_encode_rex_prefix_regmem_reg(in ModRmType* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
     assert(args != NULL && rex_prefix != NULL && rex_prefix_needed_flag != NULL);
     if(!args->regmem_flag || args->regmem_type != AsmArgs_Rm_Reg) {
         return SResult_new("unexpected encoding rule");
@@ -186,14 +186,14 @@ static SResult ModRmType_encode_rex_prefix_regmem_reg(in AsmArgs* args, inout u8
         *rex_prefix_needed_flag = true;
     }
 
-    if(code & MODRMBASE_REX) {
+    if(self->memsize == 8 && (code & MODRMBASE_REX)) {
         *rex_prefix_needed_flag = true;
     }
 
     return SResult_new(NULL);
 }
 
-static SResult ModRmType_encode_rex_prefix_regmem_mem(in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
+static SResult ModRmType_encode_rex_prefix_regmem_mem(in ModRmType* self, in AsmArgs* args, inout u8* rex_prefix, inout bool* rex_prefix_needed_flag) {
     if(!args->regmem_flag || args->regmem_type != AsmArgs_Rm_Mem) {
         return SResult_new("unexpected encoding rule");
     }
@@ -224,7 +224,7 @@ static SResult ModRmType_encode_rex_prefix_regmem_mem(in AsmArgs* args, inout u8
                 *rex_prefix_needed_flag = true;
                 *rex_prefix |= REX_B;
             }
-            if(code & MODRMBASE_REX) {
+            if(self->memsize == 8 && (code & MODRMBASE_REX)) {
                 *rex_prefix_needed_flag = true;
             }
             break;
@@ -244,13 +244,13 @@ static SResult ModRmType_encode_rex_prefix_regmem(in ModRmType* self, in AsmArgs
         case AsmArgs_Rm_Reg:
         case AsmArgs_Rm_Xmm:
             SRESULT_UNWRAP(
-                ModRmType_encode_rex_prefix_regmem_reg(args, rex_prefix, rex_prefix_needed_flag),
+                ModRmType_encode_rex_prefix_regmem_reg(self, args, rex_prefix, rex_prefix_needed_flag),
                 (void)NULL
             );
             break;
         case AsmArgs_Rm_Mem:
             SRESULT_UNWRAP(
-                ModRmType_encode_rex_prefix_regmem_mem(args, rex_prefix, rex_prefix_needed_flag),
+                ModRmType_encode_rex_prefix_regmem_mem(self, args, rex_prefix, rex_prefix_needed_flag),
                 (void)NULL
             );
             break;
@@ -263,7 +263,7 @@ SResult ModRmType_encode_rex_prefix(in ModRmType* self, in AsmArgs* args, inout 
     switch(self->type) {
         case ModRmType_R:
             SRESULT_UNWRAP(
-                ModRmType_encode_rex_prefix_reg(args, rex_prefix, rex_prefix_needed_flag),
+                ModRmType_encode_rex_prefix_reg(self, args, rex_prefix, rex_prefix_needed_flag),
                 (void)NULL
             );
             SRESULT_UNWRAP(
@@ -468,7 +468,7 @@ SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmA
                 Register_get_addreg_code(args->reg.reg, &addreg_code),
                 (void)NULL
             );
-            if(addreg_code & ADDREG_REX) {
+            if(self->body.add_reg == 8 && addreg_code & ADDREG_REX) {
                 *rex_prefix_need_flag = true;
             }
             if(addreg_code & ADDREG_REXB) {

@@ -148,11 +148,53 @@ static ParserMsg Parser_parse_parens_helper(inout Parser* self, out Parser* pars
     return ParserMsg_new(self->offset, NULL);
 }
 
+static bool Parser_skip_long_comment(inout Parser* self) {
+    if(!ParserMsg_is_success(
+        Parser_parse_symbol(self, "/*")
+    )) {
+        return false;
+    }
+
+    loop {
+        if(ParserMsg_is_success(Parser_parse_symbol(self, "*/"))
+            || Parser_is_empty(self)) {
+            return true;
+        }
+
+        Parser_read(self);
+    }
+}
+
+static bool Parser_skip_comment(inout Parser* self) {
+    if(!ParserMsg_is_success(
+        Parser_parse_symbol(self, "//")
+    )) {
+        return false;
+    }
+
+    loop {
+        char c = Parser_read(self);
+        if(c == '\0' || c == '\n') {
+            return true;
+        }
+    }
+}
+
 void Parser_skip_space(inout Parser* self) {
     assert(self != NULL);
 
-    while(isspace((unsigned char)Parser_look(self))) {
-        Parser_read(self);
+    loop {
+        if(isspace((unsigned char)Parser_look(self))) {
+            Parser_read(self);
+            continue;
+        }
+        if(Parser_skip_comment(self)) {
+            continue;
+        }
+        if(Parser_skip_long_comment(self)) {
+            continue;
+        }
+        break;
     }
 }
 

@@ -27,7 +27,7 @@ pub fn main() {
     lea(fnptr, fnptr_test);
     let a: i32@rax;
     a = 5;
-    fnptr_wrapper(fnptr, a);
+    fnptr_wrapper(fnptr, a);// fn pointer calling test
     my_enum = MyEnum.A;
 
     let fd: i64@rdi;

@@ -170,6 +170,14 @@ bool Argument_match_with(in Argument* self, in Data* data) {
         }
     }else if(strcmp(self_type->name, "t") == 0) {
         return true;
+    }else if(strcmp(self_type->name, "void*") == 0) {
+        if(data->type.type == Type_Ptr) {
+            return true;
+        }
+    }else if(strcmp(data->type.name, "void*") == 0) {
+        if(self_type->type == Type_Ptr) {
+            return true;
+        }
     }
 
     if(!Type_cmp(&self->type, &data->type)) {

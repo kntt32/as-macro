@@ -256,7 +256,15 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
         return true;
     }
 
-    Asmacro wrapper_asmacro = Asmacro_new_fn_wrapper(name, arguments, (public_flag)?(""):(Parser_path(&parser)));
+    char* valid_path = (public_flag)?(""):(Parser_path(&parser));
+
+    Variable variable = Variable_from_function(name, valid_path, &arguments);
+    if(resolve_sresult(Generator_add_global_variable(generator, variable), parser.offset, generator)) {
+        Vec_free_all(arguments, Argument_free_for_vec);
+        return true;
+    }
+
+    Asmacro wrapper_asmacro = Asmacro_new_fn_wrapper(name, arguments, valid_path);
     if(resolve_sresult(Generator_add_asmacro(generator, wrapper_asmacro), parser.offset, generator)) {
         VariableManager_free(variable_manager);
         return true;
@@ -460,6 +468,7 @@ void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
         case GlobalSyntax_AsmacroDefinision:
         case GlobalSyntax_Import:
         case GlobalSyntax_StaticVariable:
+        case GlobalSyntax_ConstVariable:
             break;
         case GlobalSyntax_FunctionDefinision:
             GlobalSyntax_build_function_definision(self, generator);
@@ -477,26 +486,30 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
 
     switch(self->type) {
         case GlobalSyntax_StructDefinision:
-            printf(".none");
+            printf("none");
             break;
         case GlobalSyntax_EnumDefinision:
-            printf(".none");
+            printf("none");
             break;
         case GlobalSyntax_AsmacroDefinision:
             printf(".asmacro_definision: ");
             Asmacro_print(&self->body.asmacro_definision);
             break;
         case GlobalSyntax_TypeAlias:
-            printf(".none");
+            printf("none");
             break;
         case GlobalSyntax_FunctionDefinision:
             printf(".function_definision: name: %s, public_flag: %s, variable_manager: ", self->body.function_definision.name, BOOL_TO_STR(self->body.function_definision.public_flag));
             VariableManager_print(&self->body.function_definision.variable_manager);
             break;
         case GlobalSyntax_Import:
-            printf(".none");
+            printf("none");
             break;
         case GlobalSyntax_StaticVariable:
+            printf("none");
+            break;
+        case GlobalSyntax_ConstVariable:
+            printf("none");
             break;
     }
     printf(" }");
@@ -515,6 +528,7 @@ void GlobalSyntax_free(GlobalSyntax self) {
         case GlobalSyntax_EnumDefinision:
         case GlobalSyntax_TypeAlias:
         case GlobalSyntax_Import:
+        case GlobalSyntax_ConstVariable:
             break;
         case GlobalSyntax_AsmacroDefinision:
             Asmacro_free(self.body.asmacro_definision);

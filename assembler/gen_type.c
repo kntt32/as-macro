@@ -17,7 +17,9 @@ Vec Type_primitives(void) {
         {"b8", "", Type_Integer, {}, 1, 1},
         {"b16", "", Type_Integer, {}, 2, 2},
         {"b32", "", Type_Integer, {}, 4, 4},
-        {"b64", "", Type_Integer, {}, 8, 8}
+        {"b64", "", Type_Integer, {}, 8, 8},
+        {"b", "", Type_Integer, {}, 1, 1},
+        {"t", "", Type_Integer, {}, 1, 1},
     };
     Vec types = Vec_from(primitives, LEN(primitives), sizeof(Type));
 
@@ -223,6 +225,44 @@ ParserMsg Type_parse_lazyptr(inout Parser* parser, out Type* type) {
     return ParserMsg_new(parser->offset, NULL);
 }
 
+ParserMsg Type_parse_fn(inout Parser* parser, in Generator* generator, out Type* type) {
+    // fn(..)
+
+    Parser parser_copy = *parser;
+
+    Parser paren_parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_paren(&parser_copy, &paren_parser), (void)NULL
+    );
+
+    Vec arguments = Vec_new(sizeof(Data));
+    while(!Parser_is_empty(&paren_parser)) {
+        i32 dummy = 0;
+        Data argument;
+        PARSERMSG_UNWRAP(
+            Data_parse(&paren_parser, generator, &dummy, &argument), Vec_free_all(arguments, Data_free_for_vec)
+        );
+        Vec_push(&arguments, &argument);
+
+        if(!Parser_is_empty(&paren_parser)) {
+            PARSERMSG_UNWRAP(
+                Parser_parse_symbol(&paren_parser, ","), Vec_free_all(arguments, Data_free_for_vec)
+            );
+        }
+    }
+
+    type->name[0] = '\0';
+    type->valid_path[0] = '\0';
+    type->type = Type_Fn;
+    type->body.t_fn = arguments;
+    type->size = 0;
+    type->align = 0x10;
+
+    *parser = parser_copy;
+
+    return ParserMsg_new(parser->offset, NULL);
+}
+
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type) {
     Parser parser_copy = *parser;
 
@@ -240,6 +280,11 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
     }else if(strcmp(token, "enum") == 0) {
         PARSERMSG_UNWRAP(
             Type_parse_enum(&parser_copy, type),
+            (void)NULL
+        );
+    }else if(strcmp(token, "fn") == 0) {
+        PARSERMSG_UNWRAP(
+            Type_parse_fn(&parser_copy, generator, type),
             (void)NULL
         );
     }else if(!SResult_is_success(
@@ -483,6 +528,25 @@ void Type_restrict_namespace(inout Type* self, in char* namespace) {
     snprintf(self->valid_path, 256, "%.255s", namespace);
 }
 
+Type Type_fn_from(in Vec* arguments) {
+    assert(Vec_size(arguments) == sizeof(Variable));
+
+    Type type;
+    type.name[0] = '\0';
+    type.valid_path[0] = '\0';
+    type.type = Type_Fn;
+    type.body.t_fn = Vec_new(sizeof(Data));
+    for(u32 i=0; i<Vec_len(arguments); i++) {
+        Variable* variable = Vec_index(arguments, i);
+        Data data = Data_clone(&variable->data);
+        Vec_push(&type.body.t_fn, &data);
+    }
+    type.size = 0;
+    type.align = 0x10;
+
+    return type;
+}
+
 SResult Type_dot_element(in Type* self, in char* element, out u32* offset, out Type* type) {
     assert(self != NULL && element != NULL && offset != NULL && type != NULL);
 
@@ -562,6 +626,7 @@ Type Type_as_alias(Type self, in char* name) {
 
 bool Type_cmp(in Type* self, in Type* other) {
     if(strcmp(self->name, other->name) != 0
+        || strcmp(self->valid_path, other->valid_path) != 0
         || self->type != other->type
         || self->size != other->size
         || self->align != other->align) {
@@ -595,6 +660,10 @@ bool Type_cmp(in Type* self, in Type* other) {
             break;
         case Type_LazyPtr:
             break;
+        case Type_Fn:
+            if(!Vec_cmp(&self->body.t_fn, &other->body.t_fn, Data_cmp_signature_for_vec)) {
+                return false;
+            }
     }
     return true;
 }
@@ -624,6 +693,9 @@ Type Type_clone(in Type* self) {
         case Type_Floating:
             break;
         case Type_LazyPtr:
+            break;
+        case Type_Fn:
+            type.body.t_fn = Vec_clone(&self->body.t_fn, Data_clone_for_vec);
             break;
     }
     return type;
@@ -658,6 +730,10 @@ void Type_print(in Type* self) {
         case Type_LazyPtr:
             printf(".t_lazy_ptr: %s", self->body.t_lazy_ptr);
             break;
+        case Type_Fn:
+            printf(".fn: ");
+            Vec_print(&self->body.t_fn, Data_free_for_vec);
+            break;
     }
     printf(", size: %u, align: %lu }", self->size, self->align);
 }
@@ -688,6 +764,9 @@ void Type_free(Type self) {
         case Type_Floating:
             break;
         case Type_LazyPtr:
+            break;
+        case Type_Fn:
+            Vec_free_all(self.body.t_fn, Data_free_for_vec);
             break;
     }
 }

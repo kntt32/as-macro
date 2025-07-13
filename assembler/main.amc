@@ -3,7 +3,26 @@ import std;
 static string: [char; 20] = "Hello, World!\n";
 const stdout: i64 = 1;
 
+fn fnptr_test(a: i32@rax) {
+    nop();
+};
+
+as wrapper(fnptr: b64@reg) {
+    pop(rbp);
+    jmp(fnptr);
+};
+
+fn fnptr_wrapper(fnptr: b64@rdi, a: i32@rax) {
+    wrapper(fnptr);
+};
+
 pub fn main() {
+    let fnptr: fn(i32@rax)*@rdi;
+    lea(fnptr, fnptr_test);
+    let a: i32@rax;
+    a = 5;
+    fnptr_wrapper(fnptr, a);
+
     let fd: i64@rdi;
     let msg: char*@rsi;
     let len: i64@rdx;

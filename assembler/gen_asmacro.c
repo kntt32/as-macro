@@ -164,6 +164,12 @@ bool Argument_match_with(in Argument* self, in Data* data) {
         if(data_type_size == 8) {
             return true;
         }
+    }else if(strcmp(self_type->name, "b") == 0) {
+        if(data->type.type == Type_Integer) {
+            return true;
+        }
+    }else if(strcmp(self_type->name, "t") == 0) {
+        return true;
     }
 
     if(!Type_cmp(&self->type, &data->type)) {

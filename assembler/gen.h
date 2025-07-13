@@ -21,6 +21,7 @@ struct Type {
         Type_Enum,
         Type_Floating,
         Type_LazyPtr,
+        Type_Fn,
     } type;
     union {
         struct Type* t_ptr;
@@ -29,6 +30,7 @@ struct Type {
         Vec t_enum;// Vec<EnumMember>
         char t_lazy_ptr[256];
         struct Type* t_alias;
+        Vec t_fn;// Vec<Data>
     } body;
     u32 size;
     u64 align;
@@ -239,11 +241,13 @@ Vec Type_primitives(void);
 ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_parse_enum(inout Parser* parser, out Type* type);
 ParserMsg Type_parse_lazyptr(inout Parser* parser, out Type* type);
+ParserMsg Type_parse_fn(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_initialize(in Type* self, inout Parser* parser, inout Vec* bin);
 Type Type_clone(in Type* self);
 void Type_restrict_namespace(inout Type* self, in char* namespace);
 Type Type_as_alias(Type self, in char* name);
+Type Type_fn_from(in Vec* arguments);
 SResult Type_dot_element(in Type* self, in char* element, out u32* offset, out Type* type);
 SResult Type_refer_operator(in Type* src, in Generator* generator, out Type* type);
 SResult Type_subscript(in Type* self, u32 index, out Type* type);
@@ -311,6 +315,9 @@ void Storage_free(Storage self);
 
 ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, out Data* data);
 bool Data_cmp(in Data* self, in Data* other);
+bool Data_cmp_for_vec(in void* left, in void* right);
+bool Data_cmp_signature(in Data* self, in Data* other);
+bool Data_cmp_signature_for_vec(in void* left, in void* right);
 Data Data_from_register(Register reg);
 Data Data_from_imm(u64 imm);
 Data Data_from_imm_bin(Vec bin, Type type);
@@ -321,6 +328,7 @@ Data Data_false(void);
 Data Data_null(void);
 Data Data_from_char(u8 code);
 Data Data_clone(in Data* self);
+void Data_clone_for_vec(in void* src, out void* dst);
 SResult Data_dot_operator(in Data* left, in char* element, out Data* data);
 SResult Data_ref(Data src, in Generator* generator, out Data* data);
 SResult Data_as_integer(in Data* self, out u64* integer);
@@ -334,6 +342,7 @@ void Data_free_for_vec(inout void* ptr);
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable);
 ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, inout Generator* generator);
 ParserMsg Variable_parse_const(inout Parser* parser, bool public_flag, inout Generator* generator);
+Variable Variable_from_function(in char* name, in char* valid_path, in Vec* arguments);
 void Variable_restrict_namespace(inout Variable* self, in char* namespace);
 bool Variable_cmp(in Variable* self, in Variable* other);
 bool Variable_cmp_for_vec(in void* left, in void* right);

@@ -32,6 +32,22 @@ bool Data_cmp(in Data* self, in Data* other) {
     return Type_cmp(&self->type, &other->type) && Storage_cmp(&self->storage, &other->storage);
 }
 
+bool Data_cmp_for_vec(in void* left, in void* right) {
+    return Type_cmp(left, right);
+}
+
+bool Data_cmp_signature(in Data* self, in Data* other) {
+    if(self->storage.type == StorageType_mem && other->storage.type == StorageType_mem) {
+        return Type_cmp(&self->type, &other->type);
+    }
+
+    return Data_cmp(self, other);
+}
+
+bool Data_cmp_signature_for_vec(in void* left, in void* right) {
+    return Data_cmp_signature(left, right);
+}
+
 Data Data_from_register(Register reg) {
     if(Register_is_integer(reg)) {
         Data data = {
@@ -190,6 +206,11 @@ Data Data_clone(in Data* self) {
     data.storage = Storage_clone(&self->storage);
     
     return data;
+}
+
+void Data_clone_for_vec(in void* src, out void* dst) {
+    Data* data = dst;
+    *data = Data_clone(src);
 }
 
 SResult Data_dot_operator(in Data* left, in char* element, out Data* data) {

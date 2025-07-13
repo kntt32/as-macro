@@ -155,6 +155,16 @@ ParserMsg Variable_parse_const(inout Parser* parser, bool public_flag, inout Gen
     return ParserMsg_new(parser->offset, NULL);
 }
 
+Variable Variable_from_function(in char* name, in char* valid_path, in Vec* arguments) {
+    Variable variable;
+    snprintf(variable.name, 256, "%.255s", name);
+    Type type = Type_fn_from(arguments);
+    variable.data = Data_from_mem(Rip, 0, name, type);
+    snprintf(variable.valid_path, 256, "%.255s", valid_path);
+
+    return variable;
+}
+
 void Variable_restrict_namespace(inout Variable* self, in char* namespace) {
     assert(self != NULL && namespace != NULL);
 

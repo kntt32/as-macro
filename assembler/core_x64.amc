@@ -353,10 +353,7 @@ pub as lahf() : (double: 0x9f);
 
 pub as lea(_: b16@reg, _: b16@mem) : (double: 0x8d, /r);
 pub as lea(_: b32@reg, _: b32@mem) : (double: 0x8d, /r);
-pub as lea(_: b64@reg, _: b64@mem) : (double: 0x8d, /r);
-pub as lea(_: b64@reg, _: b32@mem) : (double: 0x8d, /r);
-pub as lea(_: b64@reg, _: b16@mem) : (double: 0x8d, /r);
-pub as lea(_: b64@reg, _: b8@mem) : (double: 0x8d, /r);
+pub as lea(_: b64@reg, _: t@mem) : (double: 0x8d, /r);
 
 pub as lfence() : (double: 0x0f, 0xae, 0xe8);
 

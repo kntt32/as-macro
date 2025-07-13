@@ -36,22 +36,16 @@ fn test(n: i64@rax) {
     n = array[3];
 };
 
-fn write_test() {
-    let str: [char; 6]@stack;
-    str[0] = 'h';
-    str[1] = 'e';
-    str[2] = 'l';
-    str[3] = 'l';
-    str[4] = 'o';
-    str[5] = '\n';
+static string: [char; 20] = "Hello, World!\n";
 
+fn write_test() {
     let fd: i64@rdi;
     let msg: char*@rsi;
     let len: i64@rdx;
 
     fd = 1;
-    lea(msg, str[0]);
-    len = 6;
+    lea(msg, string[0]);
+    len = 14;
 
     write(fd, msg, len);
 };

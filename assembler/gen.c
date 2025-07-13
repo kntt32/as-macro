@@ -209,6 +209,23 @@ SResult Generator_add_global_variable(inout Generator* self, Variable variable) 
     return SResult_new(NULL);
 }
 
+SResult Generator_get_global_variable(in Generator* self, in char* path, in char* name, out Variable* variable) {
+    for(u32 i=0; i<Vec_len(&self->global_variables); i++) {
+        Variable* ptr = Vec_index(&self->global_variables, i);
+        if(ptr->valid_path[0] != '\0' && strcmp(ptr->valid_path, path) != 0) {
+            continue;
+        }
+        if(strcmp(ptr->name, name) == 0) {
+            *variable = Variable_clone(ptr);
+            return SResult_new(NULL);
+        }
+    }
+
+    char msg[256];
+    snprintf(msg, 256, "variable \"%.200s\" is undefined", name);
+    return SResult_new(msg);
+}
+
 SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro) {
     for(u32 i=0; i<Vec_len(&self->asmacroes); i++) {
         Asmacro* ptr = Vec_index(&self->asmacroes, i);

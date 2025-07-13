@@ -248,6 +248,7 @@ Elf64_Shdr Elf64_Shdr_from(in Section* section, inout StrTable* shstrtable, inou
     assert(section != NULL);
 
     Elf64_Shdr header;
+    memset(&header, 0, sizeof(header));
     header.sh_name = StrTable_push(shstrtable, section->name);
 
     if(strcmp(section->name, ".text") == 0) {
@@ -260,7 +261,28 @@ Elf64_Shdr Elf64_Shdr_from(in Section* section, inout StrTable* shstrtable, inou
         header.sh_info = 0;
         header.sh_addralign = 0x10;
         header.sh_entsize = 0;
+    }else if(strcmp(section->name, ".data") == 0) {
+        header.sh_type = SHT_PROGBITS;
+        header.sh_flags = SHF_ALLOC;
+        header.sh_addr = 0;
+        header.sh_offset = RawBin_push(rawbin, Vec_as_ptr(&section->binary), Vec_len(&section->binary), 0x10);
+        header.sh_size = Vec_len(&section->binary);
+        header.sh_link = 0;
+        header.sh_info = 0;
+        header.sh_addralign = 0x10;
+        header.sh_entsize = 0;
+    }else if(strcmp(section->name, ".bss") == 0) {
+        header.sh_type = SHT_NOBITS;
+        header.sh_flags = SHF_ALLOC;
+        header.sh_addr = 0;
+        header.sh_offset = 0;
+        header.sh_size = Vec_len(&section->binary);
+        header.sh_link = 0;
+        header.sh_info = 0;
+        header.sh_addralign = 0x10;
+        header.sh_entsize = 0;
     }else {
+        printf("%s\n", section->name);
         TODO();
     }
 
@@ -287,7 +309,7 @@ void Elf64_Shdr_note_gnustack(inout Vec* shdrs, inout StrTable* shstrtable) {
     Vec_push(shdrs, &shdr);
 }
 
-static u32 get_symbol_index(in Generator* generator, in char* section_name, in char* name) {
+static u32 get_symbol_index(in Generator* generator, in char* name) {
     u32 index = 1;
     bool flag = false;
 
@@ -295,7 +317,7 @@ static u32 get_symbol_index(in Generator* generator, in char* section_name, in c
         for(u32 i=0; i<Vec_len(&generator->labels); i++) {
             Label* label = Vec_index(&generator->labels, i);
             if(label->public_flag == flag) {
-                if(strcmp(label->name, name) == 0 && strcmp(label->section_name, section_name) == 0) {
+                if(strcmp(label->name, name) == 0) {
                     return index;
                 }
                 index++;
@@ -310,7 +332,7 @@ static u32 get_symbol_index(in Generator* generator, in char* section_name, in c
 Elf64_Rela Elf64_Rela_from(Rela* rela, in Generator* generator) {
     assert(rela != NULL && generator != NULL);
 
-    u32 sym = get_symbol_index(generator, rela->section_name, rela->label);
+    u32 sym = get_symbol_index(generator, rela->label);
 
     Elf64_Rela elf_rela;
     memset(&elf_rela, 0, sizeof(elf_rela));
@@ -322,20 +344,22 @@ Elf64_Rela Elf64_Rela_from(Rela* rela, in Generator* generator) {
     return elf_rela;
 }
 
-static Vec Elf64_Shdr_rela_get_relas(in Generator* generator) {
+static Vec Elf64_Shdr_rela_get_relas(in Generator* generator, in char* section_name) {
     Vec elf_relas = Vec_new(sizeof(Elf64_Rela));
 
     for(u32 i=0; i<Vec_len(&generator->relas); i++) {
         Rela* rela = Vec_index(&generator->relas, i);
-        Elf64_Rela elf_rela = Elf64_Rela_from(rela, generator);
-        Vec_push(&elf_relas, &elf_rela);
+        if(strcmp(rela->section_name, section_name) == 0) {
+            Elf64_Rela elf_rela = Elf64_Rela_from(rela, generator);
+            Vec_push(&elf_relas, &elf_rela);
+        }
     }
 
     return elf_relas;
 }
 
 Elf64_Shdr Elf64_Shdr_rela(in Generator* generator, in char* section_name, in Vec* shdrs, inout StrTable* shstrtable, inout RawBin* rawbin) {
-    Vec elf_relas = Elf64_Shdr_rela_get_relas(generator);
+    Vec elf_relas = Elf64_Shdr_rela_get_relas(generator, section_name);
     
     Elf64_Shdr shdr;
     memset(&shdr, 0, sizeof(shdr));

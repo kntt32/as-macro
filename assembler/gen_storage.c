@@ -10,7 +10,7 @@ u64 Disp_size(in Disp* self) {
     if(self->label[0] != '\0') {
         size = 4;
     }else {
-        size = (-128 <= self->offset && self->offset < 128)?(8):(32);
+        size = (-128 <= self->offset && self->offset < 128)?(1):(4);
     }
 
     return size;

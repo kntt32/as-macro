@@ -95,11 +95,15 @@ Data Data_from_label(in char* label) {
     return data;
 }
 
-Data Data_from_mem(Register reg, i32 offset, Type type) {
+Data Data_from_mem(Register reg, i32 offset, in optional char* label, Type type) {
     Data data = {
         type,
         {StorageType_mem, {.mem = {reg, {offset, ""}}}}
     };
+    if(label != NULL) {
+        snprintf(data.storage.body.mem.disp.label, 256, "%.255s", label);
+    }
+
     return data;
 }
 

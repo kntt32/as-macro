@@ -197,7 +197,7 @@ void VariableManager_new_block(inout VariableManager* self) {
 static SResult restore_variable(in StoredReg* stored_reg, inout Generator* generator, inout VariableManager* variable_manager) {
     Vec mov_args = Vec_new(sizeof(Data));
     Type type = {"i64", "", Type_Integer, {}, 8, 8};
-    Data mov_src = Data_from_mem(Rbp, stored_reg->stack_offset, type);
+    Data mov_src = Data_from_mem(Rbp, stored_reg->stack_offset, NULL, type);
     Data mov_dst = Data_from_register(stored_reg->reg);
     Vec_push(&mov_args, &mov_src);
     Vec_push(&mov_args, &mov_dst);
@@ -561,7 +561,7 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_stack_args(in Asmac
 
         Vec mov_args = Vec_new(sizeof(Data));
         Data* mov_arg_src_ptr = Vec_index(arguments, i);
-        Data mov_arg_dst = Data_from_mem(Rbp, push_offset, Type_clone(&mov_arg_src_ptr->type));
+        Data mov_arg_dst = Data_from_mem(Rbp, push_offset, NULL, Type_clone(&mov_arg_src_ptr->type));
         Data mov_arg_src = Data_clone(mov_arg_src_ptr);
         Vec_push(&mov_args, &mov_arg_dst);
         Vec_push(&mov_args, &mov_arg_src);
@@ -995,7 +995,8 @@ bool Syntax_build_variable_expression(Parser parser, inout Generator* generator,
     *data = Data_void();
     
     Variable variable;
-    if(resolve_sresult(VariableManager_get(variable_manager, name, &variable), parser.offset, generator)) {
+    if(!SResult_is_success(VariableManager_get(variable_manager, name, &variable))
+        && resolve_sresult(Generator_get_global_variable(generator, Parser_path(&parser), name, &variable), parser.offset, generator)) {
         return true;
     }
     

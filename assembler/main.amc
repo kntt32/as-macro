@@ -1,13 +1,18 @@
-import core_x64;
+import std;
 
-pub fn double(x: i64@rax) {
-    add(x, x);
-};
+static string: [char; 20] = "Hello, World!\n";
 
 pub fn main() {
-    let num: i64@rax;
-    num = 5;
-    return;
-    double(num);
+    let fd: i64@rdi;
+    let msg: char*@rsi;
+    let len: i64@rdx;
+
+    fd = 1;
+    lea(msg, string[0]);
+    len = 14;
+
+    write(fd, msg, len);
 };
+
+
 

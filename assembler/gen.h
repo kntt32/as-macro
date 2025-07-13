@@ -44,7 +44,7 @@ typedef struct {
 
 typedef struct {
     char name[256];
-    i32 value;
+    u32 value;
 } EnumMember;
 
 typedef struct {
@@ -133,6 +133,7 @@ typedef struct {
 
 typedef struct {
     char name[256];
+    char valid_path[256];
     Data data;
 } Variable;
 
@@ -239,6 +240,7 @@ ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out T
 ParserMsg Type_parse_enum(inout Parser* parser, out Type* type);
 ParserMsg Type_parse_lazyptr(inout Parser* parser, out Type* type);
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type);
+ParserMsg Type_initialize(in Type* self, inout Parser* parser, inout Vec* bin);
 Type Type_clone(in Type* self);
 void Type_restrict_namespace(inout Type* self, in char* namespace);
 Type Type_as_alias(Type self, in char* name);
@@ -312,7 +314,7 @@ bool Data_cmp(in Data* self, in Data* other);
 Data Data_from_register(Register reg);
 Data Data_from_imm(u64 imm);
 Data Data_from_label(in char* label);
-Data Data_from_mem(Register reg, i32 offset, Type type);
+Data Data_from_mem(Register reg, i32 offset, in optional char* label, Type type);
 Data Data_true(void);
 Data Data_false(void);
 Data Data_null(void);
@@ -329,6 +331,8 @@ void Data_free(Data self);
 void Data_free_for_vec(inout void* ptr);
 
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable);
+ParserMsg Variable_parse_global(inout Parser* parser, bool public_flag, inout Generator* generator);
+void Variable_restrict_namespace(inout Variable* self, in char* namespace);
 bool Variable_cmp(in Variable* self, in Variable* other);
 bool Variable_cmp_for_vec(in void* left, in void* right);
 Variable Variable_clone(in Variable* self);
@@ -400,6 +404,7 @@ void Generator_import(inout Generator* self, in char module_path[256], optional 
 SResult Generator_add_type(inout Generator* self, Type type);
 SResult Generator_get_type(in Generator* self, in char* name, out Type* type);
 SResult Generator_add_global_variable(inout Generator* self, Variable variable);
+SResult Generator_get_global_variable(in Generator* self, in char* path, in char* name, out Variable* variable);
 SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro);
 SResult Generator_get_asmacro(in Generator* self, in char* name, out Vec* asmacroes);
 void Generator_add_error(inout Generator* self, Error error);

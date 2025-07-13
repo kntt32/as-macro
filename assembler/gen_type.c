@@ -264,6 +264,219 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
     return ParserMsg_new(parser->offset, NULL);
 }
 
+static ParserMsg Type_initialize_integer(in Type* self, inout Parser* parser, inout Vec* bin) {
+    Parser parser_copy = *parser;
+
+    u64 value = 0;
+    PARSERMSG_UNWRAP(
+        Parser_parse_number(&parser_copy, &value),
+        (void)NULL
+    );
+
+    for(u32 i=0; i<self->size; i++) {
+        u8 byte = (i < 8)?((value >> (i*8)) & 0xff):(0);
+        Vec_push(bin, &byte);
+    }
+
+    *parser = parser_copy;
+    return ParserMsg_new(parser->offset, NULL);
+}
+
+static ParserMsg Type_initialize_array(in Type* self, inout Parser* parser, inout Vec* bin) {
+    Parser parser_copy = *parser;
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, "["),
+        (void)NULL
+    );
+
+    for(u32 i=0; i<self->body.t_array.len; i++) {
+        if(i != 0) {
+            PARSERMSG_UNWRAP(
+                Parser_parse_symbol(&parser_copy, ","),
+                (void)NULL
+            );
+        }
+
+        PARSERMSG_UNWRAP(
+            Type_initialize(self->body.t_array.type, &parser_copy,  bin),
+            (void)NULL
+        );
+    }
+
+    Parser_parse_symbol(&parser_copy, ",");
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, "]"),
+        (void)NULL
+    );
+
+    *parser = parser_copy;
+    return ParserMsg_new(parser->offset, NULL);
+}
+
+static ParserMsg Type_initialize_char(in Type* self, inout Parser* parser, inout Vec* bin) {
+    if(strcmp(self->name, "char") != 0 || self->type != Type_Integer || self->size != 1) {
+        return ParserMsg_new(parser->offset, "unexpected charactor");
+    }
+    Parser parser_copy = *parser;
+
+    char code = 0;
+    PARSERMSG_UNWRAP(
+        Parser_parse_char(&parser_copy, &code),
+        (void)NULL
+    );
+
+    u8 code_u8 = code;
+    Vec_push(bin, &code_u8);
+
+    *parser = parser_copy;
+    return ParserMsg_new(parser->offset, NULL);
+}
+
+static ParserMsg Type_initialize_str(in Type* self, inout Parser* parser, inout Vec* bin) {
+    if(strcmp(self->body.t_array.type->name, "char") != 0 || self->type != Type_Array) {
+        return ParserMsg_new(parser->offset, "unexpected string");
+    }
+
+    Parser parser_copy = *parser;
+
+    Vec string;
+    PARSERMSG_UNWRAP(
+        Parser_parse_string(&parser_copy, &string),
+        (void)NULL
+    );
+
+    for(u32 i=0; i<self->body.t_array.len; i++) {
+        if(i<Vec_len(&string)) {
+            Vec_push(bin, Vec_index(&string, i));
+        }else {
+            u8 byte = 0;
+            Vec_push(bin, &byte);
+        }
+    }
+
+    Vec_free(string);
+    *parser = parser_copy;
+
+    return ParserMsg_new(parser->offset, NULL);
+}
+
+static ParserMsg Type_initialize_struct(in Type* self, inout Parser* parser, inout Vec* bin) {
+    Parser parser_copy = *parser;
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_keyword(&parser_copy, self->name), (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, "{"), (void)NULL
+    );
+
+    u32 bin_init_offset = Vec_len(bin);
+    for(u32 i=0; i<Vec_len(&self->body.t_struct); i++) {
+        if(i != 0) {
+            PARSERMSG_UNWRAP(
+                Parser_parse_symbol(&parser_copy, ","), (void)NULL
+            );
+        }
+
+        StructMember* member = Vec_index(&self->body.t_struct, i);
+        PARSERMSG_UNWRAP(
+            Parser_parse_keyword(&parser_copy, member->name), (void)NULL
+        );
+        PARSERMSG_UNWRAP(Parser_parse_symbol(&parser_copy, ":"), (void)NULL);
+
+        while(member->offset + bin_init_offset == Vec_len(bin)) {
+            u8 byte = 0;
+            Vec_push(bin, &byte);
+        }
+
+        PARSERMSG_UNWRAP(
+            Type_initialize(&member->type, &parser_copy, bin), (void)NULL
+        );
+    }
+
+    Parser_parse_symbol(&parser_copy, ",");
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, "}"), (void)NULL
+    );
+
+    *parser = parser_copy;
+    return ParserMsg_new(parser->offset, NULL);
+}
+
+static ParserMsg Type_initialize_enum(in Type* self, inout Parser* parser, inout Vec* bin) {
+    Parser parser_copy = *parser;
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_keyword(&parser_copy, self->name), (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, "::"), (void)NULL
+    );
+
+    for(u32 i=0; i<Vec_len(&self->body.t_enum); i++) {
+        EnumMember* member = Vec_index(&self->body.t_enum, i);
+        if(ParserMsg_is_success(Parser_parse_keyword(parser, member->name))) {
+            for(u32 i=0; i<4; i++) {
+                u8 byte = (member->value >> (i*8)) & 0xff;
+                Vec_push(bin, &byte);
+            }
+            return ParserMsg_new(parser->offset, NULL);
+        }
+    }
+
+    return ParserMsg_new(parser->offset, "unexpected enum");
+}
+
+ParserMsg Type_initialize(in Type* self, inout Parser* parser, inout Vec* bin) {
+    switch(self->type) {
+        case Type_Integer:
+            if(Parser_start_with_symbol(parser, "\'")) {
+                PARSERMSG_UNWRAP(
+                    Type_initialize_char(self, parser, bin),
+                    (void)NULL
+                );
+            }else {
+                PARSERMSG_UNWRAP(
+                    Type_initialize_integer(self, parser, bin),
+                    (void)NULL
+                );
+            }
+            break;
+        case Type_Array:
+            if(Parser_start_with_symbol(parser, "\"")) {
+                PARSERMSG_UNWRAP(
+                    Type_initialize_str(self, parser, bin),
+                    (void)NULL
+                );
+            }else {
+                PARSERMSG_UNWRAP(
+                    Type_initialize_array(self, parser, bin),
+                    (void)NULL
+                );
+            }
+            break;
+        case Type_Struct:
+            PARSERMSG_UNWRAP(
+                Type_initialize_struct(self, parser, bin),
+                (void)NULL
+            );
+            break;
+        case Type_Enum:
+            PARSERMSG_UNWRAP(
+                Type_initialize_enum(self, parser, bin),
+                (void)NULL
+            );
+            break;
+        default:
+            return ParserMsg_new(parser->offset, "unexpected initializer");
+    }
+
+    return ParserMsg_new(parser->offset, NULL);
+}
+
 void Type_restrict_namespace(inout Type* self, in char* namespace) {
     snprintf(self->valid_path, 256, "%.255s", namespace);
 }

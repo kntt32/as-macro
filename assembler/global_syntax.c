@@ -273,6 +273,28 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
     return true;
 }
 
+static bool GlobalSyntax_parse_global_variable(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    // (pub) static $name: $type (= expr);
+
+    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "static"))) {
+        return false;
+    }
+
+    global_syntax->ok_flag = false;
+    global_syntax->type = GlobalSyntax_GlobalVariable;
+
+    if(resolve_parsermsg(
+        Variable_parse_global(&parser, public_flag, generator), generator
+    )) {
+        return true;
+    }
+
+    global_syntax->ok_flag = true;
+
+    return true;
+}
+
 ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
     bool (*BUILDERS[])(Parser, inout Generator*, out GlobalSyntax*) = {
         GlobalSyntax_parse_asmacro_definision,
@@ -280,7 +302,8 @@ ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out Glob
         GlobalSyntax_parse_enum_definision,
         GlobalSyntax_parse_type_alias,
         GlobalSyntax_parse_import,
-        GlobalSyntax_parse_function_definision
+        GlobalSyntax_parse_function_definision,
+        GlobalSyntax_parse_global_variable
     };
     
     for(u32 i=0; i<LEN(BUILDERS); i++) {
@@ -411,6 +434,7 @@ void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
         case GlobalSyntax_TypeAlias:
         case GlobalSyntax_AsmacroDefinision:
         case GlobalSyntax_Import:
+        case GlobalSyntax_GlobalVariable:
             break;
         case GlobalSyntax_FunctionDefinision:
             GlobalSyntax_build_function_definision(self, generator);
@@ -447,6 +471,8 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
         case GlobalSyntax_Import:
             printf(".none");
             break;
+        case GlobalSyntax_GlobalVariable:
+            break;
     }
     printf(" }");
 }
@@ -471,6 +497,8 @@ void GlobalSyntax_free(GlobalSyntax self) {
         case GlobalSyntax_FunctionDefinision:
             VariableManager_free(self.body.function_definision.variable_manager);
             break;
+        case GlobalSyntax_GlobalVariable:
+            break;
     }
 }
 
@@ -482,6 +510,8 @@ void GlobalSyntax_free_for_vec(inout void* ptr) {
 GlobalSyntaxTree GlobalSyntaxTree_new() {
     GlobalSyntaxTree tree = {Generator_new(), Vec_new(sizeof(GlobalSyntax))};
     Generator_new_section(&tree.generator, ".text");
+    Generator_new_section(&tree.generator, ".data");
+    Generator_new_section(&tree.generator, ".bss");
     return tree;
 }
 

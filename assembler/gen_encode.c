@@ -309,23 +309,27 @@ static SResult ModRmType_encode_reg(in ModRmType* self, in AsmArgs* args, inout 
     return SResult_new(NULL);
 }
 
-static SResult ModRmType_encode_mod_and_rm_mem(in AsmArgs* args, inout u8* mod, inout u8* code, inout bool* sib_flag, inout u8* sib) {
+static SResult ModRmType_encode_mod_and_rm_mem(in AsmArgs* args, inout u8* mod, inout u8* code, inout bool* sib_flag, inout u8* sib, inout u32* disp_len) {
     assert(args->regmem_flag && args->regmem_type == AsmArgs_Rm_Mem);
     Memory* memory = &args->regmem.mem;
     u8 disp_size = Disp_size(&memory->disp);
 
     if(disp_size == 0) {
         *mod = 0b00;
-    }else if(disp_size <= 8) {
+        *disp_len = 0;
+    }else if(disp_size == 1) {
         *mod = 0b01;
+        *disp_len = 1;
     }else {
         *mod = 0b10;
+        *disp_len = 4;
     }
 
     switch(memory->base) {
         case Rip:
             *mod = 0;
             *code = 0x05;
+            *disp_len = 4;
             break;
         case Rsp:
         case R12:
@@ -351,7 +355,7 @@ static SResult ModRmType_encode_mod_and_rm_mem(in AsmArgs* args, inout u8* mod, 
     return SResult_new(NULL);
 }
 
-static SResult ModRmType_encode_mod_and_rm(in AsmArgs* args, inout u8* mod_rm, inout bool* sib_flag, inout u8* sib) {
+static SResult ModRmType_encode_mod_and_rm(in AsmArgs* args, inout u8* mod_rm, inout bool* sib_flag, inout u8* sib, inout u32* disp_len) {
     assert(args->regmem_flag);
 
     u8 code = 0;
@@ -373,7 +377,7 @@ static SResult ModRmType_encode_mod_and_rm(in AsmArgs* args, inout u8* mod_rm, i
             break;
         case AsmArgs_Rm_Mem:
             SRESULT_UNWRAP(
-                ModRmType_encode_mod_and_rm_mem(args, &mod, &code, sib_flag, sib),
+                ModRmType_encode_mod_and_rm_mem(args, &mod, &code, sib_flag, sib, disp_len),
                 (void)NULL
             );
             break;
@@ -385,27 +389,15 @@ static SResult ModRmType_encode_mod_and_rm(in AsmArgs* args, inout u8* mod_rm, i
     return SResult_new(NULL);
 }
 
-static SResult ModRmType_encode_disp(u8 mod, in AsmArgs* args, inout Generator* generator) {
-    if(mod == 0b00 || mod == 0b11) {
+static SResult ModRmType_encode_disp(u32 len, in AsmArgs* args, inout Generator* generator) {
+    if(len == 0) {
         return SResult_new(NULL);
     }
-    assert(args->regmem_flag && args->regmem_type== AsmArgs_Rm_Mem);
+    assert(args->regmem_flag && args->regmem_type == AsmArgs_Rm_Mem);
+
     Disp* disp = &args->regmem.mem.disp;
     u64 disp_value = Disp_value(disp);
-    u32 len = 0;
     Disp_set_label(disp, generator);
-    
-    switch(mod) {
-        case 0b00:
-        case 0b11:
-            break;
-        case 0b01:
-            len = 1;
-            break;
-        case 0b10:
-            len = 4;
-            break;
-    }
 
     for(u32 i=0; i<len; i++) {
         u8 byte = (disp_value >> (i*8)) & 0xff;
@@ -427,10 +419,11 @@ SResult ModRmType_encode(in ModRmType* self, in AsmArgs* args, inout Generator* 
         (void)NULL
     );
 
+    u32 disp_len = 0;
     bool sib_flag = false;
     u8 sib = 0;
     SRESULT_UNWRAP(
-        ModRmType_encode_mod_and_rm(args, &mod_rm, &sib_flag, &sib),
+        ModRmType_encode_mod_and_rm(args, &mod_rm, &sib_flag, &sib, &disp_len),
         (void)NULL
     );
 
@@ -446,9 +439,8 @@ SResult ModRmType_encode(in ModRmType* self, in AsmArgs* args, inout Generator* 
         );
     }
 
-    u8 mod = mod_rm >> 6;
     SRESULT_UNWRAP(
-        ModRmType_encode_disp(mod, args, generator),
+        ModRmType_encode_disp(disp_len, args, generator),
         (void)NULL
     );
 

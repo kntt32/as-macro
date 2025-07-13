@@ -11,6 +11,7 @@ typedef struct {
         GlobalSyntax_TypeAlias,
         GlobalSyntax_FunctionDefinision,
         GlobalSyntax_Import,
+        GlobalSyntax_GlobalVariable,
     } type;
     union {
         Asmacro asmacro_definision;

@@ -309,6 +309,32 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
     return ParserMsg_new(parser->offset, NULL);
 }
 
+ParserMsg Type_get_enum_member(Type self, Parser parser, out Data* data) {
+    if(self.type != Type_Enum) {
+        Type_free(self);
+        return ParserMsg_new(parser.offset, "expected enum");
+    }
+    for(u32 i=0; i<Vec_len(&self.body.t_enum); i++) {
+        EnumMember* member = Vec_index(&self.body.t_enum, i);
+        if(ParserMsg_is_success(Parser_parse_keyword(&parser, member->name))) {
+            if(!Parser_is_empty(&parser)) {
+                break;
+            }
+
+            Vec bin = Vec_new(sizeof(u8));
+            for(u32 k=0; k<4; k++) {
+                u8 byte = (member->value >> (k*8)) & 0xff;
+                Vec_push(&bin, &byte);
+            }
+            *data = Data_from_imm_bin(bin, self);
+            return ParserMsg_new(parser.offset, NULL);
+        }
+    }
+
+    Type_free(self);
+    return ParserMsg_new(parser.offset, "unexpected token");
+}
+
 static ParserMsg Type_initialize_integer(in Type* self, inout Parser* parser, inout Vec* bin) {
     Parser parser_copy = *parser;
 
@@ -454,15 +480,6 @@ static ParserMsg Type_initialize_struct(in Type* self, inout Parser* parser, ino
 }
 
 static ParserMsg Type_initialize_enum(in Type* self, inout Parser* parser, inout Vec* bin) {
-    Parser parser_copy = *parser;
-
-    PARSERMSG_UNWRAP(
-        Parser_parse_keyword(&parser_copy, self->name), (void)NULL
-    );
-    PARSERMSG_UNWRAP(
-        Parser_parse_symbol(&parser_copy, "::"), (void)NULL
-    );
-
     for(u32 i=0; i<Vec_len(&self->body.t_enum); i++) {
         EnumMember* member = Vec_index(&self->body.t_enum, i);
         if(ParserMsg_is_success(Parser_parse_keyword(parser, member->name))) {

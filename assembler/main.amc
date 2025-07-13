@@ -16,12 +16,19 @@ fn fnptr_wrapper(fnptr: b64@rdi, a: i32@rax) {
     wrapper(fnptr);
 };
 
+enum MyEnum {
+    A,
+    B
+};
+
 pub fn main() {
+    let my_enum: MyEnum@stack;
     let fnptr: fn(i32@rax)*@rdi;
     lea(fnptr, fnptr_test);
     let a: i32@rax;
     a = 5;
     fnptr_wrapper(fnptr, a);
+    my_enum = MyEnum.A;
 
     let fd: i64@rdi;
     let msg: char*@rsi;

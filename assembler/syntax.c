@@ -282,6 +282,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_null_expression,
         Syntax_build_char_expression,
         Syntax_build_assignment,
+        Syntax_build_enum_expr,
         Syntax_build_dot_operator,
         Syntax_build_refer_operator,
         Syntax_build_subscript_operator,
@@ -983,6 +984,37 @@ bool Syntax_build_subscript_operator(Parser parser, inout Generator* generator, 
     }
 
     check_parser(&parser, generator);
+    return true;
+}
+
+bool Syntax_build_enum_expr(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    assert(generator != NULL && variable_manager != NULL && data != NULL);
+
+    Type enum_type;
+    if(!ParserMsg_is_success(Type_parse(&parser, generator, &enum_type))) {
+        return false;
+    }
+
+    if(enum_type.type != Type_Enum) {
+        Type_free(enum_type);
+        return false;
+    }
+
+    *data = Data_void();
+
+    if(resolve_parsermsg(
+        Parser_parse_symbol(&parser, "."), generator
+    )) {
+        Type_free(enum_type);
+        return true;
+    }
+
+    if(resolve_parsermsg(
+        Type_get_enum_member(enum_type, parser, data), generator
+    )) {
+        *data = Data_void();
+    }
+
     return true;
 }
 

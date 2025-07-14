@@ -12,6 +12,10 @@ pub fn main() {
     len = 14;
 
     write(fd, msg, len);
+
+    let status: i32@rdi;
+    status = 0;
+    exit(status);
 };
 
 

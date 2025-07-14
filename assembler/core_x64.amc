@@ -730,7 +730,7 @@ pub as xor(_: b16@reg, _: b16@reg+mem) : (double: 0x33, /r);
 pub as xor(_: b32@reg, _: b32@reg+mem) : (double: 0x33, /r);
 pub as xor(_: b64@reg, _: b64@reg+mem) : (double: 0x33, /r);
 
-pub endbr64() : (double: 0xf3, 0x0f, 0x1e, 0xfa);
+pub as endbr64() : (double: 0xf3, 0x0f, 0x1e, 0xfa);
 pub as syscall() : (double: 0x0f, 0x05);
 
 

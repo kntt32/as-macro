@@ -124,7 +124,7 @@ static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* genera
     return true;
 }
 
-static SResult GlobalSyntax_parse_import_code(inout Generator* generator, in char module_name[256]) {
+static ParserMsg GlobalSyntax_parse_import_code(inout Generator* generator, Offset offset, in char module_name[256]) {
     assert(module_name != NULL);
     assert(generator != NULL);
 
@@ -134,7 +134,7 @@ static SResult GlobalSyntax_parse_import_code(inout Generator* generator, in cha
     if(!Generator_imported(generator, path)) {
         FILE* file = fopen(path, "rb");
         if(file == NULL) {
-            return SResult_new("module is not exist");
+            return ParserMsg_new(offset, "module is not exist");
         }
 
         u64 file_size = get_file_size(file);
@@ -152,12 +152,14 @@ static SResult GlobalSyntax_parse_import_code(inout Generator* generator, in cha
         while(!Parser_is_empty(&parser)) {
             Parser syntax_parser = Parser_split(&parser, ";");
             GlobalSyntax global_syntax;
-            GlobalSyntax_parse(syntax_parser, generator, &global_syntax);
+            PARSERMSG_UNWRAP(
+                GlobalSyntax_parse(syntax_parser, generator, &global_syntax), (void)NULL
+            );
             GlobalSyntax_free(global_syntax);
         }
     }
 
-    return SResult_new(NULL);
+    return ParserMsg_new(offset, NULL);
 }
 
 static bool GlobalSyntax_parse_import(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
@@ -176,9 +178,8 @@ static bool GlobalSyntax_parse_import(Parser parser, inout Generator* generator,
     if(resolve_parsermsg(Parser_parse_ident(&parser, module_name), generator)) {
         return true;
     }
-    global_syntax->ok_flag = !resolve_sresult(
-        GlobalSyntax_parse_import_code(generator, module_name),
-        parser.offset,
+    global_syntax->ok_flag = !resolve_parsermsg(
+        GlobalSyntax_parse_import_code(generator, parser.offset, module_name),
         generator
     );
 

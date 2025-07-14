@@ -10,3 +10,9 @@ pub as write(fd: i64@rdi, msg: char*@rsi, len: i64@rdx) {
     syscall();
 };
 
+pub as exit(status: i32@rdi) {
+    let number: i64@rax;
+    number = 60;
+    syscall();
+};
+

@@ -2,10 +2,10 @@ import main;
 import core;
 
 pub fn _start() {
-	main();
-	let status: i32@rdi;
-	status = 0;
-	exit(status);
+    main();
+    let status: i32@rdi;
+    status = 0;
+    exit(status);
 };
 
 pub const stdin: i64 = 0;

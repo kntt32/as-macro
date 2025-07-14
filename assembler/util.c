@@ -33,8 +33,8 @@ SResult map_file(in char* path, out char** mem) {
     u64 file_size = get_file_size(stream);
     *mem = malloc(file_size + 1);
     UNWRAP_NULL(*mem);
-    fread(*mem, 1, file_size, stream);
-    if(ferror(stream)) {
+    u64 fread_count = fread(*mem, 1, file_size, stream);
+    if(file_size != fread_count || ferror(stream)) {
         PANIC("failed to load file");
     }
     (*mem)[file_size] = '\0';

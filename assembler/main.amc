@@ -4,7 +4,7 @@ static string: [char; 20] = "Hello, World!\n";
 
 pub fn main() {
     let fd: i64@rdi;
-    let msg: char*@rsi;
+    let msg: *char@rsi;
     let len: i64@rdx;
 
     fd = stdout;

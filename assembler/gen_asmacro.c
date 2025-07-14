@@ -148,33 +148,34 @@ bool Argument_match_with(in Argument* self, in Data* data) {
 
     Type* self_type = &self->type;
     u32 data_type_size = data->type.size;
+    bool data_is_ptr_or_int = data->type.type == Type_Integer || data->type.type == Type_Ptr || data->type.type == Type_LazyPtr;
     if(strcmp(self_type->name, "b8") == 0) {
-        if(data_type_size == 1) {
+        if(data_type_size == 1 && data_is_ptr_or_int) {
             return true;
         }
     }else if(strcmp(self_type->name, "b16") == 0) {
-        if(data_type_size == 2) {
+        if(data_type_size == 2 && data_is_ptr_or_int) {
             return true;
         }
     }else if(strcmp(self_type->name, "b32") == 0) {
-        if(data_type_size == 4) {
+        if(data_type_size == 4 && data_is_ptr_or_int) {
             return true;
         }
     }else if(strcmp(self_type->name, "b64") == 0) {
-        if(data_type_size == 8) {
+        if(data_type_size == 8 && data_is_ptr_or_int) {
             return true;
         }
     }else if(strcmp(self_type->name, "b") == 0) {
-        if(data->type.type == Type_Integer) {
+        if(data->type.type == Type_Integer && data_is_ptr_or_int) {
             return true;
         }
     }else if(strcmp(self_type->name, "t") == 0) {
         return true;
-    }else if(strcmp(self_type->name, "void*") == 0) {
+    }else if(strcmp(self_type->name, "*void") == 0) {
         if(data->type.type == Type_Ptr) {
             return true;
         }
-    }else if(strcmp(data->type.name, "void*") == 0) {
+    }else if(strcmp(data->type.name, "*void") == 0) {
         if(self_type->type == Type_Ptr) {
             return true;
         }
@@ -185,51 +186,6 @@ bool Argument_match_with(in Argument* self, in Data* data) {
     }
 
    return true;
-}
-
-bool Argument_match_self(in Argument* self, in Argument* other) {
-    if(!Type_cmp(&self->type, &other->type)) {
-        return false;
-    }
-
-    switch(self->storage_type) {
-        case Argument_Trait:
-            switch(other->storage_type) {
-            case Argument_Trait:
-                if((!self->storage.trait.reg_flag && other->storage.trait.reg_flag)
-                    || (!self->storage.trait.mem_flag && other->storage.trait.mem_flag)
-                    || (!self->storage.trait.imm_flag && other->storage.trait.imm_flag)
-                    || (!self->storage.trait.xmm_flag && other->storage.trait.xmm_flag)) {
-                    return false;
-                }
-                break;
-            case Argument_Storage:
-            {
-                Storage storage = other->storage.storage;
-                if((!self->storage.trait.reg_flag && storage.type == StorageType_reg)
-                    || (!self->storage.trait.mem_flag && storage.type == StorageType_mem)
-                    || (!self->storage.trait.imm_flag && storage.type == StorageType_imm)
-                    || (!self->storage.trait.xmm_flag && storage.type == StorageType_xmm)) {
-                    return false;
-                }
-            }
-                break;
-            }
-            break;
-        case Argument_Storage:
-            switch(other->storage_type) {
-            case Argument_Trait:
-                return false;
-            case Argument_Storage:
-                if(!Storage_cmp(&self->storage.storage, &other->storage.storage)) {
-                    return false;
-                }
-                break;
-            }
-            break;
-    }
-
-    return true;
 }
 
 void Argument_print(in Argument* self) {

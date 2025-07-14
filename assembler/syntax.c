@@ -319,7 +319,7 @@ static SResult Syntax_build_asmacro_expansion_get_arguments(Parser parser, inout
     return SResult_new(NULL);
 }
 
-static SResult Syntax_build_asmacro_expansion_search_asmacro(in Vec* asmacroes, in Vec* arguments, in char* path, out Asmacro* asmacro) {
+static bool Syntax_build_asmacro_expansion_search_asmacro(in Vec* asmacroes, in Vec* arguments, in char* path, out Asmacro* asmacro) {
     assert(asmacroes != NULL);
     assert(arguments != NULL);
     assert(path != NULL);
@@ -329,11 +329,11 @@ static SResult Syntax_build_asmacro_expansion_search_asmacro(in Vec* asmacroes, 
         Asmacro* ptr = Vec_index(asmacroes, i);
         if(SResult_is_success(Asmacro_match_with(ptr, arguments, path))) {
             *asmacro = Asmacro_clone(ptr);
-            return SResult_new(NULL);
+            return true;
         }
     }
 
-    return SResult_new("mismatching asmacro");
+    return false;
 }
 
 static SResult Syntax_build_asmacro_expansion_get_info(
@@ -349,11 +349,12 @@ static SResult Syntax_build_asmacro_expansion_get_info(
         (void)NULL
     );
 
-    SRESULT_UNWRAP(
-        Syntax_build_asmacro_expansion_search_asmacro(
-            &asmacroes, arguments, path, asmacro),
-        Vec_free_all(asmacroes, Asmacro_free_for_vec)
-    );
+    if(!Syntax_build_asmacro_expansion_search_asmacro(&asmacroes, arguments, path, asmacro)) {
+        Vec_free_all(asmacroes, Asmacro_free_for_vec);
+        char msg[256];
+        snprintf(msg, 256, "mismatching asmacro for \"%.229s\"", name);
+        return SResult_new(msg);
+    }
 
     Vec_free_all(asmacroes, Asmacro_free_for_vec);
 

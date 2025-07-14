@@ -26,17 +26,42 @@ Vec Type_primitives(void) {
     return types;
 }
 
-static void Type_parse_ref(inout Parser* parser, inout Type* type) {
-    while(ParserMsg_is_success(Parser_parse_symbol(parser, "*"))) {
-        Type* child = malloc(sizeof(Type));
-        memcpy(child, type, sizeof(Type));
+static ParserMsg Type_parse_ptr_lazyptr(inout Parser* parser, out Type* type) {
+    char token[256];
+    PARSERMSG_UNWRAP(
+        Parser_parse_ident(parser, token), (void)NULL
+    );
 
-        strncat(type->name, "*", sizeof(type->name) - strlen(type->name) - 1);
+    snprintf(type->name, 256, "*%.254s", token);
+    type->valid_path[0] = '\0';
+    type->type = Type_LazyPtr;
+    snprintf(type->body.t_lazy_ptr, 256, "%.255s", token);
+    type->size = 8;
+    type->align = 8;
+
+    return ParserMsg_new(parser->offset, NULL);
+}
+
+static ParserMsg Type_parse_ptr(inout Parser* parser, in Generator* generator, out Type* type) {
+    assert(parser != NULL && generator != NULL && type != NULL);
+
+    Type child_type;
+    if(ParserMsg_is_success(Type_parse(parser, generator, &child_type))) {
+        snprintf(type->name, 256, "*%.254s", child_type.name);
+        snprintf(type->valid_path, 256, "%.255s", child_type.valid_path);
         type->type = Type_Ptr;
-        type->body.t_ptr = child;
+        type->body.t_ptr = malloc(sizeof(Type));
+        UNWRAP_NULL(type->body.t_ptr);
+        *type->body.t_ptr = child_type;
         type->size = 8;
-        type->align = 8;
+        type->align = 8;       
+    }else {
+        PARSERMSG_UNWRAP(
+            Type_parse_ptr_lazyptr(parser, type), (void)NULL
+        );
     }
+
+    return ParserMsg_new(parser->offset, NULL);
 }
 
 static ParserMsg Type_parse_struct_members(Parser parser, in Generator* generator, inout Type* type) {
@@ -199,32 +224,6 @@ ParserMsg Type_parse_array(inout Parser* parser, in Generator* generator, out Ty
     return ParserMsg_new(parser->offset, NULL);
 }
 
-ParserMsg Type_parse_lazyptr(inout Parser* parser, out Type* type) {
-    assert(parser != NULL && type != NULL);
-
-    Parser parser_copy = *parser;
-    PARSERMSG_UNWRAP(
-        Parser_parse_ident(&parser_copy, type->name),
-        (void)NULL
-    );
-    type->valid_path[0] = '\0';
-
-    PARSERMSG_UNWRAP(
-        Parser_parse_symbol(&parser_copy, "*"),
-        (void)NULL
-    );
-
-    strcpy(type->body.t_lazy_ptr, type->name);
-    strncat(type->name, "*", 255 - strlen(type->name) - 1);
-
-    type->type = Type_LazyPtr;
-    type->size = 8;
-    type->align = 8;
-
-    *parser = parser_copy;
-    return ParserMsg_new(parser->offset, NULL);
-}
-
 ParserMsg Type_parse_fn(inout Parser* parser, in Generator* generator, out Type* type) {
     // fn(..)
 
@@ -268,10 +267,17 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
 
     char token[256];
     if(!ParserMsg_is_success(Parser_parse_ident(&parser_copy, token))) {
-        PARSERMSG_UNWRAP(
-            Type_parse_array(&parser_copy, generator, type),
-            (void)NULL
-        );
+        if(ParserMsg_is_success(Parser_parse_symbol(&parser_copy, "*"))) {
+            PARSERMSG_UNWRAP(
+                Type_parse_ptr(&parser_copy, generator, type),
+                (void)NULL
+            );
+        }else {
+            PARSERMSG_UNWRAP(
+                Type_parse_array(&parser_copy, generator, type),
+                (void)NULL
+            );
+        }
     }else if(strcmp(token, "struct") == 0) {
         PARSERMSG_UNWRAP(
             Type_parse_struct(&parser_copy, generator, type),
@@ -290,19 +296,12 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
     }else if(!SResult_is_success(
         Generator_get_type(generator, token, type)
     )) {
-        parser_copy = *parser;
-
-        PARSERMSG_UNWRAP(
-            Type_parse_lazyptr(&parser_copy, type),
-            (void)NULL
-        );
+        return ParserMsg_new(parser->offset, "expected type");
     }
 
     if(type->valid_path[0] != '\0' && strcmp(Parser_path(&parser_copy), type->valid_path) != 0) {
         return ParserMsg_new(parser->offset, "out of namespace");
     }
-
-    Type_parse_ref(&parser_copy, type);
 
     *parser = parser_copy;
 

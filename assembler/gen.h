@@ -367,7 +367,6 @@ bool Argument_cmp(in Argument* self, out Argument* other);
 bool Argument_cmp_for_vec(in void* self, in void* other);
 Argument Argument_from(in Variable* variable);
 bool Argument_match_with(in Argument* self, in Data* data);
-bool Argument_match_self(in Argument* self, in Argument* other);
 void Argument_print(in Argument* self);
 Argument Argument_clone(in Argument* self);
 void Argument_clone_for_vec(in void* src, out void* dst);

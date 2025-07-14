@@ -33,7 +33,7 @@ void GlobalSyntax_free_for_vec(inout void* ptr);
 
 GlobalSyntaxTree GlobalSyntaxTree_new();
 void GlobalSyntaxTree_parse(inout GlobalSyntaxTree* self, Parser parser);
-void GlobalSyntaxTree_check_asmacro(inout GlobalSyntaxTree* self);
 Generator GlobalSyntaxTree_build(inout GlobalSyntaxTree self);
 void GlobalSyntaxTree_print(in GlobalSyntaxTree* self);
 void GlobalSyntaxTree_free(GlobalSyntaxTree self);
+

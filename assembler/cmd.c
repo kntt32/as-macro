@@ -7,61 +7,135 @@
 #include "util.h"
 #include "cmd.h"
 
-void Cmd_interpreter(int argc, char* argv[]) {
-    // (cmdpath) path
+Args Args_new(u32 argc, in char* argv[]) {
+    Args args;
+    args.argc = argc;
+    args.argv = argv;
+    args.index = 0;
 
-    Vec pathes = Vec_new(sizeof(char*));
+    return args;
+}
+
+char* Args_next(inout Args* self) {
+    self->index ++;
+    if(self->index == self->argc) {
+        return NULL;
+    }
+
+    return self->argv[self->index];
+}
+
+SResult AsmCmdArgs_parse(Args args, out AsmCmdArgs* asm_cmd_args) {
+    asm_cmd_args->path = NULL;
+    asm_cmd_args->import_path = Vec_new(sizeof(char*));
+    asm_cmd_args->output_path[0] = '\0';
+    asm_cmd_args->version = false;
+
+    loop {
+        char* arg = Args_next(&args);
+        if(arg == NULL) {
+            break;
+        }
+        if(arg[0] != '-') {
+            asm_cmd_args->path = arg;
+            continue;
+        }
+
+        if(strcmp(arg, "-i")) {
+            char* import_path = Args_next(&args);
+            if(import_path == NULL) {
+                AsmCmdArgs_free(*asm_cmd_args);
+                return SResult_new("expected import path");
+            }
+            Vec_push(&asm_cmd_args->import_path, &import_path);
+            continue;
+        }
+        if(strcmp(arg, "-o")) {
+            char* output_path = Args_next(&args);
+            if(output_path == NULL) {
+                AsmCmdArgs_free(*asm_cmd_args);
+                return SResult_new("expected output path");
+            }
+            snprintf(asm_cmd_args->output_path, 256, "%.255s", output_path);
+            continue;
+        }
+        if(strcmp(arg, "-v")) {
+            asm_cmd_args->version = true;
+            continue;
+        }
+    }
+
+    return SResult_new(NULL);
+}
+
+void AsmCmdArgs_free(AsmCmdArgs self) {
+    Vec_free(self.import_path);
+}
+
+u32 Cmd_interpreter(int argc, char* argv[]) {
+    SResult sresult;
     
-    for(u32 i=1; i<(u32)argc; i++) {
-        if(argv[i][0] == '-') {
-            fprintf(stderr, "invalid option");
-            goto catch;
-        }else {
-            Vec_push(&pathes, &argv[i]);
-        }
+    Args args = Args_new(argc, argv);
+    AsmCmdArgs asm_cmd_args;
+    sresult = AsmCmdArgs_parse(args, &asm_cmd_args);
+    if(!SResult_is_success(sresult)) {
+        fprintf(stderr, "%s\n", sresult.error);
+        return 1;
     }
 
-    for(u32 i=0; i<Vec_len(&pathes); i++) {
-        char** path_ptr = Vec_index(&pathes, i);
-        char* path = *path_ptr;
-        FILE* file = fopen(path, "rb");
-        if(file == NULL) {
-            fprintf(stderr, "file \"%s\" was not found", path);
-            goto catch;
-        }
+    if(asm_cmd_args.version) {
+        printf("as-macro version alpha\n");
+    }
 
-        u64 file_size = get_file_size(file);
-        char* file_str = malloc(file_size + 1);
-        UNWRAP_NULL(file_str);
-        if(fread(file_str, 1, file_size, file) <= 0) {
-            PANIC("something wrong");
-        }
-        file_str[file_size] = '\0';
-        fclose(file);
+    return Cmd_build_file(asm_cmd_args);
+}
 
-        Parser parser = Parser_new(file_str, path);
-        
-        GlobalSyntaxTree global_syntax_tree = GlobalSyntaxTree_new();
-        GlobalSyntaxTree_parse(&global_syntax_tree, parser);
-        Generator generator = GlobalSyntaxTree_build(global_syntax_tree);
-        
-        if(Generator_is_error(&generator)) {
-            Cmd_print_errors(&generator);
-        }else {
-            Vec elf_binary = Elf64(&generator);
-            Vec_save(elf_binary, "result.o");
+static void Cmd_build_file_save(Generator generator, AsmCmdArgs asm_cmd_args) {
+    char save_path[256];
+    if(asm_cmd_args.output_path[0] != '\0') {
+        snprintf(save_path, 256, "%.255s", asm_cmd_args.output_path);
+    }else {
+        char temp_path[256];
+        snprintf(temp_path, 256, "%.255s", asm_cmd_args.path);
+        char* extension = strrchr(temp_path, '.');
+        if(extension != NULL) {
+            *extension = '\0';
         }
+        snprintf(save_path, 256, "%.253s.o", temp_path);
+    }
+    Vec elf_binary = Elf64(&generator);
+    Vec_save(elf_binary, save_path);
+
+    Generator_free(generator);
+    AsmCmdArgs_free(asm_cmd_args);
+}
+
+u32 Cmd_build_file(AsmCmdArgs asm_cmd_args) {
+    char* file = NULL;
+    SResult sresult = map_file(asm_cmd_args.path, &file);
+    if(!SResult_is_success(sresult)) {
+        AsmCmdArgs_free(asm_cmd_args);
+        fprintf(stderr, "%s\n", sresult.error);
+        return 1;
+    }
+
+    Parser parser = Parser_new(file, asm_cmd_args.path);
+    GlobalSyntaxTree global_syntax_tree = GlobalSyntaxTree_new();
+    GlobalSyntaxTree_parse(&global_syntax_tree, parser);
+    Generator generator = GlobalSyntaxTree_build(global_syntax_tree);
+
+    if(Generator_is_error(&generator)) {
+        Cmd_print_errors(&generator);
         Generator_free(generator);
-
-        free(file_str);
+        free(file);
+        AsmCmdArgs_free(asm_cmd_args);
+        return 1;
     }
 
-    Vec_free(pathes);
-    return;
+    Cmd_build_file_save(generator, asm_cmd_args);
 
-catch:
-    Vec_free(pathes);
-    return;
+    free(file);
+    return 0;
 }
 
 void Cmd_print_errors(in Generator* generator) {

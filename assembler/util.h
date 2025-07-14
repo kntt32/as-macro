@@ -4,6 +4,7 @@
 #include "types.h"
 
 u64 get_file_size(FILE* stream);
+SResult map_file(in char* path, out char** mem);
 
 i32 floor_div(i32 x, i32 y);
 

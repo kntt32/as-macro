@@ -20,6 +20,29 @@ u64 get_file_size(FILE* stream) {
     return size;
 }
 
+SResult map_file(in char* path, out char** mem) {
+    assert(path != NULL && mem != NULL);
+
+    FILE* stream = fopen(path, "rb");
+    if(stream == NULL) {
+        char msg[1024];
+        snprintf(msg, 1024, "file \"%.256s\" was not found", path);
+        return SResult_new(msg);
+    }
+
+    u64 file_size = get_file_size(stream);
+    *mem = malloc(file_size + 1);
+    UNWRAP_NULL(*mem);
+    fread(*mem, 1, file_size, stream);
+    if(ferror(stream)) {
+        PANIC("failed to load file");
+    }
+    (*mem)[file_size] = '\0';
+
+    fclose(stream);
+    return SResult_new(NULL);
+}
+
 i32 floor_div(i32 x, i32 y) {
     i32 q = x/y;
     if((x < 0 && 0 < y) || (0 < x && y < 0)) {

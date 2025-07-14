@@ -316,30 +316,49 @@ static SResult set_section_namespace(inout Generator* self, in char* section, in
     return SResult_new("undefined section");
 }
 
-SResult Generator_append_label(inout Generator* self, in char* section, in char* name, bool global_flag, LabelType type) {
+SResult Generator_append_label(inout Generator* self, optional in char* section, in char* name, bool global_flag, LabelType type) {
     Label label;
-    if(name[0] == '.') {
-        char namespace[256];
-        SRESULT_UNWRAP(
-            get_namespace(self, section, namespace),
-            (void)NULL
-        );
-        snprintf(label.name, sizeof(label.name), "%.127s%.127s", namespace, name);
+    if(section != NULL) {
+        if(name[0] == '.') {
+            char namespace[256];
+            SRESULT_UNWRAP(
+                get_namespace(self, section, namespace),
+                (void)NULL
+            );
+            snprintf(label.name, sizeof(label.name), "%.127s%.127s", namespace, name);
+        }else {
+            SRESULT_UNWRAP(
+                set_section_namespace(self, section, name),
+                (void)NULL
+             );
+            snprintf(label.name, 256, "%.255s", name);
+        }
     }else {
+        snprintf(label.name, 256, "%.255s", name);
+    }
+    if(section != NULL) {
+        snprintf(label.section_name, 256, "%.255s", section);
         SRESULT_UNWRAP(
-            set_section_namespace(self, section, name),
+            Generator_binary_len(self, section, &label.offset),
             (void)NULL
         );
-        strncpy(label.name, name, 255);
+    }else {
+        label.section_name[0] = '\0';
+        label.offset = 0;
     }
     label.public_flag = global_flag;
-    strncpy(label.section_name, section, 255);
-    SRESULT_UNWRAP(
-        Generator_binary_len(self, section, &label.offset),
-        (void)NULL
-    );
     label.type = type;
     label.size = 0;
+
+    for(u32 i=0; i<Vec_len(&self->labels); i++) {
+        Label* ptr = Vec_index(&self->labels, i);
+        if(strcmp(ptr->name, label.name) == 0 && label.section_name[0] != '\0') {
+            if(label.section_name[0] != '\0') {
+                *ptr = label;
+            }
+            return SResult_new(NULL);
+        }
+    }
 
     Vec_push(&self->labels, &label);
     return SResult_new(NULL);

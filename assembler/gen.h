@@ -19,7 +19,7 @@ struct Type {
         Type_Array,
         Type_Struct,
         Type_Enum,
-        // Type_Union,
+        Type_Union,
         Type_Floating,
         Type_LazyPtr,
         Type_Fn,
@@ -244,6 +244,7 @@ typedef struct {
 Vec Type_primitives(void);
 ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_parse_enum(inout Parser* parser, out Type* type);
+ParserMsg Type_parse_union(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_parse_lazyptr(inout Parser* parser, out Type* type);
 ParserMsg Type_parse_fn(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type);

@@ -163,6 +163,56 @@ ParserMsg Type_parse_enum(inout Parser* parser, out Type* type) {
     return ParserMsg_new(parser->offset, NULL);
 }
 
+static ParserMsg Type_parse_union_member(Parser parser, in Generator* generator, out Type* type) {
+    type->body.t_union = Vec_new(sizeof(StructMember));
+    type->align = 0x1;
+    type->size = 0;
+    
+    while(!Parser_is_empty(&parser)) {
+        u64 align = 0x1;
+        u32 size = 0;
+        StructMember member;
+        PARSERMSG_UNWRAP(
+            StructMember_parse(&parser, generator, &align , &size, &member),
+            Vec_free(type->body.t_union)
+        );
+
+        Vec_push(&type->body.t_union, &member);
+
+        if(type->align < align) {
+            type->align = align;
+        }
+        if(type->size < size) {
+            type->size = size;
+        }
+    }
+
+    return ParserMsg_new(parser.offset, NULL);
+}
+
+ParserMsg Type_parse_union(inout Parser* parser, in Generator* generator, out Type* type) {
+    Parser parser_copy = *parser;
+
+    type->type = Type_Union;
+    if(!ParserMsg_is_success(Parser_parse_ident(&parser_copy, type->name))) {
+        type->name[0] = '\0';
+    }
+    type->valid_path[0] = '\0';
+
+    Parser block_parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_block(&parser_copy, &block_parser),
+        (void)NULL
+    );
+
+    PARSERMSG_UNWRAP(
+        Type_parse_union_member(block_parser, generator, type), (void)NULL
+    );
+
+    *parser = parser_copy;
+    return ParserMsg_new(parser->offset, NULL);
+}
+
 static ParserMsg Type_parse_array_get_args(Parser parser, in Generator* generator, out Type* type, out u32* len) {
     PARSERMSG_UNWRAP(
         Type_parse(&parser, generator, type),
@@ -286,6 +336,11 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
     }else if(strcmp(token, "enum") == 0) {
         PARSERMSG_UNWRAP(
             Type_parse_enum(&parser_copy, type),
+            (void)NULL
+        );
+    }else if(strcmp(token, "union") == 0) {
+        PARSERMSG_UNWRAP(
+            Type_parse_union(&parser_copy, generator, type),
             (void)NULL
         );
     }else if(strcmp(token, "fn") == 0) {
@@ -566,14 +621,23 @@ Type Type_fn_from(in Vec* arguments) {
 SResult Type_dot_element(in Type* self, in char* element, out u32* offset, out Type* type) {
     assert(self != NULL && element != NULL && offset != NULL && type != NULL);
 
-    if(self->type != Type_Struct) {
-        return SResult_new("expected structure");
+    Vec* members;
+    switch(self->type) {
+        case Type_Struct:
+            members = &self->body.t_struct;
+            break;
+        case Type_Union:
+            members = &self->body.t_union;
+            break;
+        default:
+            return SResult_new("expected struct or union");
     }
+
     for(u32 i=0; i<Vec_len(&self->body.t_struct); i++) {
-        StructMember* struct_member = Vec_index(&self->body.t_struct, i);
-        if(strcmp(struct_member->name, element) == 0) {
-            *offset = struct_member->offset;
-            *type = Type_clone(&struct_member->type);
+        StructMember* member = Vec_index(members, i);
+        if(strcmp(member->name, element) == 0) {
+            *offset = member->offset;
+            *type = Type_clone(&member->type);
 
             return SResult_new(NULL);
         }
@@ -672,6 +736,11 @@ bool Type_cmp(in Type* self, in Type* other) {
                 return false;
             }
             break;
+        case Type_Union:
+            if(!Vec_cmp(&self->body.t_union, &other->body.t_union, StructMember_cmp_for_vec)) {
+                return false;
+            }
+            break;
         case Type_Floating:
             break;
         case Type_LazyPtr:
@@ -706,6 +775,9 @@ Type Type_clone(in Type* self) {
         case Type_Enum:
             type.body.t_enum = Vec_clone(&self->body.t_enum, NULL);
             break;
+        case Type_Union:
+            type.body.t_union = Vec_clone(&self->body.t_union, StructMember_clone_for_vec);
+            break;
         case Type_Floating:
             break;
         case Type_LazyPtr:
@@ -739,6 +811,10 @@ void Type_print(in Type* self) {
         case Type_Enum:
             printf(".t_enum: ");
             Vec_print(&self->body.t_enum, EnumMember_print_for_vec);
+            break;
+        case Type_Union:
+            printf(".t_union: ");
+            Vec_print(&self->body.t_union, StructMember_print_for_vec);
             break;
         case Type_Floating:
             printf("none");
@@ -776,6 +852,9 @@ void Type_free(Type self) {
             break;
         case Type_Enum:
             Vec_free(self.body.t_enum);
+            break;
+        case Type_Union:
+            Vec_free_all(self.body.t_union, StructMember_free_for_vec);
             break;
         case Type_Floating:
             break;

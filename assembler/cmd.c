@@ -41,7 +41,7 @@ SResult AsmCmdArgs_parse(Args args, out AsmCmdArgs* asm_cmd_args) {
             continue;
         }
 
-        if(strcmp(arg, "-i")) {
+        if(strcmp(arg, "-i") == 0) {
             char* import_path = Args_next(&args);
             if(import_path == NULL) {
                 AsmCmdArgs_free(*asm_cmd_args);
@@ -50,7 +50,7 @@ SResult AsmCmdArgs_parse(Args args, out AsmCmdArgs* asm_cmd_args) {
             Vec_push(&asm_cmd_args->import_path, &import_path);
             continue;
         }
-        if(strcmp(arg, "-o")) {
+        if(strcmp(arg, "-o") == 0) {
             char* output_path = Args_next(&args);
             if(output_path == NULL) {
                 AsmCmdArgs_free(*asm_cmd_args);
@@ -59,7 +59,7 @@ SResult AsmCmdArgs_parse(Args args, out AsmCmdArgs* asm_cmd_args) {
             snprintf(asm_cmd_args->output_path, 256, "%.255s", output_path);
             continue;
         }
-        if(strcmp(arg, "-v")) {
+        if(strcmp(arg, "-v") == 0) {
             asm_cmd_args->version = true;
             continue;
         }
@@ -111,6 +111,11 @@ static void Cmd_build_file_save(Generator generator, AsmCmdArgs asm_cmd_args) {
 }
 
 u32 Cmd_build_file(AsmCmdArgs asm_cmd_args) {
+    if(asm_cmd_args.path == NULL) {
+        AsmCmdArgs_free(asm_cmd_args);
+        return 0;
+    }
+
     char* file = NULL;
     SResult sresult = map_file(asm_cmd_args.path, &file);
     if(!SResult_is_success(sresult)) {

@@ -333,7 +333,9 @@ ParserMsg Parser_parse_symbol(inout Parser* self, in char* symbol) {
     assert(self != NULL && symbol != NULL);
     
     if(self->len < strlen(symbol) || strncmp(self->src, symbol, strlen(symbol)) != 0) {
-        return ParserMsg_new(self->offset, "expected symbol");
+        char msg[256];
+        snprintf(msg, 256, "expected symbol \'%.200s\'", symbol);
+        return ParserMsg_new(self->offset, msg);
     }
     
     for(u32 i=0; i<strlen(symbol); i++) {

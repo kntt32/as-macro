@@ -733,4 +733,5 @@ pub as xor(_: b64@reg, _: b64@reg+mem) : (double: 0x33, /r);
 pub as endbr64() : (double: 0xf3, 0x0f, 0x1e, 0xfa);
 pub as syscall() : (double: 0x0f, 0x05);
 
+pub as rep(_: i64@rcx) : (double: 0xf3);
 

@@ -1,0 +1,7 @@
+import core;
+
+pub as memcpy(dst: *void@rdi, src: *void@rsi, size: i64@rcx) {
+    cld();
+    rep(size); movs(dst, src);
+};
+

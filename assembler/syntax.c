@@ -274,6 +274,8 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
     bool (*BUILDERS[])(Parser, inout Generator*, inout VariableManager* variable_manager, out Data*) = {
         Syntax_build_variable_declaration,
         Syntax_build_return,
+        Syntax_build_sizeof_operator,
+        Syntax_build_alignof_operator,
         Syntax_build_asmacro_expansion,
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
@@ -286,8 +288,6 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_dot_operator,
         Syntax_build_refer_operator,
         Syntax_build_subscript_operator,
-        Syntax_build_sizeof_operator,
-        Syntax_build_alignof_operator,
         Syntax_build_variable_expression,
     };
     
@@ -1052,18 +1052,24 @@ bool Syntax_build_sizeof_operator(Parser parser, inout Generator* generator, ino
         return false;
     }
 
+    Parser paren_parser;
+    if(resolve_parsermsg(Parser_parse_paren(&parser, &paren_parser), generator)) {
+        *data = Data_void();
+        return true;
+    }
+
     u32 size = 0;
 
     Data expr_data;
     Type type;
     if(ParserMsg_is_success(
-        Type_parse(&parser, generator, &type)
+        Type_parse(&paren_parser, generator, &type)
     )) {
         size = type.size;
         Type_free(type);
-        check_parser(&parser, generator);
+        check_parser(&paren_parser, generator);
     }else if(!resolve_sresult(
-        Syntax_build(parser, generator, variable_manager, &expr_data), parser.offset, generator
+        Syntax_build(paren_parser, generator, variable_manager, &expr_data), parser.offset, generator
     )) {
         size = expr_data.type.size;
         Data_free(expr_data);
@@ -1071,6 +1077,7 @@ bool Syntax_build_sizeof_operator(Parser parser, inout Generator* generator, ino
         *data = Data_void();
         return true;
     }
+    check_parser(&parser, generator);
 
     *data = Data_from_imm(size);
 
@@ -1084,18 +1091,24 @@ bool Syntax_build_alignof_operator(Parser parser, inout Generator* generator, in
         return false;
     }
 
+    Parser paren_parser;
+    if(resolve_parsermsg(Parser_parse_paren(&parser, &paren_parser), generator)) {
+        *data = Data_void();
+        return true;
+    }
+
     u32 align = 1;
 
     Data expr_data;
     Type type;
     if(ParserMsg_is_success(
-        Type_parse(&parser, generator, &type)
+        Type_parse(&paren_parser, generator, &type)
     )) {
         align = type.align;
         Type_free(type);
-        check_parser(&parser, generator);
+        check_parser(&paren_parser, generator);
     }else if(!resolve_sresult(
-        Syntax_build(parser, generator, variable_manager, &expr_data), parser.offset, generator
+        Syntax_build(paren_parser, generator, variable_manager, &expr_data), parser.offset, generator
     )) {
         align = expr_data.type.align;
         Data_free(expr_data);
@@ -1103,6 +1116,7 @@ bool Syntax_build_alignof_operator(Parser parser, inout Generator* generator, in
         *data = Data_void();
         return true;
     }
+    check_parser(&parser, generator);
     
     *data = Data_from_imm(align);
 

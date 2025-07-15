@@ -508,6 +508,29 @@ Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */, 
     return asmacro;
 }
 
+Asmacro Asmacro_new_fn_extern(in char* name, Vec arguments/* Vec<Variable> */, in char* valid_path) {
+    assert(name != NULL);
+    assert(valid_path != NULL);
+    assert(Vec_size(&arguments) == sizeof(Variable));
+
+    Asmacro asmacro;
+
+    strcpy(asmacro.name, name);
+    strcpy(asmacro.valid_path, valid_path);
+
+    asmacro.arguments = Vec_new(sizeof(Argument));
+    for(u32 i=0; i<Vec_len(&arguments); i++) {
+        Variable* variable = Vec_index(&arguments, i);
+        Argument arg = Argument_from(variable);
+        Vec_push(&asmacro.arguments, &arg);
+    }
+    
+    asmacro.type = Asmacro_FnExtern;
+    asmacro.body.fn_extern = arguments;
+
+    return asmacro;
+}
+
 SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes, in char* path) {
     assert(self != NULL);
     assert(dataes != NULL);
@@ -560,6 +583,10 @@ void Asmacro_print(in Asmacro* self) {
             printf(".fn_wrapper: ");
             Vec_print(&self->body.fn_wrapper, Variable_print_for_vec);
             break;
+        case Asmacro_FnExtern:
+            printf(".fn_extern: ");
+            Vec_print(&self->body.fn_extern, Variable_print_for_vec);
+            break;
     }
     
     printf(" }");
@@ -570,7 +597,7 @@ void Asmacro_print_for_vec(in void* ptr) {
 }
 
 Asmacro Asmacro_clone(in Asmacro* self) {
-    Asmacro asmacro;
+    Asmacro asmacro = *self;
 
     strcpy(asmacro.name, self->name);
     strcpy(asmacro.valid_path, self->valid_path);
@@ -587,6 +614,8 @@ Asmacro Asmacro_clone(in Asmacro* self) {
         case Asmacro_FnWrapper:
             asmacro.body.fn_wrapper = Vec_clone(&self->body.fn_wrapper, Variable_clone_for_vec);
             break;
+        case Asmacro_FnExtern:
+            asmacro.body.fn_extern = Vec_clone(&self->body.fn_extern, Variable_clone_for_vec);
     }
 
     return asmacro;
@@ -602,6 +631,9 @@ void Asmacro_free(Asmacro self) {
             break;
         case Asmacro_FnWrapper:
             Vec_free_all(self.body.fn_wrapper, Variable_free_for_vec);
+            break;
+        case Asmacro_FnExtern:
+            Vec_free_all(self.body.fn_extern, Variable_free_for_vec);
             break;
     }
 }

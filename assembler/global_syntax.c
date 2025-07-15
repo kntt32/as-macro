@@ -282,6 +282,41 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
     return true;
 }
 
+static bool GlobalSyntax_parse_function_extern(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    // (pub) extern fn $name ( args );
+    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "extern"))
+        || !ParserMsg_is_success(Parser_parse_keyword(&parser, "fn"))) {
+        return false;
+    }
+
+    global_syntax->ok_flag = false;
+    global_syntax->offset = parser.offset;
+    global_syntax->type = GlobalSyntax_FunctionExtern;
+
+    char name[256];
+    Parser paren_parser;
+    Vec arguments = Vec_new(sizeof(Variable));
+    VariableManager variable_manager = VariableManager_new(0);
+    if(resolve_parsermsg(Parser_parse_ident(&parser, name), generator)
+        || resolve_parsermsg(Parser_parse_paren(&parser, &paren_parser), generator)
+        || resolve_parsermsg(function_definision_parse_arguments(paren_parser, generator, &variable_manager, &arguments), generator)) {
+        Vec_free_all(arguments, Variable_free_for_vec);
+        VariableManager_free(variable_manager);
+        return true;
+    }
+    VariableManager_free(variable_manager);
+
+    char* valid_path = (public_flag)?(""):(Parser_path(&parser));
+    Asmacro extern_asmacro = Asmacro_new_fn_extern(name, arguments, valid_path);
+    if(resolve_sresult(Generator_add_asmacro(generator, extern_asmacro), parser.offset, generator)) {
+        return true;
+    }
+    check_parser(&parser, generator);
+
+    return true;
+}
+
 static bool GlobalSyntax_parse_static_variable(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
     // (pub) static $name: $type (= expr);
 
@@ -336,6 +371,7 @@ ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out Glob
         GlobalSyntax_parse_type_alias,
         GlobalSyntax_parse_import,
         GlobalSyntax_parse_function_definision,
+        GlobalSyntax_parse_function_extern,
         GlobalSyntax_parse_static_variable,
         GlobalSyntax_parse_const_variable
     };
@@ -470,6 +506,7 @@ void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
         case GlobalSyntax_Import:
         case GlobalSyntax_StaticVariable:
         case GlobalSyntax_ConstVariable:
+        case GlobalSyntax_FunctionExtern:
             break;
         case GlobalSyntax_FunctionDefinision:
             GlobalSyntax_build_function_definision(self, generator);
@@ -503,6 +540,9 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
             printf(".function_definision: name: %s, public_flag: %s, variable_manager: ", self->body.function_definision.name, BOOL_TO_STR(self->body.function_definision.public_flag));
             VariableManager_print(&self->body.function_definision.variable_manager);
             break;
+        case GlobalSyntax_FunctionExtern:
+            printf("none");
+            break;
         case GlobalSyntax_Import:
             printf("none");
             break;
@@ -530,14 +570,14 @@ void GlobalSyntax_free(GlobalSyntax self) {
         case GlobalSyntax_TypeAlias:
         case GlobalSyntax_Import:
         case GlobalSyntax_ConstVariable:
+        case GlobalSyntax_StaticVariable:
+        case GlobalSyntax_FunctionExtern:
             break;
         case GlobalSyntax_AsmacroDefinision:
             Asmacro_free(self.body.asmacro_definision);
             break;
         case GlobalSyntax_FunctionDefinision:
             VariableManager_free(self.body.function_definision.variable_manager);
-            break;
-        case GlobalSyntax_StaticVariable:
             break;
     }
 }

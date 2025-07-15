@@ -536,9 +536,16 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_nonvolatile_args(in 
 }
 
 static SResult Syntax_build_asmacro_expansion_fnwrapper_push_stack_args(in Asmacro* asmacro, in Vec* arguments, inout VariableManager* variable_manager, inout Generator* generator) {
-    assert(asmacro->type == Asmacro_FnWrapper);
-
-    Vec* asmacro_argvars = &asmacro->body.fn_wrapper;
+    Vec* asmacro_argvars = NULL;
+    switch(asmacro->type) {
+        case Asmacro_FnWrapper:
+            asmacro_argvars = &asmacro->body.fn_wrapper;
+            break;
+        case Asmacro_FnExtern:
+            asmacro_argvars = &asmacro->body.fn_extern;
+            break;
+        default: PANIC("unreachable");
+    }
     for(i32 i=(i32)Vec_len(asmacro_argvars)-1; 0<=i; i--) {
         Variable* asmacro_argvar = Vec_index(asmacro_argvars, i);
         Storage* asmacro_argvar_storage = &asmacro_argvar->data.storage;
@@ -661,6 +668,7 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
             Syntax_build_asmacro_expansion_usermacro(&asmacro, &arguments, generator, variable_manager);
             break;
         case Asmacro_FnWrapper:
+        case Asmacro_FnExtern:
             SRESULT_UNWRAP(
                 Syntax_build_asmacro_expansion_fnwrapper(&asmacro, &arguments, generator, variable_manager),
                 Asmacro_free(asmacro);Vec_free_all(arguments, Data_free_for_vec)

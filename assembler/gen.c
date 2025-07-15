@@ -230,10 +230,16 @@ SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro) {
     for(u32 i=0; i<Vec_len(&self->asmacroes); i++) {
         Asmacro* ptr = Vec_index(&self->asmacroes, i);
         if(Asmacro_cmp_signature(ptr, &asmacro)) {
-            Asmacro_free(asmacro);
-            char msg[256];
-            snprintf(msg, 256, "asmacro \"%.10s\" has been already defined in same signature", asmacro.name);
-            return SResult_new(msg);
+            if(ptr->type == Asmacro_FnExtern) {
+                Asmacro_free(*ptr);
+                *ptr = asmacro;
+                return SResult_new(NULL);
+            }else {
+                Asmacro_free(asmacro);
+                char msg[256];
+                snprintf(msg, 256, "asmacro \"%.10s\" has been already defined in same signature", asmacro.name);
+                return SResult_new(msg);
+            }
         }
     }
 

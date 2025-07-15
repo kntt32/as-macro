@@ -10,6 +10,7 @@ typedef struct {
         GlobalSyntax_AsmacroDefinision,
         GlobalSyntax_TypeAlias,
         GlobalSyntax_FunctionDefinision,
+        GlobalSyntax_FunctionExtern,
         GlobalSyntax_Import,
         GlobalSyntax_StaticVariable,
         GlobalSyntax_ConstVariable,

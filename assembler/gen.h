@@ -181,11 +181,12 @@ typedef struct {
     char valid_path[256];// public: \0
 
     Vec arguments;// Vec<Argument>
-    enum { Asmacro_AsmMacro, Asmacro_UserMacro, Asmacro_FnWrapper } type;
+    enum { Asmacro_AsmMacro, Asmacro_UserMacro, Asmacro_FnWrapper, Asmacro_FnExtern } type;
     union {
         AsmEncoding asm_macro;
         Parser user_macro;
         Vec fn_wrapper;// Vec<Variable>
+        Vec fn_extern;// Vec<Variable>
     } body;
 } Asmacro;
 
@@ -381,6 +382,7 @@ void AsmArgs_free(AsmArgs self);
 ParserMsg Asmacro_parse(inout Parser* parser, in Generator* generator, out Asmacro* asmacro);
 bool Asmacro_cmp_signature(in Asmacro* self, in Asmacro* other);
 Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */, in char* valid_path);
+Asmacro Asmacro_new_fn_extern(in char* name, Vec arguments/* Vec<Variable> */, in char* valid_path);
 SResult Asmacro_match_with(in Asmacro* self, in Vec* dataes, in char* path);
 void Asmacro_print(in Asmacro* self);
 void Asmacro_print_for_vec(in void* ptr);

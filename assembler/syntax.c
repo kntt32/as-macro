@@ -199,8 +199,8 @@ static SResult restore_variable(in StoredReg* stored_reg, inout Generator* gener
     Type type = {"i64", "", Type_Integer, {}, 8, 8};
     Data mov_src = Data_from_mem(Rbp, stored_reg->stack_offset, NULL, type);
     Data mov_dst = Data_from_register(stored_reg->reg);
-    Vec_push(&mov_args, &mov_src);
     Vec_push(&mov_args, &mov_dst);
+    Vec_push(&mov_args, &mov_src);
 
     Data data;
     SRESULT_UNWRAP(

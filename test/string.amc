@@ -1,0 +1,21 @@
+import core;
+import mem;
+
+pub as strlen(len: i64@rcx, s: *char@rsi) {
+    let seek_ptr: *i8@rdi;
+    seek_ptr = s;
+
+    let null_code: i8@rax;
+    null_code = '\0';
+    len = -1;
+
+    cld();
+    repne(rcx);
+    scas(seek_ptr, null_code);
+    
+    len = seek_ptr;
+    sub(len, s);
+    dec(len);
+};
+
+

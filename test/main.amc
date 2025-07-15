@@ -3,22 +3,15 @@ import std;
 static string: [char; 20] = "Hello, World!\n";
 
 pub fn main() {
-    let sbuff: [char; 1024]@stack;
-    let sbuff_ptr: *char@rdi;
-    let size: i64@rcx;
-    size = sizeof(string);
-    lea(sbuff_ptr, sbuff);
-    let string_ptr: *char@rsi;
-    lea(string_ptr, string);
-    memcpy(sbuff_ptr, string_ptr, size);
-
     let fd: i64@rdi;
     let msg: *char@rsi;
     let len: i64@rdx;
 
     fd = stdout;
-    lea(msg, sbuff);
-    len = 14;
+    lea(msg, string);
+
+    let strlen: i64@rcx;
+    len = strlen(strlen, msg);
 
     write(fd, msg, len);
 };

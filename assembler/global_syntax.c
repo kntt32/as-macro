@@ -522,36 +522,38 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
         self->type
     );
 
-    switch(self->type) {
-        case GlobalSyntax_StructDefinision:
-            printf("none");
-            break;
-        case GlobalSyntax_EnumDefinision:
-            printf("none");
-            break;
-        case GlobalSyntax_AsmacroDefinision:
-            printf(".asmacro_definision: ");
-            Asmacro_print(&self->body.asmacro_definision);
-            break;
-        case GlobalSyntax_TypeAlias:
-            printf("none");
-            break;
-        case GlobalSyntax_FunctionDefinision:
-            printf(".function_definision: name: %s, public_flag: %s, variable_manager: ", self->body.function_definision.name, BOOL_TO_STR(self->body.function_definision.public_flag));
-            VariableManager_print(&self->body.function_definision.variable_manager);
-            break;
-        case GlobalSyntax_FunctionExtern:
-            printf("none");
-            break;
-        case GlobalSyntax_Import:
-            printf("none");
-            break;
-        case GlobalSyntax_StaticVariable:
-            printf("none");
-            break;
-        case GlobalSyntax_ConstVariable:
-            printf("none");
-            break;
+    if(self->ok_flag) {
+        switch(self->type) {
+            case GlobalSyntax_StructDefinision:
+                printf("none");
+                break;
+            case GlobalSyntax_EnumDefinision:
+                printf("none");
+                break;
+            case GlobalSyntax_AsmacroDefinision:
+                printf(".asmacro_definision: ");
+                Asmacro_print(&self->body.asmacro_definision);
+                break;
+            case GlobalSyntax_TypeAlias:
+                printf("none");
+                break;
+            case GlobalSyntax_FunctionDefinision:
+                printf(".function_definision: name: %s, public_flag: %s, variable_manager: ", self->body.function_definision.name, BOOL_TO_STR(self->body.function_definision.public_flag));
+                VariableManager_print(&self->body.function_definision.variable_manager);
+                break;
+            case GlobalSyntax_FunctionExtern:
+                printf("none");
+                break;
+            case GlobalSyntax_Import:
+                printf("none");
+                break;
+            case GlobalSyntax_StaticVariable:
+                printf("none");
+                break;
+            case GlobalSyntax_ConstVariable:
+                printf("none");
+                break;
+        }
     }
     printf(" }");
 }

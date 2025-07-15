@@ -357,10 +357,10 @@ pub as lea(_: b64@reg, _: t@mem) : (double: 0x8d, /r);
 
 pub as lfence() : (double: 0x0f, 0xae, 0xe8);
 
-pub as lods(_: b8@rax, _: b64@rsi) : (double: 0xac);
-pub as lods(_: b16@rax, _: b64@rsi) : (double: 0xad);
-pub as lodsd(_: b32@rax, _: b64@rsi) : (double: 0xad);
-pub as lodsq(_: b64@rax, _: b64@rsi) : (double: 0xad);
+pub as lods(_: *i8@rsi, _: i8@rax) : (double: 0xac);
+pub as lods(_: *i16@rsi, _: i16@rax) : (double: 0xad);
+pub as lods(_: *i32@rsi, _: i32@rax) : (double: 0xad);
+pub as lods(_: *i64@rsi, _: i64@rax) : (double: 0xad);
 
 pub as loop(_: b8@imm) : (quad: 0xe2, 0xcb);
 pub as loopne(_: b8@imm) : (quad: 0xe0, 0xcb);
@@ -404,10 +404,10 @@ pub as movbe(_: b64@mem, _: b64@reg) : (double: 0x0f, 0x38, 0xf1, /r);
 pub as movnti(_: b32@mem, _: b32@reg) : (double: 0x0f, 0xc3, /r);
 pub as movnti(_: b64@mem, _: b64@reg) : (double: 0x0f, 0xc3, /r);
 
-pub as movs(_: b8@rdi, _: b8@rsi) : (double: 0xa4);
-pub as movs(_: b16@rdi, _: b16@rsi) : (double: 0xa5);
-pub as movs(_: b32@rdi, _: b32@rsi) : (double: 0xa5);
-pub as movs(_: b64@rdi, _: b64@rsi) : (double: 0xa5);
+pub as movs(_: *i8@rdi, _: *i8@rsi) : (double: 0xa4);
+pub as movs(_: *i16@rdi, _: *i16@rsi) : (double: 0xa5);
+pub as movs(_: *i32@rdi, _: *i32@rsi) : (double: 0xa5);
+pub as movs(_: *i64@rdi, _: *i64@rsi) : (double: 0xa5);
 
 pub as movsx(_: b16@reg, _: b8@reg+mem) : (double: 0x0f, 0xbe, /r);
 pub as movsx(_: b32@reg, _: b8@reg+mem) : (double: 0x0f, 0xbe, /r);
@@ -588,10 +588,10 @@ pub as sbb(_: b16@reg, _: b16@reg+mem) : (double: 0x1b, /r);
 pub as sbb(_: b32@reg, _: b32@reg+mem) : (double: 0x1b, /r);
 pub as sbb(_: b64@reg, _: b64@reg+mem) : (double: 0x1b, /r);
 
-pub as scas(_: b8@rax, _: b64@rdi) : (double: 0xae);
-pub as scas(_: b16@rax, _: b64@rdi) : (double: 0xaf);
-pub as scas(_: b32@rax, _: b64@rdi) : (double: 0xaf);
-pub as scas(_: b64@rax, _: b64@rdi) : (double: 0xaf);
+pub as scas(_: *i8@rdi, _: i8@rax) : (double: 0xae);
+pub as scas(_: *i16@rdi, _: i16@rax) : (double: 0xaf);
+pub as scas(_: *i32@rdi, _: i32@rax) : (double: 0xaf);
+pub as scas(_: *i64@rdi, _: i64@rax) : (double: 0xaf);
 
 pub as seto(_: b8@reg+mem) : (double: 0x0f, 0x90, /0);
 pub as setno(_: b8@reg+mem) : (double: 0x0f, 0x91, /0);
@@ -642,10 +642,10 @@ pub as stc() : (double: 0xf9);
 
 pub as std() : (double: 0xfd);
 
-pub as stos(_: b8@rax, _: b64@rdi) : (double: 0xaa);
-pub as stos(_: b16@rax, _: b64@rdi) : (double: 0xab);
-pub as stos(_: b32@rax, _: b64@rdi) : (double: 0xab);
-pub as stos(_: b64@rax, _: b64@rdi) : (double: 0xab);
+pub as stos(_: *i8@rdi, _: i8@rax) : (double: 0xaa);
+pub as stos(_: *i16@rdi, _: i16@rax) : (double: 0xab);
+pub as stos(_: *i32@rdi, _: i32@rax) : (double: 0xab);
+pub as stos(_: *i64@rdi, _: i64@rax) : (double: 0xab);
 
 pub as sub(_: b8@rax, _: b8@imm) : (double: 0x2c, ib);
 pub as sub(_: b16@rax, _: b16@imm) : (double: 0x2d, iw);
@@ -733,5 +733,6 @@ pub as xor(_: b64@reg, _: b64@reg+mem) : (double: 0x33, /r);
 pub as endbr64() : (double: 0xf3, 0x0f, 0x1e, 0xfa);
 pub as syscall() : (double: 0x0f, 0x05);
 
-pub as rep(_: i64@rcx) : (double: 0xf3);
+pub as rep(_: i64@rcx) : (quad: 0xf3);
+pub as repne(_: i64@rcx) : (quad: 0xf2);
 

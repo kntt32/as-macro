@@ -1,7 +1,23 @@
 import core;
 
 pub as memcpy(dst: *void@rdi, src: *void@rsi, size: i64@rcx) {
+    let dst: *i8@rdi;
+    let src: *i8@rsi;
+
     cld();
-    rep(size); movs(dst, src);
+
+    rep(size);
+    movs(dst, src);
 };
+
+pub as memset(dst: *void@rdi, value: i8@rax, size: i64@rcx) {
+    let dst: *i8@rdi;
+
+    cld();
+
+    rep(size);
+    stos(dst, value);
+};
+
+
 

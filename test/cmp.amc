@@ -1,0 +1,12 @@
+import core;
+
+pub as eq(flag: bool@reg+mem, left: b64@reg+mem+imm, right: b64@reg+mem+imm) {
+    cmp(left, right);
+    sete(flag);
+};
+
+pub as neq(flag: bool@reg+mem, left: b64@reg+mem+imm, right: b64@reg+mem+imm) {
+    cmp(left, right);
+    setne(flag);
+};
+

@@ -40,8 +40,13 @@ static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argume
 }
 
 ParserMsg Argument_parse(inout Parser* parser, in Generator* generator, out Argument* argument) {
-    // (in)(out) name : Type @ [reg | mem | xmm | imm]
+    // (optional)(inout)(in)(out) name : Type @ [reg | mem | xmm | imm]
     Parser parser_copy = *parser;
+
+    Parser_parse_keyword(&parser_copy, "optional");
+    Parser_parse_keyword(&parser_copy, "inout");
+    Parser_parse_keyword(&parser_copy, "in");
+    Parser_parse_keyword(&parser_copy, "out");
 
     PARSERMSG_UNWRAP(
         Parser_parse_ident(&parser_copy, argument->name),

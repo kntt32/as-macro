@@ -466,7 +466,7 @@ ParserMsg ParserMsg_new(Offset offset, optional char* msg) {
     if(msg == NULL) {
         parser_msg.msg[0] = '\0';
     }else {
-        snprintf(parser_msg.msg, 256, "%.255s", msg);
+        strncpy(parser_msg.msg, msg, 255);
     }
 
     return parser_msg;

@@ -63,3 +63,9 @@ i32 ceil_div(i32 a, i32 b) {
     return q;
 }
 
+u32 get_id() {
+    static u32 id = 0;
+    id ++;
+    return id;
+}
+

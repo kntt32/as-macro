@@ -1,15 +1,21 @@
 import std;
 
 static string: [char; 20] = "Hello, World!\n";
+static string2: [char; 20] = "hello, world\n";
 
 pub fn main() {
     let fd: i64@rdi;
     let msg: *char@rsi;
     let len: i64@rdx;
 
+    let flag: bool@rax;
+    flag = true;
     fd = stdout;
-    lea(msg, string);
-
+    if(flag) {
+        lea(msg, string);
+    }else {
+        lea(msg, string2);
+    };
     let strlen: i64@rcx;
     len = strlen(strlen, msg);
 

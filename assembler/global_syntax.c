@@ -547,11 +547,11 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
             case GlobalSyntax_Import:
                 printf("none");
                 break;
-            case GlobalSyntax_StaticVariable:
+                case GlobalSyntax_StaticVariable:
                 printf("none");
                 break;
             case GlobalSyntax_ConstVariable:
-                printf("none");
+                    printf("none");
                 break;
         }
     }

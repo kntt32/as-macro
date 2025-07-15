@@ -276,6 +276,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_return,
         Syntax_build_sizeof_operator,
         Syntax_build_alignof_operator,
+        Syntax_build_if,
         Syntax_build_asmacro_expansion,
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
@@ -1119,6 +1120,165 @@ bool Syntax_build_alignof_operator(Parser parser, inout Generator* generator, in
     check_parser(&parser, generator);
     
     *data = Data_from_imm(align);
+
+    return true;
+}
+
+static ParserMsg Syntax_build_if_parse(Parser parser, inout Generator* generator, out Parser* condition, out Parser* then_branch, out Parser* else_branch) {
+    PARSERMSG_UNWRAP(
+        Parser_parse_paren(&parser, condition), (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Parser_parse_block(&parser, then_branch), (void)NULL
+    );
+    if(ParserMsg_is_success(Parser_parse_keyword(&parser, "else"))) {
+        PARSERMSG_UNWRAP(
+            Parser_parse_block(&parser, else_branch), (void)NULL
+        );
+    }else {
+        *else_branch = Parser_empty(parser.offset);
+    }
+
+    check_parser(&parser, generator);
+
+    return ParserMsg_new(parser.offset, NULL);
+}
+
+static SResult build_cmpzero(Data data, inout Generator* generator, inout VariableManager* variable_manager) {
+    Data tmp_data;
+
+    Vec cmp_args = Vec_new(sizeof(Data));
+    Data cmp_arg2 = Data_from_imm(0);
+    Vec_push(&cmp_args, &data);
+    Vec_push(&cmp_args, &cmp_arg2);
+
+    SRESULT_UNWRAP(
+        expand_asmacro("cmp", "", cmp_args, generator, variable_manager, &tmp_data), (void)NULL
+    );
+    
+    Data_free(tmp_data);
+
+    return SResult_new(NULL);
+}
+
+static SResult build_jne_to_else(u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
+    Data tmp_data;
+    char label[256];
+    snprintf(label, 256, ".%u.if.else", id);
+
+    Vec jne_args = Vec_new(sizeof(Data));
+    Data jne_arg1 = Data_from_label(label);
+    Vec_push(&jne_args, &jne_arg1);
+    
+    SRESULT_UNWRAP(
+        expand_asmacro("jne", "", jne_args, generator, variable_manager, &tmp_data), (void)NULL
+    );
+
+    Data_free(tmp_data);
+
+    return SResult_new(NULL);
+}
+
+static SResult build_branch(Parser parser, u32 id, in char* branch_name, inout Generator* generator, inout VariableManager* variable_manager) {
+    char branch_label[256];
+    snprintf(branch_label, 256, ".%u.if.%.10s", id, branch_name);
+    SRESULT_UNWRAP(
+        Generator_append_label(generator, ".text", branch_label, false, Label_Notype), (void)NULL
+    );
+
+    VariableManager_new_block(variable_manager);
+
+    Data data;
+    while(!Parser_is_empty(&parser)) {
+        Parser proc_parser = Parser_split(&parser, ";");
+        SRESULT_UNWRAP(
+            Syntax_build(proc_parser, generator, variable_manager, &data), (void)NULL
+        );
+    }
+    Data_free(data);
+    SRESULT_UNWRAP(
+        VariableManager_delete_block(variable_manager, generator), (void)NULL
+    );
+
+    return SResult_new(NULL);
+}
+
+static SResult build_jmp_to_endif(u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
+    char label[256];
+    snprintf(label, 256, ".%u.if.endif", id);
+
+    Data tmp_data;
+
+    Vec jmp_args = Vec_new(sizeof(Data));
+    Data jmp_dst = Data_from_label(label);
+    Vec_push(&jmp_args, &jmp_dst);
+    SRESULT_UNWRAP(
+        expand_asmacro("jmp", "", jmp_args, generator, variable_manager, &tmp_data), (void)NULL
+    );
+
+    Data_free(tmp_data);
+
+    return SResult_new(NULL);
+}
+
+static void Syntax_build_if_build(Parser condition_parser, Parser then_branch, Parser else_branch, inout Generator* generator, inout VariableManager* variable_manager) {
+    u32 id = get_id();
+
+    char if_label[256];
+    snprintf(if_label, 256, ".%u.if", id);
+    if(resolve_sresult(Generator_append_label(generator, ".text", if_label, false, Label_Notype), condition_parser.offset, generator)) {
+        return;
+    }
+
+    Data condition_data;
+    if(resolve_sresult(Syntax_build(condition_parser, generator, variable_manager, &condition_data), condition_parser.offset, generator)) {
+        return;
+    }
+    if(strcmp(condition_data.type.name, "bool") != 0) {
+        char msg[256];
+        snprintf(msg, 256, "expected bool, found \"%.200s\"", condition_data.type.name);
+        Data_free(condition_data);
+        return;
+    }
+
+    if(resolve_sresult(build_cmpzero(condition_data, generator, variable_manager), condition_parser.offset, generator)
+        || resolve_sresult(build_jne_to_else(id, generator, variable_manager), condition_parser.offset, generator)
+        || resolve_sresult(build_branch(then_branch, id, "then", generator, variable_manager), then_branch.offset, generator)) {
+        return;
+    }
+
+    if(!Parser_is_empty(&else_branch)) {
+        if(resolve_sresult(build_jmp_to_endif(id, generator, variable_manager), then_branch.offset, generator)
+            || resolve_sresult(build_branch(else_branch, id, "else", generator, variable_manager), else_branch.offset, generator)) {
+            return;
+        }
+    }
+
+    char endif_label[256];
+    snprintf(endif_label, 256, ".%u.if.end", id);
+    if(resolve_sresult(Generator_append_label(generator, ".text", endif_label, false, Label_Notype), else_branch.offset, generator)) {
+        return;
+    }
+}
+
+bool Syntax_build_if(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+// .id.if
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "if"))) {
+        return false;
+    }
+
+    *data = Data_void();
+
+    Parser condition_parser;
+    Parser if_branch_parser;
+    Parser else_branch_parser;
+    if(resolve_parsermsg(
+        Syntax_build_if_parse(parser, generator, &condition_parser, &if_branch_parser, &else_branch_parser), generator
+    )) {
+        return true;
+    }
+
+    Syntax_build_if_build(condition_parser, if_branch_parser, else_branch_parser, generator, variable_manager);
 
     return true;
 }

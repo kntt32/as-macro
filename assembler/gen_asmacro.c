@@ -153,25 +153,24 @@ bool Argument_match_with(in Argument* self, in Data* data) {
 
     Type* self_type = &self->type;
     u32 data_type_size = data->type.size;
-    bool data_is_ptr_or_int = data->type.type == Type_Integer || data->type.type == Type_Ptr || data->type.type == Type_LazyPtr;
     if(strcmp(self_type->name, "b8") == 0) {
-        if(data_type_size == 1 && data_is_ptr_or_int) {
+        if(data_type_size == 1 && data->type.type == Type_Integer) {
             return true;
         }
     }else if(strcmp(self_type->name, "b16") == 0) {
-        if(data_type_size == 2 && data_is_ptr_or_int) {
+        if(data_type_size == 2 && data->type.type == Type_Integer) {
             return true;
         }
     }else if(strcmp(self_type->name, "b32") == 0) {
-        if(data_type_size == 4 && data_is_ptr_or_int) {
+        if(data_type_size == 4 && data->type.type == Type_Integer) {
             return true;
         }
     }else if(strcmp(self_type->name, "b64") == 0) {
-        if(data_type_size == 8 && data_is_ptr_or_int) {
+        if(data_type_size == 8 && (data->type.type == Type_Integer || data->type.type == Type_Ptr || data->type.type == Type_LazyPtr)) {
             return true;
         }
     }else if(strcmp(self_type->name, "b") == 0) {
-        if(data->type.type == Type_Integer && data_is_ptr_or_int) {
+        if(data->type.type == Type_Integer) {
             return true;
         }
     }else if(strcmp(self_type->name, "t") == 0) {

@@ -657,7 +657,8 @@ static SResult AsmEncoding_encode_prefix_set_defaults(in AsmEncoding* self, inou
                     *rex_prefix_needed_flag = true;
                     *rex_prefix |= REX_W;
                     break;
-                default: PANIC("unreachable");
+                default:
+                    return SResult_new("unexpected operand size");
             }
             break;
         case 8:
@@ -670,7 +671,8 @@ static SResult AsmEncoding_encode_prefix_set_defaults(in AsmEncoding* self, inou
                 case 8:
                     *rex_prefix |= REX_W;
                     break;
-                default: PANIC("unreachable");
+                default:
+                    return SResult_new("unexpected operand size");
             }
             break;
         default: PANIC("unreachable");

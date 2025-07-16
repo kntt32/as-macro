@@ -1227,23 +1227,27 @@ static void Syntax_build_if_build(Parser condition_parser, Parser then_branch, P
     char if_label[256];
     snprintf(if_label, 256, ".%u.if", id);
     if(resolve_sresult(Generator_append_label(generator, ".text", if_label, false, Label_Notype), condition_parser.offset, generator)) {
+        printf("DEBUG1");
         return;
     }
 
     Data condition_data;
     if(resolve_sresult(Syntax_build(condition_parser, generator, variable_manager, &condition_data), condition_parser.offset, generator)) {
+        printf("DEBUG2");
         return;
     }
     if(strcmp(condition_data.type.name, "bool") != 0) {
         char msg[256];
         snprintf(msg, 256, "expected bool, found \"%.200s\"", condition_data.type.name);
         Data_free(condition_data);
+        Generator_add_error(generator, Error_new(condition_parser.offset, msg));
         return;
     }
 
     if(resolve_sresult(build_cmpzero(condition_data, generator, variable_manager), condition_parser.offset, generator)
         || resolve_sresult(build_jne_to_else(id, generator, variable_manager), condition_parser.offset, generator)
         || resolve_sresult(build_branch(then_branch, id, "then", generator, variable_manager), then_branch.offset, generator)) {
+        printf("DEBUG3");
         return;
     }
 

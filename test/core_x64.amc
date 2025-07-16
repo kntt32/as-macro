@@ -348,16 +348,14 @@ pub as jg(_: b8@imm) : (quad: 0x7f, ib);
 pub as jg(_: b16@imm) : (quad: 0x0f, 0x8f, iw);
 pub as jg(_: b32@imm) : (quad: 0x0f, 0x8f, id);
 
-pub as jmp(_: b8@imm) : (quad: 0xeb);
+pub as jmp(_: b8@imm) : (quad: 0xeb, ib);
 pub as jmp(_: b16@imm) : (quad: 0xe9, iw);
 pub as jmp(_: b32@imm) : (quad: 0xe9, id);
 pub as jmp(_: b64@reg+mem) : (quad: 0xff, /4);
 
 pub as lahf() : (double: 0x9f);
 
-pub as lea(_: b16@reg, _: b16@mem) : (double: 0x8d, /r);
-pub as lea(_: b32@reg, _: b32@mem) : (double: 0x8d, /r);
-pub as lea(_: b64@reg, _: t@mem) : (double: 0x8d, /r);
+pub as lea(_: *void@reg, _: bin@mem) : (double: 0x8d, /r);
 
 pub as lfence() : (double: 0x0f, 0xae, 0xe8);
 

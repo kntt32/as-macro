@@ -18,8 +18,7 @@ Vec Type_primitives(void) {
         {"b16", "", Type_Integer, {}, 2, 2},
         {"b32", "", Type_Integer, {}, 4, 4},
         {"b64", "", Type_Integer, {}, 8, 8},
-        {"b", "", Type_Integer, {}, 1, 1},
-        {"t", "", Type_Integer, {}, 1, 1},
+        {"bin", "", Type_Integer, {}, 1, 1},
     };
     Vec types = Vec_from(primitives, LEN(primitives), sizeof(Type));
 
@@ -705,7 +704,8 @@ Type Type_as_alias(Type self, in char* name) {
 }
 
 bool Type_cmp(in Type* self, in Type* other) {
-    if(strcmp(self->name, other->name) != 0
+    if(self->name[0] == '\0' || other->name[0] == '\0'
+        || strcmp(self->name, other->name) != 0
         || strcmp(self->valid_path, other->valid_path) != 0
         || self->type != other->type
         || self->size != other->size
@@ -713,43 +713,51 @@ bool Type_cmp(in Type* self, in Type* other) {
         return false;
     }
 
-    switch(self->type) {
-        case Type_Integer:
-            break;
-        case Type_Ptr:
-            if(!Type_cmp(self->body.t_ptr, other->body.t_ptr)) {
-                return false;
-            }
-            break;
-        case Type_Array:
-            if(!Type_cmp(self->body.t_array.type, other->body.t_array.type) || self->body.t_array.len != other->body.t_array.len) {
-                return false;
-            }
-            break;
-        case Type_Struct:
-            if(!Vec_cmp(&self->body.t_struct, &other->body.t_struct, StructMember_cmp_for_vec)) {
-                return false;
-            }
-            break;
-        case Type_Enum:
-            if(!Vec_cmp(&self->body.t_enum, &other->body.t_enum, EnumMember_cmp_for_vec)) {
-                return false;
-            }
-            break;
-        case Type_Union:
-            if(!Vec_cmp(&self->body.t_union, &other->body.t_union, StructMember_cmp_for_vec)) {
-                return false;
-            }
-            break;
-        case Type_Floating:
-            break;
-        case Type_LazyPtr:
-            break;
-        case Type_Fn:
-            if(!Vec_cmp(&self->body.t_fn, &other->body.t_fn, Data_cmp_signature_for_vec)) {
-                return false;
-            }
+    return true;
+}
+
+static bool Type_match_bound(in Type* self, in Type* other) {
+    if((strcmp(self->name, "*void") == 0 && (other->type == Type_Ptr || other->type == Type_LazyPtr))
+        || (strcmp(other->name, "*void") == 0 && (self->type == Type_Ptr || self->type == Type_LazyPtr))) {
+        return true;
     }
+    if((strcmp(self->name, "b8") == 0 && other->size == 1)
+        || (strcmp(self->name, "b16") == 0 && other->size == 2)
+        || (strcmp(self->name, "b32") == 0 && other->size == 4)
+        || (strcmp(self->name, "b64") == 0 && other->size == 8)
+        || (strcmp(self->name, "bin") == 0)) {
+        return true;
+    }
+    if((strcmp(other->name, "b8") == 0 && self->size == 1)
+        || (strcmp(other->name, "b16") == 0 && self->size == 2)
+        || (strcmp(other->name, "b32") == 0 && self->size == 4)
+        || (strcmp(other->name, "b64") == 0 && self->size == 8)
+        || (strcmp(self->name, "bin") == 0)) {
+        return true;
+    }
+
+    return false;
+}
+
+bool Type_match(in Type* self, in Type* other) {
+    assert(self != NULL && other != NULL);
+
+    if(Type_match_bound(self, other)) {
+        return true;
+    }
+
+    if(self->type != other->type) {
+        return false;
+    }
+
+    if(self->name[0] == '\0' || other->name[0] == '\0'
+        || strcmp(self->valid_path, other->valid_path) != 0
+        || strcmp(self->name, other->name) != 0
+        || self->size != other->size
+        || self->align != other->align) {
+        return false;
+    }
+
     return true;
 }
 

@@ -259,6 +259,7 @@ SResult Type_dot_element(in Type* self, in char* element, out u32* offset, out T
 SResult Type_refer_operator(in Type* src, in Generator* generator, out Type* type);
 SResult Type_subscript(in Type* self, u32 index, out Type* type);
 bool Type_cmp(in Type* self, in Type* other);
+bool Type_match(in Type* self, in Type* other);
 Type Type_void(void);
 void Type_print(in Type* self);
 void Type_print_for_vec(void* ptr);

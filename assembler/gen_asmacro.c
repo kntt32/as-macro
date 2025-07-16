@@ -151,41 +151,7 @@ bool Argument_match_with(in Argument* self, in Data* data) {
             break;
     }
 
-    Type* self_type = &self->type;
-    u32 data_type_size = data->type.size;
-    if(strcmp(self_type->name, "b8") == 0) {
-        if(data_type_size == 1 && data->type.type == Type_Integer) {
-            return true;
-        }
-    }else if(strcmp(self_type->name, "b16") == 0) {
-        if(data_type_size == 2 && data->type.type == Type_Integer) {
-            return true;
-        }
-    }else if(strcmp(self_type->name, "b32") == 0) {
-        if(data_type_size == 4 && data->type.type == Type_Integer) {
-            return true;
-        }
-    }else if(strcmp(self_type->name, "b64") == 0) {
-        if(data_type_size == 8 && (data->type.type == Type_Integer || data->type.type == Type_Ptr || data->type.type == Type_LazyPtr)) {
-            return true;
-        }
-    }else if(strcmp(self_type->name, "b") == 0) {
-        if(data->type.type == Type_Integer) {
-            return true;
-        }
-    }else if(strcmp(self_type->name, "t") == 0) {
-        return true;
-    }else if(strcmp(self_type->name, "*void") == 0) {
-        if(data->type.type == Type_Ptr) {
-            return true;
-        }
-    }else if(strcmp(data->type.name, "*void") == 0) {
-        if(self_type->type == Type_Ptr) {
-            return true;
-        }
-    }
-
-    if(!Type_cmp(&self->type, &data->type)) {
+    if(!Type_match(&self->type, &data->type)) {
         return false;
     }
 

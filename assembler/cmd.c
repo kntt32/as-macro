@@ -26,8 +26,11 @@ char* Args_next(inout Args* self) {
 }
 
 SResult AsmCmdArgs_parse(Args args, out AsmCmdArgs* asm_cmd_args) {
+    static char IMPORT_PATH_DEFAULT[] = ".";
     asm_cmd_args->path = NULL;
     asm_cmd_args->import_path = Vec_new(sizeof(char*));
+    char* path_default = IMPORT_PATH_DEFAULT;
+    Vec_push(&asm_cmd_args->import_path, &path_default);
     asm_cmd_args->output_path[0] = '\0';
     asm_cmd_args->version = false;
 
@@ -115,31 +118,24 @@ u32 Cmd_build_file(AsmCmdArgs asm_cmd_args) {
         AsmCmdArgs_free(asm_cmd_args);
         return 0;
     }
-
-    char* file = NULL;
-    SResult sresult = map_file(asm_cmd_args.path, &file);
-    if(!SResult_is_success(sresult)) {
+    
+    GlobalSyntaxTree global_syntax_tree = GlobalSyntaxTree_new(Vec_clone(&asm_cmd_args.import_path, NULL));
+    if(!SResult_is_success(GlobalSyntaxTree_parse(&global_syntax_tree, asm_cmd_args.path))) {
         AsmCmdArgs_free(asm_cmd_args);
-        fprintf(stderr, "%s\n", sresult.error);
+        GlobalSyntaxTree_free(global_syntax_tree);
         return 1;
     }
-
-    Parser parser = Parser_new(file, asm_cmd_args.path);
-    GlobalSyntaxTree global_syntax_tree = GlobalSyntaxTree_new();
-    GlobalSyntaxTree_parse(&global_syntax_tree, parser);
     Generator generator = GlobalSyntaxTree_build(global_syntax_tree);
 
     if(Generator_is_error(&generator)) {
         Cmd_print_errors(&generator);
         Generator_free(generator);
-        free(file);
         AsmCmdArgs_free(asm_cmd_args);
         return 1;
     }
 
     Cmd_build_file_save(generator, asm_cmd_args);
 
-    free(file);
     return 0;
 }
 

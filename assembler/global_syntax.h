@@ -32,8 +32,8 @@ void GlobalSyntax_print(in GlobalSyntax* self);
 void GlobalSyntax_free(GlobalSyntax self);
 void GlobalSyntax_free_for_vec(inout void* ptr);
 
-GlobalSyntaxTree GlobalSyntaxTree_new();
-void GlobalSyntaxTree_parse(inout GlobalSyntaxTree* self, Parser parser);
+GlobalSyntaxTree GlobalSyntaxTree_new(Vec import_paths);
+SResult GlobalSyntaxTree_parse(inout GlobalSyntaxTree* self, in char* path);
 Generator GlobalSyntaxTree_build(inout GlobalSyntaxTree self);
 void GlobalSyntaxTree_print(in GlobalSyntaxTree* self);
 void GlobalSyntaxTree_free(GlobalSyntaxTree self);

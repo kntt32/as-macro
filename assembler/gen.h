@@ -220,7 +220,7 @@ typedef struct {
 } Rela;
 
 typedef struct {
-    char path[256];
+    char path[4096];
     char* src;
 } Import;
 
@@ -234,7 +234,8 @@ typedef struct {
     Vec global_variables;// Vec<Variable>
     Vec asmacroes;// Vec<Asmacro>
     Vec errors;// Vec<Error>
-    Vec imports;// Vec<Imports>
+    Vec imports;// Vec<Import>
+    Vec import_paths;// Vec<char*>
     Vec expand_stack;// Vec<Asmacro>
     
     Vec sections;// Vec<Section>
@@ -417,9 +418,9 @@ Error Error_from_sresult(Offset offset, SResult result);
 void Error_print(in Error* self);
 void Error_print_for_vec(in void* ptr);
 
-Generator Generator_new();
-bool Generator_imported(in Generator* self, in char module_path[256]);
-void Generator_import(inout Generator* self, in char module_path[256], optional char* src);
+Generator Generator_new(Vec import_paths);
+SResult Generator_import_by_path(inout Generator* self, in char* path, out bool* doubling_flag, out Parser* optional parser);
+ParserMsg Generator_import(inout Generator* self, Parser parser, out bool* doubling_flag, out Parser* optional import_parser);
 SResult Generator_add_type(inout Generator* self, Type type);
 SResult Generator_get_type(in Generator* self, in char* name, out Type* type);
 SResult Generator_add_global_variable(inout Generator* self, Variable variable);

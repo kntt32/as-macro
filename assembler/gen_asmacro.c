@@ -15,7 +15,7 @@ static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argume
             {"xmm", &argument->storage.trait.xmm_flag}
         };
         
-        for(u32 i=0; i<3; i++) {
+        for(u32 i=0; i<LEN(bounds); i++) {
             *bounds[i].flag = false;
         }
 

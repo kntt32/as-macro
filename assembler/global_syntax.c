@@ -124,33 +124,19 @@ static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* genera
     return true;
 }
 
-static ParserMsg GlobalSyntax_parse_import_code(inout Generator* generator, Offset offset, in char module_name[256]) {
-    assert(module_name != NULL);
+static ParserMsg GlobalSyntax_parse_import_code(inout Generator* generator, Offset offset, Parser parser) {
     assert(generator != NULL);
-
-    char path[260];
-    snprintf(path, 260, "%.255s.amc", module_name);
     
-    if(!Generator_imported(generator, path)) {
-        FILE* file = fopen(path, "rb");
-        if(file == NULL) {
-            return ParserMsg_new(offset, "module is not exist");
-        }
+    bool doubling_flag = false;
+    Parser child_parser;
+    PARSERMSG_UNWRAP(
+        Generator_import(generator, parser, &doubling_flag, &child_parser),
+        (void)NULL
+    );
 
-        u64 file_size = get_file_size(file);
-        char* file_str = malloc(file_size + 1);
-        UNWRAP_NULL(file_str);
-
-        if(fread(file_str, 1, file_size, file) <= 0) {
-            PANIC("something wrong");
-        }
-        file_str[file_size] = '\0';
-        fclose(file);
-        Generator_import(generator, path, file_str);
-        Parser parser = Parser_new(file_str, path);
-
-        while(!Parser_is_empty(&parser)) {
-            Parser syntax_parser = Parser_split(&parser, ";");
+    if(!doubling_flag) {
+        while(!Parser_is_empty(&child_parser)) {
+            Parser syntax_parser = Parser_split(&child_parser, ";");
             GlobalSyntax global_syntax;
             PARSERMSG_UNWRAP(
                 GlobalSyntax_parse(syntax_parser, generator, &global_syntax), (void)NULL
@@ -174,16 +160,11 @@ static bool GlobalSyntax_parse_import(Parser parser, inout Generator* generator,
     global_syntax->offset = parser.offset;
     global_syntax->type = GlobalSyntax_Import;
 
-    char module_name[256];
-    if(resolve_parsermsg(Parser_parse_ident(&parser, module_name), generator)) {
-        return true;
-    }
     global_syntax->ok_flag = !resolve_parsermsg(
-        GlobalSyntax_parse_import_code(generator, parser.offset, module_name),
+        GlobalSyntax_parse_import_code(generator, parser.offset, parser),
         generator
     );
 
-    check_parser(&parser, generator);
     return true;
 }
 
@@ -589,16 +570,21 @@ void GlobalSyntax_free_for_vec(inout void* ptr) {
     GlobalSyntax_free(*global_syntax);
 }
 
-GlobalSyntaxTree GlobalSyntaxTree_new() {
-    GlobalSyntaxTree tree = {Generator_new(), Vec_new(sizeof(GlobalSyntax))};
+GlobalSyntaxTree GlobalSyntaxTree_new(Vec import_paths) {
+    GlobalSyntaxTree tree = {Generator_new(import_paths), Vec_new(sizeof(GlobalSyntax))};
     Generator_new_section(&tree.generator, ".text");
     Generator_new_section(&tree.generator, ".data");
     Generator_new_section(&tree.generator, ".bss");
     return tree;
 }
 
-void GlobalSyntaxTree_parse(inout GlobalSyntaxTree* self, Parser parser) {
-    Generator_import(&self->generator, Parser_path(&parser), NULL);
+SResult GlobalSyntaxTree_parse(inout GlobalSyntaxTree* self, in char* path) {
+    Parser parser;
+    bool already_imported;
+    SRESULT_UNWRAP(
+        Generator_import_by_path(&self->generator, path, &already_imported, &parser), (void)NULL
+    );
+    assert(!already_imported);
 
     while(!Parser_is_empty(&parser)) {
         Parser syntax_parser = Parser_split(&parser, ";");
@@ -608,6 +594,8 @@ void GlobalSyntaxTree_parse(inout GlobalSyntaxTree* self, Parser parser) {
             Vec_push(&self->global_syntaxes, &global_syntax);
         }
     }
+
+    return SResult_new(NULL);
 }
 
 Generator GlobalSyntaxTree_build(inout GlobalSyntaxTree self) {

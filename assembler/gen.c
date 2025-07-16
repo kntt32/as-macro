@@ -4,6 +4,8 @@
 #include "register.h"
 #include "parser.h"
 #include "gen.h"
+#include "path.h"
+#include "util.h"
 
 SResult Section_new(in char* name, out Section* section) {
     if(!(strlen(name) < 256)) {
@@ -124,13 +126,14 @@ void Error_print_for_vec(in void* ptr) {
     Error_print(ptr);
 }
 
-Generator Generator_new() {
+Generator Generator_new(Vec import_paths) {
     Generator generator = {
         Type_primitives(),
         Vec_new(sizeof(Variable)),
         Vec_new(sizeof(Asmacro)),
         Vec_new(sizeof(Error)),
         Vec_new(sizeof(Import)),
+        import_paths,
         Vec_new(sizeof(Asmacro)),
         Vec_new(sizeof(Section)),
         Vec_new(sizeof(Label)),
@@ -139,6 +142,78 @@ Generator Generator_new() {
     return generator;
 }
 
+static bool already_imported(in Generator* self, in char* module_realpath) {
+    for(u32 i=0; i<Vec_len(&self->imports); i++) {
+        Import* import = Vec_index(&self->imports, i);
+        if(strcmp(import->path, module_realpath) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+SResult Generator_import_by_path(inout Generator* self, in char* path, out bool* doubling_flag, out Parser* optional parser) {
+    if(already_imported(self, path)) {
+        *doubling_flag = true;
+        return SResult_new(NULL);
+    }
+
+    *doubling_flag = false;
+    Import import;
+    snprintf(import.path, 4096, "%.4095s", path);
+    if(!SResult_is_success(map_file(path, &import.src))) {
+        return SResult_new("no such a module");
+    }
+
+    *parser = Parser_new(import.src, path);
+    Vec_push(&self->imports, &import);
+    return SResult_new(NULL);
+}
+
+ParserMsg Generator_import(inout Generator* self, Parser parser, out bool* doubling_flag, out Parser* optional import_parser) {
+    char module_path[4096] = "";
+    while(!Parser_is_empty(&parser)) {
+        char token[256];
+        PARSERMSG_UNWRAP(
+            Parser_parse_ident(&parser, token), (void)NULL
+        );
+
+        if(strcmp(token, "super") == 0) {
+            if(path_super(module_path) == NULL) {
+                return ParserMsg_new(parser.offset, "already top level");
+            }
+        }else {
+            if(path_child(module_path, token) == NULL) {
+                return ParserMsg_new(parser.offset, "too long module path");
+            }
+        }
+
+        if(!Parser_is_empty(&parser)) {
+            PARSERMSG_UNWRAP(
+                Parser_parse_symbol(&parser, "."), (void)NULL
+            );
+        }
+    }
+    if(path_append_extension(module_path, "amc") == NULL) {
+        return ParserMsg_new(parser.offset, "too long module path");
+    }
+
+    for(u32 i=0; i<Vec_len(&self->import_paths); i++) {
+        char** import_path_ptr = Vec_index(&self->import_paths, i);
+        char* import_path = *import_path_ptr;
+
+        char module_realpath[4096] = "";
+        snprintf(module_realpath, 4096, "%.3000s/%.1094s", import_path, module_path);
+        
+        if(SResult_is_success(Generator_import_by_path(self, module_realpath, doubling_flag, import_parser))) {
+            return ParserMsg_new(parser.offset, NULL);
+        }
+    }
+
+    return ParserMsg_new(parser.offset, "module not found");
+}
+/*
 bool Generator_imported(in Generator* self, in char module_path[256]) {
     assert(self != NULL && module_path != NULL);
 
@@ -161,7 +236,7 @@ void Generator_import(inout Generator* self, in char module_path[256], optional 
 
     Vec_push(&self->imports, &import);
 }
-
+*/
 SResult Generator_add_type(inout Generator* self, Type type) {
     for(u32 i=0; i<Vec_len(&self->types); i++) {
         Type* ptr = Vec_index(&self->types, i);
@@ -537,6 +612,7 @@ void Generator_free(Generator self) {
     Vec_free_all(self.asmacroes, Asmacro_free_for_vec);
     Vec_free(self.errors);
     Vec_free_all(self.imports, Import_free_for_vec);
+    Vec_free(self.import_paths);
     Vec_free_all(self.expand_stack, Asmacro_free_for_vec);
     Vec_free_all(self.sections, Section_free_for_vec);
     Vec_free(self.labels);

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include "parser.h"
 
 static struct { char expr; char code; } ESCAPE_SEQUENCES[] = {
@@ -16,7 +17,9 @@ Offset Offset_new(in char* path) {
 
     Offset offset;
 
-    strncpy(offset.path, path, 255);
+    char buff[PATH_MAX];
+    UNWRAP_NULL(realpath(path, buff));
+    snprintf(offset.path, PATH_MAX, "%.4095s", buff);
     offset.line = 1;
     offset.column = 1;
 

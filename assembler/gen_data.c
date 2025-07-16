@@ -256,7 +256,7 @@ SResult Data_as_integer(in Data* self, out u64* integer) {
     return SResult_new(NULL);
 }
 
-static SResult Data_subscript_helper(in Data* src, in Data* index, out Data* data) {
+static SResult Data_subscript_helper(in Data* src, in Data* index, in Generator* generator, out Data* data) {
     u64 integ = 0;
     SRESULT_UNWRAP(
         Data_as_integer(index, &integ),
@@ -264,7 +264,7 @@ static SResult Data_subscript_helper(in Data* src, in Data* index, out Data* dat
     );
 
     SRESULT_UNWRAP(
-        Type_subscript(&src->type, integ, &data->type),
+        Type_subscript(&src->type, generator, integ, &data->type),
         (void)NULL
     );
 
@@ -276,11 +276,11 @@ static SResult Data_subscript_helper(in Data* src, in Data* index, out Data* dat
     return SResult_new(NULL);
 }
 
-SResult Data_subscript(Data src, Data index, out Data* data) {
+SResult Data_subscript(Data src, Data index, in Generator* generator, out Data* data) {
     assert(data != NULL);
 
     SRESULT_UNWRAP(
-        Data_subscript_helper(&src, &index, data),
+        Data_subscript_helper(&src, &index, generator, data),
         Data_free(src);Data_free(index);
     );
 
@@ -304,7 +304,7 @@ SResult Data_ref(Data src, in Generator* generator, out Data* data) {
     assert(data != NULL);
 
     SRESULT_UNWRAP(
-        Type_refer_operator(&src.type, generator, &data->type),
+        Type_ref(&src.type, generator, &data->type),
         Data_free(src)
     );
 

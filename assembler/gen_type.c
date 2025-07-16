@@ -645,7 +645,7 @@ SResult Type_dot_element(in Type* self, in char* element, out u32* offset, out T
     return SResult_new("unknown structure element");
 }
 
-SResult Type_refer_operator(in Type* src, in Generator* generator, out Type* type) {
+SResult Type_ref(in Type* src, in Generator* generator, out Type* type) {
     assert(src != NULL);
     assert(generator != NULL);
     assert(type != NULL);
@@ -667,8 +667,9 @@ SResult Type_refer_operator(in Type* src, in Generator* generator, out Type* typ
     return SResult_new(NULL);
 }
 
-SResult Type_subscript(in Type* self, u32 index, out Type* type) {
+SResult Type_subscript(in Type* self, in Generator* generator, u32 index, out Type* type) {
     assert(self != NULL && type != NULL);
+    assert(self->name[0] != '\0');
 
     switch(self->type) {
         case Type_Ptr:
@@ -679,6 +680,12 @@ SResult Type_subscript(in Type* self, u32 index, out Type* type) {
                 return SResult_new("out of range");
             }
             *type = Type_clone(self->body.t_array.type);
+            break;
+        case Type_LazyPtr:
+            SRESULT_UNWRAP(
+                Generator_get_type(generator, self->body.t_lazy_ptr, type),
+                (void)NULL
+            );
             break;
         default:
             return SResult_new("expected pointer or array");

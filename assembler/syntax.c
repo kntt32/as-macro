@@ -985,7 +985,7 @@ bool Syntax_build_subscript_operator(Parser parser, inout Generator* generator, 
     }
 
     if(resolve_sresult(
-        Data_subscript(left_data, index_data, data),
+        Data_subscript(left_data, index_data, generator, data),
         parser.offset, generator
     )) {
         *data = Data_void();

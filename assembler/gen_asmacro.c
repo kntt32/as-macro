@@ -11,7 +11,8 @@ static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argume
         struct { char* keyword; bool* flag;} bounds[] = {
             {"reg", &argument->storage.trait.reg_flag},
             {"mem", &argument->storage.trait.mem_flag},
-            {"imm", &argument->storage.trait.imm_flag}
+            {"imm", &argument->storage.trait.imm_flag},
+            {"xmm", &argument->storage.trait.xmm_flag}
         };
         
         for(u32 i=0; i<3; i++) {

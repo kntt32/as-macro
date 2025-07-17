@@ -17,9 +17,7 @@ Offset Offset_new(in char* path) {
 
     Offset offset;
 
-    char buff[PATH_MAX];
-    UNWRAP_NULL(realpath(path, buff));
-    snprintf(offset.path, PATH_MAX, "%.4095s", buff);
+    snprintf(offset.path, 4096, "%.4095s", path);
     offset.line = 1;
     offset.column = 1;
 

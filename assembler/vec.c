@@ -38,7 +38,7 @@ Vec Vec_clone(in Vec* self, optional in void (*clone)(void* dst, void* src)) {
         }
     }else {
         for(u32 i=0; i<vec.len; i++) {
-            void* ptr = vec.ptr + vec.size * i;
+            void* ptr = (u8*)vec.ptr + vec.size * i;
             clone(ptr, Vec_index(self, i));
         }
     }
@@ -50,7 +50,7 @@ void* Vec_index(Vec* self, u32 index) {
     if(self->len <= index) {
         PANIC("out of range");
     }
-    return self->ptr + self->size * index;
+    return (u8*)self->ptr + self->size * index;
 }
 
 void* Vec_as_ptr(Vec* self) {
@@ -66,16 +66,27 @@ void Vec_print(Vec* self, void (*f)(void*)) {
     printf("]");
 }
 
+void Vec_reserve(Vec* self, u32 capacity) {
+    if(capacity < self->len) {
+        PANIC("too small capacity");
+    }
+    void* ptr = realloc(self->ptr, capacity * self->size);
+    UNWRAP_NULL(ptr);
+
+    self->ptr = ptr;
+    self->capacity = capacity;
+}
+
 void Vec_push(Vec* self, void* restrict object) {
     if(self->capacity == self->len) {
-        u32 new_capacity = (self->len + 1) * 2;
+        u32 new_capacity = (self->len == 0)?(4):(self->len * 2);
         self->ptr = realloc(self->ptr, new_capacity * self->size);
         if(self->ptr == NULL) {
             PANIC("failed to realloc");
         }
         self->capacity = new_capacity;
     }
-    memcpy(self->ptr + self->size * self->len, object, self->size);
+    memcpy((u8*)self->ptr + self->size * self->len, object, self->size);
     self->len ++;
 }
 
@@ -90,7 +101,7 @@ void Vec_last(Vec* self, void* restrict ptr) {
     if(self->len == 0) {
         PANIC("length is zero");
     } else {
-        memcpy(ptr, self->ptr + self->size * (self->len - 1), self->size);
+        memcpy(ptr, (u8*)self->ptr + self->size * (self->len - 1), self->size);
     }
 }
 
@@ -98,7 +109,7 @@ SResult Vec_last_ptr(Vec* self, void** ptr) {
     if(self->len == 0) {
         return SResult_new("vec length is zero");
     }
-    *ptr = self->ptr + self->size * (self->len - 1);
+    *ptr = (u8*)self->ptr + self->size * (self->len - 1);
     return SResult_new(NULL);
 }
 
@@ -109,9 +120,11 @@ Vec Vec_from(void* src, u32 len, u32 size) {
 }
 
 void Vec_append(Vec* self, void* src, u32 len) {
-    for(u32 i=0; i<len; i++) {
-        Vec_push(self, src + self->size * i);
-    }
+    Vec_reserve(self, self->len + len);
+
+    memcpy((u8*)self->ptr + self->size * self->len, src, self->size * len);
+    self->len += len;
+   
     return;
 }
 
@@ -119,7 +132,9 @@ void Vec_remove(inout Vec* self, u32 index, out void* ptr) {
     void* ptr_src = Vec_index(self, index);
     memcpy(ptr, ptr_src, self->size);
 
-    memmove(ptr_src, ptr_src+self->size, self->size*(self->len-index-1));
+    if(self->len - index - 1 != 0) {
+        memmove(ptr_src, (u8*)ptr_src+self->size, self->size*(self->len-index-1));
+    }
     self->len --;
 }
 

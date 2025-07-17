@@ -27,3 +27,6 @@ debug: a.out
 clean:
 	rm -f *.o *.out *.elf
 
+init:
+	export ASMACRO_STDLIBS=$(HOME)/as-macro/test
+

@@ -271,6 +271,25 @@ void check_parser(in Parser* parser, inout Generator* generator) {
     }
 }
 
+SResult SyntaxTree_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager) {
+    VariableManager_new_block(variable_manager);
+
+    while(!Parser_is_empty(&parser)) {
+        Parser syntax_parser = Parser_split(&parser, ";");
+        Data data;
+        SRESULT_UNWRAP(
+            Syntax_build(syntax_parser, generator, variable_manager, &data), (void)NULL
+        );
+        Data_free(data);
+    }
+
+    SRESULT_UNWRAP(
+        VariableManager_delete_block(variable_manager, generator), (void)NULL
+    );
+
+    return SResult_new(NULL);
+}
+
 SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     bool (*BUILDERS[])(Parser, inout Generator*, inout VariableManager* variable_manager, out Data*) = {
         Syntax_build_variable_declaration,
@@ -278,6 +297,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_sizeof_operator,
         Syntax_build_alignof_operator,
         Syntax_build_if,
+        Syntax_build_for,
         Syntax_build_asmacro_expansion,
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
@@ -1170,20 +1190,45 @@ static SResult build_cmpzero(Data data, inout Generator* generator, inout Variab
     return SResult_new(NULL);
 }
 
-static SResult build_jne_to_else(u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
+static SResult build_jne(in char* label, inout Generator* generator, inout VariableManager* variable_manager) {
     Data tmp_data;
-    char label[256];
-    snprintf(label, 256, ".%u.if.else", id);
 
     Vec jne_args = Vec_new(sizeof(Data));
     Data jne_arg1 = Data_from_label(label);
     Vec_push(&jne_args, &jne_arg1);
-    
+
     SRESULT_UNWRAP(
         expand_asmacro("jne", "", jne_args, generator, variable_manager, &tmp_data), (void)NULL
     );
 
     Data_free(tmp_data);
+
+    return SResult_new(NULL);
+}
+
+static SResult build_je(in char* label, inout Generator* generator, inout VariableManager* variable_manager) {
+    Data tmp_data;
+
+    Vec jne_args = Vec_new(sizeof(Data));
+    Data jne_arg1 = Data_from_label(label);
+    Vec_push(&jne_args, &jne_arg1);
+
+    SRESULT_UNWRAP(
+        expand_asmacro("je", "", jne_args, generator, variable_manager, &tmp_data), (void)NULL
+    );
+
+    Data_free(tmp_data);
+
+    return SResult_new(NULL);
+}
+
+static SResult build_jne_to_else(u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
+    char label[256];
+    snprintf(label, 256, ".%u.if.else", id);
+
+    SRESULT_UNWRAP(
+        build_jne(label, generator, variable_manager), (void)NULL
+    );
 
     return SResult_new(NULL);
 }
@@ -1212,10 +1257,7 @@ static SResult build_branch(Parser parser, u32 id, in char* branch_name, inout G
     return SResult_new(NULL);
 }
 
-static SResult build_jmp_to_endif(u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
-    char label[256];
-    snprintf(label, 256, ".%u.if.endif", id);
-
+static SResult build_jmp(in char* label, inout Generator* generator, inout VariableManager* variable_manager) {
     Data tmp_data;
 
     Vec jmp_args = Vec_new(sizeof(Data));
@@ -1227,6 +1269,17 @@ static SResult build_jmp_to_endif(u32 id, inout Generator* generator, inout Vari
 
     Data_free(tmp_data);
 
+    return SResult_new(NULL);
+}
+
+static SResult build_jmp_to_endif(u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
+    char label[256];
+    snprintf(label, 256, ".%u.if.endif", id);
+
+    SRESULT_UNWRAP(
+        build_jmp(label, generator, variable_manager), (void)NULL
+    );
+    
     return SResult_new(NULL);
 }
 
@@ -1292,6 +1345,151 @@ bool Syntax_build_if(Parser parser, inout Generator* generator, inout VariableMa
     }
 
     Syntax_build_if_build(condition_parser, if_branch_parser, else_branch_parser, generator, variable_manager);
+
+    return true;
+}
+
+static ParserMsg Syntax_build_for_parse(Parser parser, in Generator* generator, out Parser* init_parser, out Parser* cond_parser, out Parser* inc_parser, out Parser* proc_parser) {
+    Parser paren_parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_paren(&parser, &paren_parser), (void)NULL
+    );
+
+    *init_parser = Parser_split(&paren_parser, ";");
+    if(Parser_is_empty(&paren_parser)) return ParserMsg_new(paren_parser.offset, "expected symbol \";\"");
+    *cond_parser = Parser_split(&paren_parser, ";");
+    if(Parser_is_empty(&paren_parser)) return ParserMsg_new(paren_parser.offset, "expected symbol \";\"");
+    *inc_parser = paren_parser;
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_block(&parser, proc_parser), (void)NULL
+    );
+
+    check_parser(&parser, generator);
+
+    return ParserMsg_new(parser.offset, NULL);
+}
+
+static void Syntax_build_for_build_init(Parser init_parser, u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
+    char start_label[256];
+    snprintf(start_label, 256, ".%u.for", id);
+    resolve_sresult(
+        Generator_append_label(generator, ".text", start_label, false, Label_Notype), init_parser.offset, generator
+    );
+
+    Data data;
+    if(resolve_sresult(
+        Syntax_build(init_parser, generator, variable_manager, &data), init_parser.offset, generator
+    )) {
+        return;
+    }
+    Data_free(data);
+
+    return;
+}
+
+static void Syntax_build_for_build_condition(Parser cond_parser, u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
+    Data data;
+    
+    char cond_label[256];
+    snprintf(cond_label, 256, ".%u.for.cond", id);
+    resolve_sresult(
+        Generator_append_label(generator, ".text", cond_label, false, Label_Notype), cond_parser.offset, generator
+    );
+
+    if(resolve_sresult(
+        Syntax_build(cond_parser, generator, variable_manager, &data), cond_parser.offset, generator
+    )) {
+        return;
+    }
+
+    if(strcmp(data.type.name, "bool") != 0) {
+        Data_free(data);
+        Error error = Error_new(cond_parser.offset, "expected bool");
+        Generator_add_error(generator, error);
+        return;
+    }
+
+    if(resolve_sresult(build_cmpzero(data, generator, variable_manager), cond_parser.offset, generator)) {
+        return;
+    }
+
+    char label[256];
+    snprintf(label, 256, ".%u.for.end", id);
+    if(resolve_sresult(build_je(label, generator, variable_manager), cond_parser.offset, generator)) {
+        return;
+    }
+}
+
+static void Syntax_build_for_build_proc(Parser proc_parser, u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
+    char proc_label[256];
+    snprintf(proc_label, 256, ".%u.for.proc", id);
+    resolve_sresult(
+        Generator_append_label(generator, ".text", proc_label, false, Label_Notype), proc_parser.offset, generator
+    );
+
+    if(resolve_sresult(
+        SyntaxTree_build(proc_parser, generator, variable_manager), proc_parser.offset, generator
+    )) {
+        return;
+    }
+}
+
+static void Syntax_build_for_build_inc(Parser inc_parser, u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
+    Data data;
+    if(resolve_sresult(Syntax_build(inc_parser, generator, variable_manager, &data), inc_parser.offset, generator)) {
+        return;
+    }
+    Data_free(data);
+
+    char cond_label[256];
+    snprintf(cond_label, 256, ".%u.for.cond", id);
+    resolve_sresult(
+        build_jmp(cond_label, generator, variable_manager), inc_parser.offset, generator
+    );
+}
+
+static void Syntax_build_for_build(
+    Parser init_parser, Parser cond_parser, Parser inc_parser, Parser proc_parser,
+    inout Generator* generator,
+    inout VariableManager* variable_manager) {
+
+    u32 id = get_id();
+
+    VariableManager_new_block(variable_manager);
+
+    Syntax_build_for_build_init(init_parser, id, generator, variable_manager);
+    Syntax_build_for_build_condition(cond_parser, id, generator, variable_manager);
+    Syntax_build_for_build_proc(proc_parser, id, generator, variable_manager);
+    Syntax_build_for_build_inc(inc_parser, id, generator, variable_manager);
+
+    char end_label[256];
+    snprintf(end_label, 256, ".%u.for.end", id);
+    resolve_sresult(
+        Generator_append_label(generator, ".text", end_label, false, Label_Notype), init_parser.offset, generator
+    );
+
+    resolve_sresult(
+        VariableManager_delete_block(variable_manager, generator), init_parser.offset, generator
+    );
+}
+
+bool Syntax_build_for(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    *data = Data_void();
+
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "for"))) {
+        return false;
+    }
+
+    Parser init_parser;
+    Parser cond_parser;
+    Parser inc_parser;
+    Parser proc_parser;
+    if(resolve_parsermsg(Syntax_build_for_parse(parser, generator, &init_parser, &cond_parser, &inc_parser, &proc_parser), generator)) {
+        return true;
+    }
+
+    Syntax_build_for_build(init_parser, cond_parser, inc_parser, proc_parser, generator, variable_manager);
 
     return true;
 }

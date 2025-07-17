@@ -12,7 +12,7 @@ pub as neq(flag: bool@reg+mem, left: b64@reg+mem+imm, right: b64@reg+mem+imm) {
 
 pub as lt(flag: bool@reg+mem, left: b64@reg+mem+imm, right: b64@reg+mem+imm) {
     cmp(left, right);
-    setlt(flag);
+    setl(flag);
 };
 
 pub as max(self: i64@reg, other: i64@reg) {

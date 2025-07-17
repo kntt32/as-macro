@@ -1,28 +1,24 @@
 import std;
 import std.io;
+import core.cmp;
 
 static string: [char; 20] = "Hello, World!\n";
-static string2: [char; 20] = "hello, world\n";
 
 pub fn main() {
-    let sbuff: [char; 100]@stack;
-    let dst: *char@rdi;
-    let src: *char@rsi;
-    strcpy(lea(dst, sbuff), lea(src, string));
+    let flag: bool@r10;
+    let i: i64@r11;
+    for(i=0; lt(flag, i, 5); inc(i)) {
+        let fd: i64@rdi;
+        let msg: *char@rsi;
+        let len: i64@rdx;
 
-    let fd: i64@rdi;
-    let msg: *char@rsi;
-    let len: i64@rdx;
+        fd = stdout;
+        lea(msg, string);
+        let strlen: i64@rcx;
+        len = strlen(strlen, msg);
 
-    let flag: bool@rax;
-    flag = true;
-    fd = stdout;
-    
-    lea(msg, sbuff);
-    let strlen: i64@rcx;
-    len = strlen(strlen, msg);
-
-    write(fd, msg, len);
+        write(fd, msg, len);
+    };
 };
 
 

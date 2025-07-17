@@ -39,6 +39,8 @@ void VariableManager_print_for_vec(in void* ptr);
 void VariableManager_free(VariableManager self);
 void VariableManager_free_for_vec(inout void* ptr);
 
+SResult SyntaxTree_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager);
+
 void check_parser(in Parser* parser, inout Generator* generator);
 SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
@@ -59,5 +61,6 @@ bool Syntax_build_sizeof_operator(Parser parser, inout Generator* generator, ino
 bool Syntax_build_alignof_operator(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_variable_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_if(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+bool Syntax_build_for(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_return(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 

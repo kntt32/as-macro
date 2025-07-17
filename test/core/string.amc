@@ -1,5 +1,5 @@
-import super.core;
-import mem;
+import core;
+import core.mem;
 
 pub as strlen(len: i64@rcx, s: *char@rsi) {
     let seek_ptr: *i8@rdi;

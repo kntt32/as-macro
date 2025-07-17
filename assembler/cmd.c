@@ -31,6 +31,11 @@ SResult AsmCmdArgs_parse(Args args, out AsmCmdArgs* asm_cmd_args) {
     asm_cmd_args->output_path[0] = '\0';
     asm_cmd_args->version = false;
 
+    const char* env_stdlibs_path = getenv("ASMACRO_STDLIBS");
+    if(env_stdlibs_path != NULL) {
+        Vec_push(&asm_cmd_args->import_path, &env_stdlibs_path);
+    }
+
     loop {
         char* arg = Args_next(&args);
         if(arg == NULL) {

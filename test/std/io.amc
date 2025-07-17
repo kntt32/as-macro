@@ -1,4 +1,4 @@
-import super.core;
+import core;
 
 pub const stdin: i64 = 0;
 pub const stdout: i64 = 1;

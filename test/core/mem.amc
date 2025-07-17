@@ -1,4 +1,4 @@
-import core;
+import super.core;
 
 pub as memcpy(dst: *void@rdi, src: *void@rsi, size: i64@rcx) {
     let dst: *i8@rdi;

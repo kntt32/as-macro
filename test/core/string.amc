@@ -1,4 +1,4 @@
-import core;
+import super.core;
 import mem;
 
 pub as strlen(len: i64@rcx, s: *char@rsi) {

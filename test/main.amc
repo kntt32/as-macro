@@ -1,5 +1,5 @@
 import std;
-import std.a;
+import std.io;
 
 static string: [char; 20] = "Hello, World!\n";
 static string2: [char; 20] = "hello, world\n";

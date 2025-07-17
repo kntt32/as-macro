@@ -1,5 +1,5 @@
-import core_x64;
-import mem;
-import string;
-import cmp;
+import core.x64_ins;
+import core.mem;
+import core.string;
+import core.cmp;
 

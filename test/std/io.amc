@@ -1,0 +1,12 @@
+import super.core;
+
+pub const stdin: i64 = 0;
+pub const stdout: i64 = 1;
+pub const stderr: i64 = 2;
+
+pub as write(in fd: i64@rdi, in msg: *char@rsi, in len: i64@rdx) {
+    let number: i64@rax;
+    number = 1;
+    syscall();
+};
+

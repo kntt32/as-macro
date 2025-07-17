@@ -1,4 +1,4 @@
-import core;
+import super.core;
 
 pub as eq(flag: bool@reg+mem, left: b64@reg+mem+imm, right: b64@reg+mem+imm) {
     cmp(left, right);

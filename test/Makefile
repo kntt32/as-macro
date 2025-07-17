@@ -10,7 +10,7 @@ core.o: core.amc
 
 main.amc: std.amc
 std.amc: core.amc
-core.amc: core_x64.amc
+core.amc: 
 
 %.o: %.amc
 	$(ASMACRO) $< -o $@

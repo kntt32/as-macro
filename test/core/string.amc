@@ -18,4 +18,13 @@ pub as strlen(len: i64@rcx, s: *char@rsi) {
     dec(len);
 };
 
+pub as strcpy(dst: *char@rdi, src: *char@rsi) {
+    let len: i64@rcx;
+    
+    strlen(len, src);
+    inc(len);
+
+    memcpy(dst, src, len);
+};
+
 

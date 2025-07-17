@@ -5,6 +5,11 @@ static string: [char; 20] = "Hello, World!\n";
 static string2: [char; 20] = "hello, world\n";
 
 pub fn main() {
+    let sbuff: [char; 100]@stack;
+    let dst: *char@rdi;
+    let src: *char@rsi;
+    strcpy(lea(dst, sbuff), lea(src, string));
+
     let fd: i64@rdi;
     let msg: *char@rsi;
     let len: i64@rdx;
@@ -12,11 +17,8 @@ pub fn main() {
     let flag: bool@rax;
     flag = true;
     fd = stdout;
-    if(flag) {
-        lea(msg, string);
-    }else {
-        lea(msg, string2);
-    };
+    
+    lea(msg, sbuff);
     let strlen: i64@rcx;
     len = strlen(strlen, msg);
 

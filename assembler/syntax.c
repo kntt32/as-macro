@@ -6,6 +6,7 @@
 #include "syntax.h"
 #include "util.h"
 
+static SResult sub_rsp_raw(i32 value, inout Generator* generator, inout VariableManager* variable_manager);
 static SResult sub_rsp(i32 value, inout Generator* generator, inout VariableManager* variable_manager);
 
 void StoredReg_print(in StoredReg* self) {
@@ -695,7 +696,7 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
     return SResult_new(NULL);
 }
 
-static SResult sub_rsp(i32 value, inout Generator* generator, inout VariableManager* variable_manager) {
+static SResult sub_rsp_raw(i32 value, inout Generator* generator, inout VariableManager* variable_manager) {
     if(value != 0) {
         Vec args = Vec_new(sizeof(Data));
         Data rsp = Data_from_register(Rsp);
@@ -708,10 +709,18 @@ static SResult sub_rsp(i32 value, inout Generator* generator, inout VariableMana
             expand_asmacro("sub", "", args, generator, variable_manager, &data),
             (void)NULL
         );
-        variable_manager->stack_offset -= value;
         Data_free(data);
     }
 
+    return SResult_new(NULL);
+}
+
+static SResult sub_rsp(i32 value, inout Generator* generator, inout VariableManager* variable_manager) {
+    SRESULT_UNWRAP(
+        sub_rsp_raw(value, generator, variable_manager), (void)NULL
+    );
+
+    variable_manager->stack_offset -= value;
     return SResult_new(NULL);
 }
 
@@ -761,7 +770,7 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
     }
 
     resolve_sresult(
-        sub_rsp(stack_offset - variable_manager->stack_offset, generator, variable_manager), parser.offset, generator
+        sub_rsp_raw(stack_offset - variable_manager->stack_offset, generator, variable_manager), parser.offset, generator
     );
 
     resolve_sresult(

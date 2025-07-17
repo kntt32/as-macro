@@ -10,3 +10,15 @@ pub as neq(flag: bool@reg+mem, left: b64@reg+mem+imm, right: b64@reg+mem+imm) {
     setne(flag);
 };
 
+pub as lt(flag: bool@reg+mem, left: b64@reg+mem+imm, right: b64@reg+mem+imm) {
+    cmp(left, right);
+    setlt(flag);
+};
+
+pub as max(self: i64@reg, other: i64@reg) {
+    bool flag: bool@rax;
+    if(lt(flag, self, other)) {
+        self = other;
+    };
+};
+

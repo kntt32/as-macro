@@ -26,11 +26,8 @@ char* Args_next(inout Args* self) {
 }
 
 SResult AsmCmdArgs_parse(Args args, out AsmCmdArgs* asm_cmd_args) {
-    static char IMPORT_PATH_DEFAULT[] = ".";
     asm_cmd_args->path = NULL;
     asm_cmd_args->import_path = Vec_new(sizeof(char*));
-    char* path_default = IMPORT_PATH_DEFAULT;
-    Vec_push(&asm_cmd_args->import_path, &path_default);
     asm_cmd_args->output_path[0] = '\0';
     asm_cmd_args->version = false;
 

@@ -161,18 +161,40 @@ SResult Generator_import_by_path(inout Generator* self, in char* path, out bool*
 
     *doubling_flag = false;
     Import import;
-    snprintf(import.path, 4096, "%.4095s", path);
+    char added_path[4096];
+    snprintf(added_path, 4096, "%.4095s", path);
+    if(path_real(added_path, import.path) == NULL) {
+        return SResult_new("too long module name");
+    }
     if(!SResult_is_success(map_file(path, &import.src))) {
         return SResult_new("no such a module");
     }
 
-    *parser = Parser_new(import.src, path);
+    *parser = Parser_new(import.src, import.path);
     Vec_push(&self->imports, &import);
     return SResult_new(NULL);
 }
 
+static bool import_rel(inout Generator* self, in char* parent_path, in char* child_path, out bool* doubling_flag, out Parser* optional parser) {
+    char added_path[4096];
+    char real_path[4096];
+    snprintf(added_path, 4096, "%.4095s", parent_path);
+    if(path_super(added_path) == NULL || path_child(added_path, child_path) == NULL) {
+        return false;
+    }
+    if(path_real(added_path, real_path) == NULL) {
+        return false;
+    }
+
+    if(!SResult_is_success(Generator_import_by_path(self, real_path, doubling_flag, parser))) {
+        return false;
+    }
+
+    return true;
+}
+
 ParserMsg Generator_import(inout Generator* self, Parser parser, out bool* doubling_flag, out Parser* optional import_parser) {
-    char module_path[4096] = "";
+    char module_path[4096] = ".";
     while(!Parser_is_empty(&parser)) {
         char token[256];
         PARSERMSG_UNWRAP(
@@ -180,8 +202,8 @@ ParserMsg Generator_import(inout Generator* self, Parser parser, out bool* doubl
         );
 
         if(strcmp(token, "super") == 0) {
-            if(path_super(module_path) == NULL) {
-                return ParserMsg_new(parser.offset, "already top level");
+            if(path_super(module_path) == NULL && path_append_super(module_path) == NULL) {
+                return ParserMsg_new(parser.offset, "too long module path");
             }
         }else {
             if(path_child(module_path, token) == NULL) {
@@ -199,12 +221,20 @@ ParserMsg Generator_import(inout Generator* self, Parser parser, out bool* doubl
         return ParserMsg_new(parser.offset, "too long module path");
     }
 
+    if(import_rel(self, Parser_path(&parser), module_path, doubling_flag, import_parser)) {
+        return ParserMsg_new(parser.offset, NULL);
+    }
+
     for(u32 i=0; i<Vec_len(&self->import_paths); i++) {
         char** import_path_ptr = Vec_index(&self->import_paths, i);
         char* import_path = *import_path_ptr;
 
-        char module_realpath[4096] = "";
-        snprintf(module_realpath, 4096, "%.3000s/%.1094s", import_path, module_path);
+        char module_added_path[4096] = "";
+        snprintf(module_added_path, 4096, "%.3000s/%.1094s", import_path, module_path);
+        char module_realpath[4096];
+        if(path_real(module_added_path, module_realpath) == NULL) {
+            continue;
+        }
         
         if(SResult_is_success(Generator_import_by_path(self, module_realpath, doubling_flag, import_parser))) {
             return ParserMsg_new(parser.offset, NULL);

@@ -124,7 +124,7 @@ static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* genera
     return true;
 }
 
-static ParserMsg GlobalSyntax_parse_import_code(inout Generator* generator, Offset offset, Parser parser) {
+static ParserMsg GlobalSyntax_parse_import_code(inout Generator* generator, Parser parser) {
     assert(generator != NULL);
     
     bool doubling_flag = false;
@@ -145,7 +145,7 @@ static ParserMsg GlobalSyntax_parse_import_code(inout Generator* generator, Offs
         }
     }
 
-    return ParserMsg_new(offset, NULL);
+    return ParserMsg_new(parser.offset, NULL);
 }
 
 static bool GlobalSyntax_parse_import(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
@@ -161,7 +161,7 @@ static bool GlobalSyntax_parse_import(Parser parser, inout Generator* generator,
     global_syntax->type = GlobalSyntax_Import;
 
     global_syntax->ok_flag = !resolve_parsermsg(
-        GlobalSyntax_parse_import_code(generator, parser.offset, parser),
+        GlobalSyntax_parse_import_code(generator, parser),
         generator
     );
 

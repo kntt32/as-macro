@@ -31,15 +31,13 @@ char* path_real(in char* path, out char buffer[4096]) {
         }else if(len == 1 && strncmp(part_start, ".", 1) == 0) {
         }else if(len == 0) {
         }else {
-            char child[4096];
-            if(40956 <= len) {
+            if(4096 <= strlen(buffer) + 1 + len + 1) {
                 return NULL;
             }
-            memcpy(child, part_start, len);
-            child[len] = '\0';
-            if(path_child(buffer, child) != NULL) {
-                return NULL;
-            }
+            u32 str_len = strlen(buffer);
+            strcpy(buffer + str_len, "/");
+            memcpy(buffer + str_len + 1, part_start, len);
+            buffer[str_len + 1 + len] = '\0';
         }
 
         path += len;
@@ -57,6 +55,17 @@ char* path_super(inout char path[4096]) {
         return NULL;
     }
     super_end[0] = '\0';
+
+    return path;
+}
+
+char* path_append_super(inout char path[4096]) {
+    if(4096 <= strlen(path) + 3 + 1) {
+        return NULL;
+    }
+
+    strcpy(path + strlen(path), "/..");
+    path[strlen(path)] = '\0';
 
     return path;
 }

@@ -46,6 +46,8 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
 SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+bool Syntax_build_static_variable_declaration(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+bool Syntax_build_const_variable_declaration(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_register_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_imm_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_true_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);

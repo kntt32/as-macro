@@ -14,7 +14,6 @@ SResult Section_new(in char* name, out Section* section) {
 
     strcpy(section->name, name);
     section->binary = Vec_new(sizeof(u8));
-    strcpy(section->namespace, "\0");
 
     return SResult_new(NULL);
 }
@@ -135,6 +134,7 @@ Generator Generator_new(Vec import_paths) {
         Vec_new(sizeof(Import)),
         import_paths,
         Vec_new(sizeof(Asmacro)),
+        "",
         Vec_new(sizeof(Section)),
         Vec_new(sizeof(Label)),
         Vec_new(sizeof(Rela))
@@ -403,45 +403,13 @@ SResult Generator_new_label(inout Generator* self, Label label) {
     return SResult_new(NULL);
 }
 
-static SResult get_namespace(in Generator* self, in char* section, out char namespace[256]) {
-    for(u32 i=0; i<Vec_len(&self->sections); i++) {
-        Section* ptr = Vec_index(&self->sections, i);
-        if(strcmp(ptr->name, section) == 0) {
-            snprintf(namespace, 256, "%.255s", ptr->namespace);
-            return SResult_new(NULL);
-        }
-    }
-
-    return SResult_new("undefined section");
-}
-
-static SResult set_section_namespace(inout Generator* self, in char* section, in char* name) {
-    for(u32 i=0; i<Vec_len(&self->sections); i++) {
-        Section* ptr = Vec_index(&self->sections, i);
-        if(strcmp(ptr->name, section) == 0) {
-            strncpy(ptr->namespace, name, 255);
-            return SResult_new(NULL);
-        }
-    }
-
-    return SResult_new("undefined section");
-}
-
 SResult Generator_append_label(inout Generator* self, optional in char* section, in char* name, bool global_flag, LabelType type) {
     Label label;
     if(section != NULL) {
         if(name[0] == '.') {
-            char namespace[256];
-            SRESULT_UNWRAP(
-                get_namespace(self, section, namespace),
-                (void)NULL
-            );
-            snprintf(label.name, sizeof(label.name), "%.127s%.127s", namespace, name);
+            snprintf(label.name, sizeof(label.name), "%.127s%.127s", self->namespace, name);
         }else {
-            SRESULT_UNWRAP(
-                set_section_namespace(self, section, name),
-                (void)NULL
-             );
+            snprintf(self->namespace, 256, "%.255s", name);
             snprintf(label.name, 256, "%.255s", name);
         }
     }else {
@@ -476,9 +444,17 @@ SResult Generator_append_label(inout Generator* self, optional in char* section,
 }
 
 SResult Generator_end_label(inout Generator* self, in char* name) {
+    char resolved_name[256];
+    if(name[0] == '.') {
+        snprintf(resolved_name, 256, "%.100s%.155s", self->namespace, name);
+    }else {
+        snprintf(resolved_name, 256, "%.255s", name);
+    }
+
     for(u32 i=0; i<Vec_len(&self->labels); i++) {
         Label* label = Vec_index(&self->labels, i);
-        if(strcmp(label->name, name) == 0) {
+
+        if(strcmp(label->name, resolved_name) == 0) {
             u32 binary_len = 0;
             SRESULT_UNWRAP(
                 Generator_binary_len(self, label->section_name, &binary_len),
@@ -496,12 +472,7 @@ SResult Generator_end_label(inout Generator* self, in char* name) {
 SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, bool flag) {
     Rela rela;
     if(label[0] == '.') {
-        char namespace[256];
-        SRESULT_UNWRAP(
-            get_namespace(self, section, namespace),
-            (void)NULL
-        );
-        snprintf(rela.label, sizeof(rela.label), "%.127s%.127s", namespace, label);
+        snprintf(rela.label, sizeof(rela.label), "%.127s%.127s", self->namespace, label);
     }else {
         snprintf(rela.label, sizeof(rela.label), "%.255s", label);
     }

@@ -155,6 +155,15 @@ SResult Storage_add_offset(inout Storage* self, i32 offset) {
     return SResult_new(NULL);
 }
 
+SResult Storage_replace_label(inout Storage* self, in char* label) {
+    if(self->type != StorageType_mem) {
+        return SResult_new("expected memory storage");
+    }
+
+    snprintf(self->body.mem.disp.label, 256, "%.255s", label);
+    return SResult_new(NULL);
+}
+
 Storage Storage_refer_reg(Register reg) {
     Storage storage = {
         StorageType_mem,

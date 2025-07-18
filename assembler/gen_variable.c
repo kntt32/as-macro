@@ -25,74 +25,90 @@ ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i3
     return ParserMsg_new(parser->offset, NULL);
 }
 
-ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, inout Generator* generator) {
-    Parser parser_copy = *parser;
-
-    Variable variable;
+static ParserMsg Variable_parse_static_parse(inout Parser* parser, bool public_flag, in Generator* generator, out Variable* variable) {
     PARSERMSG_UNWRAP(
-        Parser_parse_ident(&parser_copy, variable.name),
+        Parser_parse_ident(parser, variable->name),
         (void)NULL
     );
 
     PARSERMSG_UNWRAP(
-        Parser_parse_symbol(&parser_copy, ":"),
+        Parser_parse_symbol(parser, ":"),
         (void)NULL
     );
 
     Type type;
     PARSERMSG_UNWRAP(
-        Type_parse(&parser_copy, generator, &type),
+        Type_parse(parser, generator, &type),
         (void)NULL
     );
 
-    variable.data = Data_from_mem(Rip, 0, variable.name, type);
-    variable.valid_path[0] = '\0';
+    variable->data = Data_from_mem(Rip, 0, variable->name, type);
+    variable->valid_path[0] = '\0';
     if(public_flag) {
-        snprintf(variable.valid_path, 256, "%.255s", Parser_path(parser));
+        snprintf(variable->valid_path, 256, "%.255s", Parser_path(parser));
     }
 
-    if(ParserMsg_is_success(Parser_parse_symbol(&parser_copy, "="))) {
+    return ParserMsg_new(parser->offset, NULL);
+}
+
+static ParserMsg Variable_parse_static_init(inout Parser* parser, bool public_flag, in Variable* variable, in char* label, inout Generator* generator) {
+    if(ParserMsg_is_success(Parser_parse_symbol(parser, "="))) {
         PARSERMSG_UNWRAP(
-            ParserMsg_from_sresult(Generator_append_label(generator, ".data", variable.name, public_flag, Label_Object), parser->offset),
-            Variable_free(variable)
+            ParserMsg_from_sresult(Generator_append_label(generator, ".data", label, public_flag, Label_Object), parser->offset),
+            (void)NULL
         );
 
         Vec bin = Vec_new(sizeof(u8));
         PARSERMSG_UNWRAP(
-            Type_initialize(&variable.data.type, &parser_copy, &bin),
-            Vec_free(bin);Variable_free(variable)
+            Type_initialize(&variable->data.type, parser, &bin),
+            Vec_free(bin);
         );
 
-        assert(Vec_len(&bin) == variable.data.type.size);
+        assert(Vec_len(&bin) == variable->data.type.size);
         for(u32 i=0; i<Vec_len(&bin); i++) {
             u8* byte = Vec_index(&bin, i);
             PARSERMSG_UNWRAP(
                 ParserMsg_from_sresult(
                     Generator_append_binary(generator, ".data", *byte), parser->offset
                 ),
-                Vec_free(bin);Variable_free(variable)
+                Vec_free(bin);
             );
         }
 
         Vec_free(bin);
     }else {
         PARSERMSG_UNWRAP(
-            ParserMsg_from_sresult(Generator_append_label(generator, ".bss", variable.name, public_flag, Label_Object), parser->offset),
-            Variable_free(variable)
+            ParserMsg_from_sresult(Generator_append_label(generator, ".bss", label, public_flag, Label_Object), parser->offset),
+            (void)NULL
         );
-        for(u32 i=0; i<variable.data.type.size; i++) {
+        for(u32 i=0; i<variable->data.type.size; i++) {
             PARSERMSG_UNWRAP(
                 ParserMsg_from_sresult(
                     Generator_append_binary(generator, ".bss", 0), parser->offset
                 ),
-                Variable_free(variable)
+                (void)NULL
             );
         }
     }
 
     PARSERMSG_UNWRAP(
-        ParserMsg_from_sresult(Generator_end_label(generator, variable.name), parser->offset),
-        Variable_free(variable)
+        ParserMsg_from_sresult(Generator_end_label(generator, label), parser->offset), (void)NULL
+    );
+
+    return ParserMsg_new(parser->offset, NULL);
+}
+
+ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, inout Generator* generator) {
+    Parser parser_copy = *parser;
+
+    Variable variable;
+    PARSERMSG_UNWRAP(
+        Variable_parse_static_parse(&parser_copy, public_flag, generator, &variable), (void)NULL
+    );
+
+    PARSERMSG_UNWRAP(
+        Variable_parse_static_init(&parser_copy, public_flag, &variable, variable.name, generator),
+        Variable_free(variable);
     );
 
     PARSERMSG_UNWRAP(
@@ -106,48 +122,86 @@ ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, inout Ge
     return ParserMsg_new(parser->offset, NULL);
 }
 
+ParserMsg Variable_parse_static_local(inout Parser* parser, in Generator* generator, out Variable* variable) {
+    Parser parser_copy = *parser;
+
+    PARSERMSG_UNWRAP(
+        Variable_parse_static_parse(&parser_copy, false, generator, variable), (void)NULL
+    );
+
+    char label[256];
+    snprintf(label, 256, ".%.254s", variable->name);
+    assert(
+        SResult_is_success(Storage_replace_label(&variable->data.storage, label))
+    );
+    PARSERMSG_UNWRAP(
+        Variable_parse_static_init(&parser_copy, false, variable, label, generator),
+        Variable_free(*variable)
+    );
+
+    *parser = parser_copy;
+    return ParserMsg_new(parser->offset, NULL);
+}
+
+static ParserMsg Variable_parse_const_parse_(inout Parser* parser, bool public_flag, in Generator* generator, out Variable* variable) {
+    Type type;
+    
+    PARSERMSG_UNWRAP(
+        Parser_parse_ident(parser, variable->name), (void)NULL
+    );
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(parser, ":"), (void)NULL
+    );
+
+    PARSERMSG_UNWRAP(
+        Type_parse(parser, generator, &type), (void)NULL
+    );
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(parser, "="),
+        Type_free(type)
+    );
+
+    if(public_flag) {
+        variable->valid_path[0] = '\0';
+    }else {
+        snprintf(variable->valid_path, 256, "%.255s", Parser_path(parser));
+    }
+
+    Vec bin = Vec_new(sizeof(u8));
+    PARSERMSG_UNWRAP(
+        Type_initialize(&type, parser, &bin),
+        Vec_free(bin);Type_free(type);
+    );
+    variable->data = Data_from_imm_bin(bin, type);
+    
+    return ParserMsg_new(parser->offset, NULL);
+}
+
 ParserMsg Variable_parse_const(inout Parser* parser, bool public_flag, inout Generator* generator) {
     Parser parser_copy = *parser;
 
     Variable variable;
     PARSERMSG_UNWRAP(
-        Parser_parse_ident(&parser_copy, variable.name),
-        (void)NULL
+        Variable_parse_const_parse_(&parser_copy, public_flag, generator, &variable), (void)NULL
     );
-
-    PARSERMSG_UNWRAP(
-        Parser_parse_symbol(&parser_copy, ":"),
-        (void)NULL
-    );
-
-    Type type;
-    PARSERMSG_UNWRAP(
-        Type_parse(&parser_copy, generator, &type),
-        (void)NULL
-    );
-
-    PARSERMSG_UNWRAP(
-        Parser_parse_symbol(&parser_copy, "="),
-        Type_free(type)
-    );
-
-    if(public_flag) {
-        variable.valid_path[0] = '\0';
-    }else {
-        snprintf(variable.valid_path, 256, "%.255s", Parser_path(parser));
-    }
-
-    Vec bin = Vec_new(sizeof(u8));
-    PARSERMSG_UNWRAP(
-        Type_initialize(&type, &parser_copy, &bin),
-        Vec_free(bin);Variable_free(variable)
-    );
-    variable.data = Data_from_imm_bin(bin, type);
 
     PARSERMSG_UNWRAP(
         ParserMsg_from_sresult(
             Generator_add_global_variable(generator, variable), parser->offset
         ),
+        (void)NULL
+    );
+
+    *parser = parser_copy;
+    return ParserMsg_new(parser->offset, NULL);
+}
+
+ParserMsg Variable_parse_const_local(inout Parser* parser, inout Generator* generator, out Variable* variable) {
+    Parser parser_copy = *parser;
+    PARSERMSG_UNWRAP(
+        Variable_parse_const_parse_(&parser_copy, false, generator, variable),
         (void)NULL
     );
 

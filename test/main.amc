@@ -2,13 +2,14 @@ import std;
 import std.io;
 import core.cmp;
 
-static string: [char; 20] = "Hello, World!\n";
-
 pub fn main() {
+    static STRING: [char; 20] = "Hello, World!\n";
+    const STDOUT: i64 = 1;
+
     for((let i: i64@r11; let flag: bool@r10; i=0;); lt(flag, i, 5); inc(i)) {
-        let fd: i64@rdi = stdout;
+        let fd: i64@rdi = STDOUT;
         let msg: *char@rsi;
-        msg =& string;
+        msg =& STRING;
 
         let strlen: i64@rcx;
         let len: i64@rdx = strlen(strlen, msg);

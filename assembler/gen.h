@@ -193,7 +193,6 @@ typedef struct {
 typedef struct {
     char name[256];
     Vec binary;// Vec<u8>
-    char namespace[256];
 } Section;
 
 typedef enum {
@@ -237,7 +236,8 @@ typedef struct {
     Vec imports;// Vec<Import>
     Vec import_paths;// Vec<char*>
     Vec expand_stack;// Vec<Asmacro>
-    
+
+    char namespace[256];
     Vec sections;// Vec<Section>
     Vec labels;// Vec<Label>
     Vec relas;// Vec<Rela>
@@ -315,6 +315,7 @@ void Imm_free(Imm self);
 
 ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, in Type* type, out Storage* storage);
 SResult Storage_add_offset(inout Storage* self, i32 offset);
+SResult Storage_replace_label(inout Storage* self, in char* label);
 Storage Storage_refer_reg(Register reg);
 SResult Storage_subscript(in Storage* self, u32 index, u32 size, out Storage* storage);
 bool Storage_cmp(in Storage* self, in Storage* other);
@@ -350,7 +351,9 @@ void Data_free_for_vec(inout void* ptr);
 
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable);
 ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, inout Generator* generator);
+ParserMsg Variable_parse_static_local(inout Parser* parser, in Generator* generator, out Variable* variable);
 ParserMsg Variable_parse_const(inout Parser* parser, bool public_flag, inout Generator* generator);
+ParserMsg Variable_parse_const_local(inout Parser* parser, inout Generator* generator, out Variable* variable);
 Variable Variable_from_function(in char* name, in char* valid_path, in Vec* arguments);
 void Variable_restrict_namespace(inout Variable* self, in char* namespace);
 bool Variable_cmp(in Variable* self, in Variable* other);

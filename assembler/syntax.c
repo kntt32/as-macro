@@ -293,6 +293,8 @@ SResult SyntaxTree_build(Parser parser, inout Generator* generator, inout Variab
 SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     bool (*BUILDERS[])(Parser, inout Generator*, inout VariableManager* variable_manager, out Data*) = {
         Syntax_build_variable_declaration,
+        Syntax_build_static_variable_declaration,
+        Syntax_build_const_variable_declaration,
         Syntax_build_return,
         Syntax_build_sizeof_operator,
         Syntax_build_alignof_operator,
@@ -851,6 +853,48 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
         check_parser(&parser, generator);
     }
     
+    return true;
+}
+
+bool Syntax_build_static_variable_declaration(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "static"))) {
+        return false;
+    }
+
+    *data = Data_void();
+
+    Variable variable;
+    if(resolve_parsermsg(
+        Variable_parse_static_local(&parser, generator, &variable), generator
+    )) {
+        return true;
+    }
+    resolve_sresult(
+        VariableManager_push(variable_manager, variable, generator), parser.offset, generator
+    );
+
+    check_parser(&parser, generator);
+    return true;
+}
+
+bool Syntax_build_const_variable_declaration(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "const"))) {
+        return false;
+    }
+
+    *data = Data_void();
+
+    Variable variable;
+    if(resolve_parsermsg(
+        Variable_parse_const_local(&parser, generator, &variable), generator
+    )) {
+        return true;
+    }
+    resolve_sresult(
+        VariableManager_push(variable_manager, variable, generator), parser.offset, generator
+    );
+
+    check_parser(&parser, generator);
     return true;
 }
 

@@ -310,6 +310,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_false_expression,
         Syntax_build_null_expression,
         Syntax_build_char_expression,
+        Syntax_build_implicit_static_string,
         Syntax_build_assignadd,
         Syntax_build_assignsub,
         Syntax_build_assignand,
@@ -1878,6 +1879,54 @@ bool Syntax_build_assignlea(Parser parser, inout Generator* generator, inout Var
 
     resolve_sresult(build_assignops("lea", left_parser, right_parser, generator, variable_manager), parser.offset, generator);
     *data = Data_void();
+
+    return true;
+}
+
+bool Syntax_build_implicit_static_string(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    Vec string;
+    if(!ParserMsg_is_success(Parser_parse_string(&parser, &string))) {
+        return false;
+    }
+    assert(Vec_size(&string) == sizeof(u8));
+
+    *data = Data_void();
+
+    u32 id = get_id();
+    char label[256];
+    snprintf(label, 256, ".%u.implicit_string", id);
+
+    resolve_sresult(
+        Generator_append_label(generator, ".data", label, false, Label_Object),
+        parser.offset, generator
+    );
+    for(u32 i=0; i<Vec_len(&string); i++) {
+        u8* byte = Vec_index(&string, i);
+        resolve_sresult(
+            Generator_append_binary(generator, ".data", *byte),
+            parser.offset, generator
+        );
+    }
+    resolve_sresult(
+        Generator_end_label(generator, label),
+        parser.offset, generator
+    );
+    u32 len = Vec_len(&string);
+
+    Vec_free(string);
+    Type type_char = {"char", "", Type_Integer, {}, 1, 1};
+    Type* type_char_boxed = malloc(sizeof(Type));
+    UNWRAP_NULL(type_char_boxed);
+    *type_char_boxed = type_char;
+
+    Type type_string = {
+        "*char", "", Type_Array,
+        {.t_array = {type_char_boxed, len}},
+        len,
+        1
+    };
+
+    *data = Data_from_mem(Rip, 0, label, type_string);
 
     return true;
 }

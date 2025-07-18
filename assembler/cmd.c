@@ -127,6 +127,7 @@ u32 Cmd_build_file(AsmCmdArgs asm_cmd_args) {
         GlobalSyntaxTree_free(global_syntax_tree);
         return 1;
     }
+    
     Generator generator = GlobalSyntaxTree_build(global_syntax_tree);
 
     if(Generator_is_error(&generator)) {

@@ -1,0 +1,9 @@
+import core;
+
+pub as syscall(number: i64@rax) {
+    let rcx:  i64@rcx;
+    let r11: i64@r11;
+
+    syscall();
+};
+

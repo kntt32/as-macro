@@ -7,7 +7,8 @@ static string: [char; 20] = "Hello, World!\n";
 pub fn main() {
     let flag: bool@r10;
     let i: i64@r11;
-    for(i=0; lt(flag, i, 5); inc(i)) {
+    i = 0;
+    while(lt(flag, i, 5)) {
         let fd: i64@rdi;
         let msg: *char@rsi;
         let len: i64@rdx;
@@ -18,6 +19,8 @@ pub fn main() {
         len = strlen(strlen, msg);
 
         write(fd, msg, len);
+
+        inc(i);
     };
 };
 

@@ -298,6 +298,8 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_alignof_operator,
         Syntax_build_if,
         Syntax_build_for,
+        Syntax_build_while,
+        Syntax_build_block,
         Syntax_build_asmacro_expansion,
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
@@ -1242,14 +1244,10 @@ static SResult build_branch(Parser parser, u32 id, in char* branch_name, inout G
 
     VariableManager_new_block(variable_manager);
 
-    Data data;
-    while(!Parser_is_empty(&parser)) {
-        Parser proc_parser = Parser_split(&parser, ";");
-        SRESULT_UNWRAP(
-            Syntax_build(proc_parser, generator, variable_manager, &data), (void)NULL
-        );
-    }
-    Data_free(data);
+    SRESULT_UNWRAP(
+        SyntaxTree_build(parser, generator, variable_manager), (void)NULL
+    );
+
     SRESULT_UNWRAP(
         VariableManager_delete_block(variable_manager, generator), (void)NULL
     );
@@ -1289,13 +1287,11 @@ static void Syntax_build_if_build(Parser condition_parser, Parser then_branch, P
     char if_label[256];
     snprintf(if_label, 256, ".%u.if", id);
     if(resolve_sresult(Generator_append_label(generator, ".text", if_label, false, Label_Notype), condition_parser.offset, generator)) {
-        printf("DEBUG1");
         return;
     }
 
     Data condition_data;
     if(resolve_sresult(Syntax_build(condition_parser, generator, variable_manager, &condition_data), condition_parser.offset, generator)) {
-        printf("DEBUG2");
         return;
     }
     if(strcmp(condition_data.type.name, "bool") != 0) {
@@ -1309,7 +1305,6 @@ static void Syntax_build_if_build(Parser condition_parser, Parser then_branch, P
     if(resolve_sresult(build_cmpzero(condition_data, generator, variable_manager), condition_parser.offset, generator)
         || resolve_sresult(build_jne_to_else(id, generator, variable_manager), condition_parser.offset, generator)
         || resolve_sresult(build_branch(then_branch, id, "then", generator, variable_manager), then_branch.offset, generator)) {
-        printf("DEBUG3");
         return;
     }
 
@@ -1328,7 +1323,6 @@ static void Syntax_build_if_build(Parser condition_parser, Parser then_branch, P
 }
 
 bool Syntax_build_if(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-// .id.if
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "if"))) {
         return false;
     }
@@ -1428,11 +1422,17 @@ static void Syntax_build_for_build_proc(Parser proc_parser, u32 id, inout Genera
         Generator_append_label(generator, ".text", proc_label, false, Label_Notype), proc_parser.offset, generator
     );
 
+    VariableManager_new_block(variable_manager);
+
     if(resolve_sresult(
         SyntaxTree_build(proc_parser, generator, variable_manager), proc_parser.offset, generator
     )) {
         return;
     }
+
+    resolve_sresult(
+        VariableManager_delete_block(variable_manager, generator), proc_parser.offset, generator
+    );
 }
 
 static void Syntax_build_for_build_inc(Parser inc_parser, u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
@@ -1490,6 +1490,120 @@ bool Syntax_build_for(Parser parser, inout Generator* generator, inout VariableM
     }
 
     Syntax_build_for_build(init_parser, cond_parser, inc_parser, proc_parser, generator, variable_manager);
+
+    return true;
+}
+
+static ParserMsg Syntax_build_while_parse(Parser parser, out Parser* cond_parser, out Parser* proc_parser) {
+    PARSERMSG_UNWRAP(
+        Parser_parse_paren(&parser, cond_parser), (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Parser_parse_block(&parser, proc_parser), (void)NULL
+    );
+
+    return ParserMsg_new(parser.offset, NULL);
+}
+
+static SResult Syntax_build_while_build_cond(u32 id, Parser cond_parser, inout Generator* generator, inout VariableManager* variable_manager) {
+    char label[256];
+    snprintf(label, 256, ".%u.while", id);
+
+    SRESULT_UNWRAP(
+        Generator_append_label(generator, ".text", label, false, Label_Notype), (void)NULL
+    );
+
+    Data data;
+    SRESULT_UNWRAP(
+        Syntax_build(cond_parser, generator, variable_manager, &data), (void)NULL
+    )
+    if(strcmp(data.type.name, "bool") != 0) {
+        Data_free(data);
+        return SResult_new("expected bool");
+    }
+
+    SRESULT_UNWRAP(
+        build_cmpzero(data, generator, variable_manager), (void)NULL
+    );
+
+    char while_end[256];
+    snprintf(while_end, 256, ".%u.while.end", id);
+    SRESULT_UNWRAP(
+        build_je(while_end, generator, variable_manager), (void)NULL
+    );
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_while_build_proc(u32 id, Parser proc_parser, inout Generator* generator, inout VariableManager* variable_manager) {
+    char proc_label[256];
+    snprintf(proc_label, 256, ".%u.while.proc", id);
+    SRESULT_UNWRAP(
+        Generator_append_label(generator, ".text", proc_label, false, Label_Notype), (void)NULL
+    );
+
+    VariableManager_new_block(variable_manager);
+    
+    SRESULT_UNWRAP(
+        SyntaxTree_build(proc_parser, generator, variable_manager), (void)NULL
+    );
+
+    SRESULT_UNWRAP(
+        VariableManager_delete_block(variable_manager, generator), (void)NULL
+    );
+
+    char while_start[256];
+    snprintf(while_start, 256, ".%u.while", id);
+    SRESULT_UNWRAP(
+        build_jmp(while_start, generator, variable_manager), (void)NULL
+    );
+
+    char end_label[256];
+    snprintf(end_label, 256, ".%u.while.end", id);
+    SRESULT_UNWRAP(
+        Generator_append_label(generator, ".text", end_label, false, Label_Notype), (void)NULL
+    );
+
+    return SResult_new(NULL);
+}
+
+static void Syntax_build_while_build(Parser cond_parser, Parser proc_parser, inout Generator* generator, inout VariableManager* variable_manager) {
+    u32 id = get_id();
+
+    resolve_sresult(Syntax_build_while_build_cond(id, cond_parser, generator, variable_manager), cond_parser.offset, generator);
+    resolve_sresult(Syntax_build_while_build_proc(id, proc_parser, generator, variable_manager), proc_parser.offset, generator);
+}
+
+bool Syntax_build_while(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    *data = Data_void();
+
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "while"))) {
+        return false;
+    }
+
+    Parser cond_parser;
+    Parser proc_parser;
+    if(resolve_parsermsg(Syntax_build_while_parse(parser, &cond_parser, &proc_parser), generator)) {
+        return true;
+    }
+
+    Syntax_build_while_build(cond_parser, proc_parser, generator, variable_manager);
+    return true;
+}
+
+bool Syntax_build_block(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    *data = Data_void();
+
+    Parser proc_parser;
+    if(!ParserMsg_is_success(Parser_parse_block(&parser, &proc_parser))) {
+        return false;
+    }
+
+    if(resolve_sresult(SyntaxTree_build(proc_parser, generator, variable_manager), proc_parser.offset, generator)) {
+        return true;
+    }
+
+    check_parser(&parser, generator);
 
     return true;
 }

@@ -6,14 +6,12 @@ static string: [char; 20] = "Hello, World!\n";
 
 pub fn main() {
     for((let i: i64@r11; let flag: bool@r10; i=0;); lt(flag, i, 5); inc(i)) {
-        let fd: i64@rdi;
+        let fd: i64@rdi = stdout;
         let msg: *char@rsi;
-        let len: i64@rdx;
+        msg =& string;
 
-        fd = stdout;
-        lea(msg, string);
         let strlen: i64@rcx;
-        len = strlen(strlen, msg);
+        let len: i64@rdx = strlen(strlen, msg);
 
         write(fd, msg, len);
     };

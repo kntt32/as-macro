@@ -308,12 +308,13 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_false_expression,
         Syntax_build_null_expression,
         Syntax_build_char_expression,
-        Syntax_build_assignment,
         Syntax_build_assignadd,
         Syntax_build_assignsub,
         Syntax_build_assignand,
         Syntax_build_assignor,
         Syntax_build_assignxor,
+        Syntax_build_assignlea,
+        Syntax_build_assignment,
         Syntax_build_enum_expr,
         Syntax_build_dot_operator,
         Syntax_build_refer_operator,
@@ -784,6 +785,38 @@ bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, i
     return true;
 }
 
+static SResult build_assignops_data(in char* opname, Data left_data, Data right_data, inout Generator* generator, inout VariableManager* variable_manager) {
+    Vec op_args = Vec_new(sizeof(Data));
+    Vec_push(&op_args, &left_data);
+    Vec_push(&op_args, &right_data);
+    Data data;
+    SRESULT_UNWRAP(
+        expand_asmacro(opname, "", op_args, generator, variable_manager, &data), (void)NULL
+    );
+    Data_free(data);
+
+    return SResult_new(NULL);
+}
+
+static SResult build_assignops(in char* opname, Parser left_parser, Parser right_parser, inout Generator* generator, inout VariableManager* variable_manager) {
+    Data right_data;
+    Data left_data;
+
+    SRESULT_UNWRAP(
+        Syntax_build(right_parser, generator, variable_manager, &right_data), (void)NULL
+    );
+
+    SRESULT_UNWRAP(
+        Syntax_build(left_parser, generator, variable_manager, &left_data), (void)NULL
+    );
+
+    SRESULT_UNWRAP(
+        build_assignops_data(opname, left_data, right_data, generator, variable_manager), (void)NULL
+    );
+    
+    return SResult_new(NULL);
+}
+
 bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "let"))) {
         return false;
@@ -807,7 +840,17 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
         generator
     );
     
-    check_parser(&parser, generator);
+    if(ParserMsg_is_success(Parser_parse_symbol(&parser, "="))) {
+        Data init_data;
+        if(!resolve_sresult(Syntax_build(parser, generator, variable_manager, &init_data), parser.offset, generator)) {
+            resolve_sresult(
+                build_assignops_data("mov", Data_clone(&variable.data), init_data, generator, variable_manager), parser.offset, generator
+            );
+        }
+    }else {
+        check_parser(&parser, generator);
+    }
+    
     return true;
 }
 
@@ -895,30 +938,6 @@ bool Syntax_build_char_expression(Parser parser, inout Generator* generator, ino
     *data = Data_from_char(code);
 
     return true;
-}
-
-static SResult build_assignops(in char* opname, Parser left_parser, Parser right_parser, inout Generator* generator, inout VariableManager* variable_manager) {
-    Data right_data;
-    Data left_data;
-
-    SRESULT_UNWRAP(
-        Syntax_build(right_parser, generator, variable_manager, &right_data), (void)NULL
-    );
-
-    SRESULT_UNWRAP(
-        Syntax_build(left_parser, generator, variable_manager, &left_data), (void)NULL
-    );
-
-    Vec op_args = Vec_new(sizeof(Data));
-    Vec_push(&op_args, &left_data);
-    Vec_push(&op_args, &right_data);
-    Data data;
-    SRESULT_UNWRAP(
-        expand_asmacro(opname, "", op_args, generator, variable_manager, &data), (void)NULL
-    );
-    Data_free(data);
-
-    return SResult_new(NULL);
 }
 
 bool Syntax_build_assignment(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
@@ -1787,6 +1806,33 @@ bool Syntax_build_assignxor(Parser parser, inout Generator* generator, inout Var
     }
 
     resolve_sresult(build_assignops("xor", left_parser, right_parser, generator, variable_manager), parser.offset, generator);
+    *data = Data_void();
+
+    return true;
+}
+
+static ParserMsg Syntax_build_assignlea_parse(Parser parser, out Parser* left_parser, out Parser* right_parser) {
+    *left_parser = Parser_split(&parser, "=&");
+    *right_parser = parser;
+
+    if(Parser_is_empty(left_parser)) {
+        return ParserMsg_new(left_parser->offset, "expected left expression");
+    }
+    if(Parser_is_empty(right_parser)) {
+        return ParserMsg_new(right_parser->offset, "expected right expression");
+    }
+
+    return ParserMsg_new(parser.offset, NULL);
+}
+
+bool Syntax_build_assignlea(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    Parser left_parser;
+    Parser right_parser;
+    if(!ParserMsg_is_success(Syntax_build_assignlea_parse(parser, &left_parser, &right_parser))) {
+        return false;
+    }
+
+    resolve_sresult(build_assignops("lea", left_parser, right_parser, generator, variable_manager), parser.offset, generator);
     *data = Data_void();
 
     return true;

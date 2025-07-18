@@ -12,6 +12,9 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* s
         Type_parse(&parser_copy, generator, &data->type),
         (void)NULL
     );
+    if(strcmp(data->type.name, "b") == 0) {
+        return ParserMsg_new(parser->offset, "construct Data with Type \"b\" is disallowed");
+    }
     PARSERMSG_UNWRAP(
         Parser_parse_symbol(&parser_copy, "@"),
         Type_free(data->type)

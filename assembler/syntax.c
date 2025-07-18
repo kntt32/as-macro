@@ -300,6 +300,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_for,
         Syntax_build_while,
         Syntax_build_block,
+        Syntax_build_paren,
         Syntax_build_asmacro_expansion,
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
@@ -1605,6 +1606,37 @@ bool Syntax_build_block(Parser parser, inout Generator* generator, inout Variabl
 
     check_parser(&parser, generator);
 
+    return true;
+}
+
+static SResult Syntax_build_paren_helper(Parser paren_parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    *data = Data_void();
+
+    while(!Parser_is_empty(&paren_parser)) {
+        Data_free(*data);
+        Parser syntax_parser = Parser_split(&paren_parser, ";");
+
+        SRESULT_UNWRAP(
+            Syntax_build(syntax_parser, generator, variable_manager, data),
+            (void)NULL
+        );
+    }
+
+    return SResult_new(NULL);
+}
+
+bool Syntax_build_paren(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    Parser paren_parser;
+    if(!ParserMsg_is_success(Parser_parse_paren(&parser, &paren_parser))) {
+        return false;
+    }
+
+    if(resolve_sresult(Syntax_build_paren_helper(paren_parser, generator, variable_manager, data), parser.offset, generator)) {
+        *data = Data_void();
+        return true;
+    }
+
+    check_parser(&parser, generator);
     return true;
 }
 

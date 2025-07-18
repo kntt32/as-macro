@@ -64,5 +64,6 @@ bool Syntax_build_if(Parser parser, inout Generator* generator, inout VariableMa
 bool Syntax_build_for(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_while(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_block(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+bool Syntax_build_paren(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_return(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 

@@ -5,10 +5,7 @@ import core.cmp;
 static string: [char; 20] = "Hello, World!\n";
 
 pub fn main() {
-    let flag: bool@r10;
-    let i: i64@r11;
-    i = 0;
-    while(lt(flag, i, 5)) {
+    for((let i: i64@r11; let flag: bool@r10; i=0;); lt(flag, i, 5); inc(i)) {
         let fd: i64@rdi;
         let msg: *char@rsi;
         let len: i64@rdx;
@@ -19,8 +16,6 @@ pub fn main() {
         len = strlen(strlen, msg);
 
         write(fd, msg, len);
-
-        inc(i);
     };
 };
 

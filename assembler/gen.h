@@ -364,6 +364,7 @@ SResult Variable_get_stack_offset(in Variable* self, out i32* rbp_offset);
 SResult Variable_set_stack_offset(inout Variable* self, i32 rbp_offset);
 Type* Variable_get_type(in Variable* self);
 Storage* Variable_get_storage(in Variable* self);
+Vec Variables_from_datas(in Vec* datas);
 void Variable_print(in Variable* self);
 void Variable_print_for_vec(in void* ptr);
 void Variable_free(Variable self);

@@ -476,8 +476,8 @@ Asmacro Asmacro_new_fn_wrapper(in char* name, Vec arguments/* Vec<Variable> */, 
 
     Asmacro asmacro;
 
-    strcpy(asmacro.name, name);
-    strcpy(asmacro.valid_path, valid_path);
+    snprintf(asmacro.name, 256, "%.255s", name);
+    snprintf(asmacro.valid_path, 256, "%.255s", valid_path);
 
     asmacro.arguments = Vec_new(sizeof(Argument));
     for(u32 i=0; i<Vec_len(&arguments); i++) {

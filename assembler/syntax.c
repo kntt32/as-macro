@@ -301,9 +301,10 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_if,
         Syntax_build_for,
         Syntax_build_while,
+        Syntax_build_asmacro_expansion,
+        Syntax_build_call_fnptr,
         Syntax_build_block,
         Syntax_build_paren,
-        Syntax_build_asmacro_expansion,
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
         Syntax_build_true_expression,
@@ -619,7 +620,7 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_stack_args(in Asmac
     return SResult_new(NULL);
 }
 
-static SResult Syntax_build_asmacro_expansion_fnwrapper(in Asmacro* asmacro, in Vec* arguments, inout Generator* generator, inout VariableManager* variable_manager) {
+static SResult Syntax_build_asmacro_expansion_fnwrapper(in Asmacro* asmacro, in Data call_to, in Vec* arguments, inout Generator* generator, inout VariableManager* variable_manager) {
     i32 stack_offset = variable_manager->stack_offset;
 
     SRESULT_UNWRAP(
@@ -641,8 +642,7 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper(in Asmacro* asmacro, in 
     );
 
     Vec call_args = Vec_new(sizeof(Data));
-    Data call_label = Data_from_label(asmacro->name);
-    Vec_push(&call_args, &call_label);
+    Vec_push(&call_args, &call_to);
     Data data;
     SRESULT_UNWRAP(
         expand_asmacro("call", "", call_args, generator, variable_manager, &data),
@@ -703,10 +703,13 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
             break;
         case Asmacro_FnWrapper:
         case Asmacro_FnExtern:
+        {
+            Data call_to = Data_from_label(asmacro.name);
             SRESULT_UNWRAP(
-                Syntax_build_asmacro_expansion_fnwrapper(&asmacro, &arguments, generator, variable_manager),
+                Syntax_build_asmacro_expansion_fnwrapper(&asmacro, call_to, &arguments, generator, variable_manager),
                 Asmacro_free(asmacro);Vec_free_all(arguments, Data_free_for_vec)
             );
+        }
             break;
     }
     
@@ -787,6 +790,90 @@ bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, i
     check_parser(&parser, generator);
     return true;
 }
+
+static ParserMsg Syntax_build_call_fnptr_parse(Parser parser, inout Generator* generator, out Parser* fnptr_parser, out Parser* arg_parser) {
+    PARSERMSG_UNWRAP(
+        Parser_parse_paren(&parser, fnptr_parser), (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Parser_parse_paren(&parser, arg_parser), (void)NULL
+    );
+
+    check_parser(&parser, generator);
+
+    return ParserMsg_new(parser.offset, NULL);
+}
+
+static SResult Syntax_build_call_fnptr_build(Parser fnptr_parser, Parser args_parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    Vec arguments;
+    SRESULT_UNWRAP(
+        Syntax_build_asmacro_expansion_get_arguments(args_parser, generator, variable_manager, &arguments),
+        (void)NULL
+    );
+
+    Data fnptr_data;
+    SRESULT_UNWRAP(
+        Syntax_build(fnptr_parser, generator, variable_manager, &fnptr_data),
+        Vec_free_all(arguments, Data_free_for_vec);
+    );
+
+    Type fn_type;
+    SRESULT_UNWRAP(
+        Type_ref(&fnptr_data.type, generator, &fn_type),
+        Vec_free_all(arguments, Data_free_for_vec);
+        Data_free(fnptr_data);
+    );
+    if(fn_type.type != Type_Fn) {
+        Vec_free_all(arguments, Data_free_for_vec);
+        Data_free(fnptr_data);
+        Type_free(fn_type);
+        return SResult_new("expected fn ptr");
+    }
+    
+    SResult result;
+    Vec var_args = Variables_from_datas(&fn_type.body.t_fn);
+    Asmacro asmacro = Asmacro_new_fn_wrapper("", var_args, "");
+    if(SResult_is_success(Asmacro_match_with(&asmacro, &arguments, ""))) {
+        result = Syntax_build_asmacro_expansion_fnwrapper(&asmacro, fnptr_data, &arguments, generator, variable_manager);
+        if(SResult_is_success(result)) {
+            if(Vec_len(&arguments) != 0) {
+                *data = Data_clone(Vec_index(&arguments, 0));
+            }else {
+                *data = Data_void();
+            }
+        }
+    }else {
+        result = SResult_new("mismatching arguments");
+    }
+    Asmacro_free(asmacro);
+    Type_free(fn_type);
+    Vec_free_all(arguments, Data_free_for_vec);
+
+    return result;
+}
+
+bool Syntax_build_call_fnptr(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    Parser fnptr_parser;
+    Parser args_parser;
+    if(!ParserMsg_is_success(Syntax_build_call_fnptr_parse(parser, generator, &fnptr_parser, &args_parser))) {
+        return false;
+    }
+
+    *data = Data_void();
+    if(Parser_is_empty(&fnptr_parser)) {
+        Error error = Error_new(parser.offset, "expected fnptr");
+        Generator_add_error(generator, error);
+        return true;
+    }
+
+    resolve_sresult(
+        Syntax_build_call_fnptr_build(fnptr_parser, args_parser, generator, variable_manager, data),
+        parser.offset, generator
+    );
+
+    return true;
+}
+
 
 static SResult build_assignops_data(in char* opname, Data left_data, Data right_data, inout Generator* generator, inout VariableManager* variable_manager) {
     Vec op_args = Vec_new(sizeof(Data));
@@ -1882,6 +1969,8 @@ bool Syntax_build_assignlea(Parser parser, inout Generator* generator, inout Var
 }
 
 bool Syntax_build_implicit_static_string(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    (void)variable_manager;
+    
     Vec string;
     if(!ParserMsg_is_success(Parser_parse_string(&parser, &string))) {
         return false;

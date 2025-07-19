@@ -262,6 +262,23 @@ Storage* Variable_get_storage(in Variable* self) {
     return &self->data.storage;
 }
 
+Vec Variables_from_datas(in Vec* datas) {
+    assert(Vec_size(datas) == sizeof(Data));
+
+    Vec vec = Vec_new(sizeof(Variable));
+    for(u32 i=0; i<Vec_len(datas); i++) {
+        Data data = Data_clone(Vec_index(datas, i));
+        Variable variable = {
+            "", "",
+            data
+        };
+
+        Vec_push(&vec, &variable);
+    }
+
+    return vec;
+}
+
 void Variable_print(in Variable* self) {
     printf("Variable { name: %s, valid_path: %s, data: ", self->name, self->valid_path);
     Data_print(&self->data);

@@ -1,13 +1,65 @@
 import core;
 import std.syscall;
 
-pub const stdin: i64 = 0;
-pub const stdout: i64 = 1;
-pub const stderr: i64 = 2;
+pub const stdin: i32 = 0;
+pub const stdout: i32 = 1;
+pub const stderr: i32 = 2;
 
-pub as write(in fd: i64@rdi, in msg: *char@rsi, in len: i64@rdx) {
+pub as write(in fd: i32@rdi, in msg: *char@rsi, in len: i64@rdx) {
     let number: i64@rax;
     number = 1;
     syscall(number);
 };
+
+pub struct Io {
+    fd: i32,
+    buff: [char; 1024],
+    len: i64,
+};
+
+pub as new(out self: Io@mem, in fd: i32@reg+imm) {
+    self.fd = fd;
+    self.len = 0;
+};
+
+pub as flush(inout self: Io@mem) {
+    let selflen: i64@rax = self.len;
+    let flag: bool@rax;
+    if(neq(flag, self.len, 0)) {
+        let msg: *char@rsi;
+        msg =& self.buff;
+        let len: i64@rdx = self.len;
+        let fd: i32@rdi = self.fd;
+        write(fd, msg, len);
+        self.len = 0;
+    };
+};
+
+pub as write(inout self: Io@mem, in data: *i8@reg+mem, in len: i64@reg+mem) {
+    let buff_new_len: i64@r8 = self.len;
+    buff_new_len += len;
+    let flag: bool@rax;
+    if(ge(flag, buff_new_len, 1024)) {
+        flush(self);
+    };
+
+    let dst: *void@rdi;
+    dst =& self.buff;
+    dst += self.len;
+    let src: *void@rsi;
+    src = data;
+
+    memcpy(dst, src, len);
+    self.len += len;
+
+    data;len;
+};
+
+
+
+
+
+
+
+
 

@@ -73,7 +73,7 @@ Data Data_from_register(Register reg) {
 
 Data Data_from_imm(u64 imm) {
     Type type;
-    u32 len = 0;;
+    u32 len = 0;
     if(imm <= 0xff) {
         Type tmp = {"i8", "", Type_Integer, {}, 1, 1};
         type = tmp;

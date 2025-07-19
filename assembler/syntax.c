@@ -709,7 +709,7 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
             );
             break;
     }
-
+    
     if(Vec_len(&arguments) != 0) {
         *data = Data_clone(Vec_index(&arguments, 0));
     }else {
@@ -717,12 +717,12 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
     }
     Asmacro_free(asmacro);
     Vec_free_all(arguments, Data_free_for_vec);
-
+    
     SRESULT_UNWRAP(
         VariableManager_delete_block(variable_manager, generator),
-        (void)NULL
+        Data_free(*data)
     );
-
+    
     Generator_finish_asmacro_expand(generator);
 
     return SResult_new(NULL);
@@ -1306,12 +1306,12 @@ static SResult build_je(in char* label, inout Generator* generator, inout Variab
     return SResult_new(NULL);
 }
 
-static SResult build_jne_to_else(u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
+static SResult build_je_to_else(u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
     char label[256];
     snprintf(label, 256, ".%u.if.else", id);
 
     SRESULT_UNWRAP(
-        build_jne(label, generator, variable_manager), (void)NULL
+        build_je(label, generator, variable_manager), (void)NULL
     );
 
     return SResult_new(NULL);
@@ -1354,7 +1354,7 @@ static SResult build_jmp(in char* label, inout Generator* generator, inout Varia
 
 static SResult build_jmp_to_endif(u32 id, inout Generator* generator, inout VariableManager* variable_manager) {
     char label[256];
-    snprintf(label, 256, ".%u.if.endif", id);
+    snprintf(label, 256, ".%u.if.end", id);
 
     SRESULT_UNWRAP(
         build_jmp(label, generator, variable_manager), (void)NULL
@@ -1385,16 +1385,14 @@ static void Syntax_build_if_build(Parser condition_parser, Parser then_branch, P
     }
 
     if(resolve_sresult(build_cmpzero(condition_data, generator, variable_manager), condition_parser.offset, generator)
-        || resolve_sresult(build_jne_to_else(id, generator, variable_manager), condition_parser.offset, generator)
+        || resolve_sresult(build_je_to_else(id, generator, variable_manager), condition_parser.offset, generator)
         || resolve_sresult(build_branch(then_branch, id, "then", generator, variable_manager), then_branch.offset, generator)) {
         return;
     }
 
-    if(!Parser_is_empty(&else_branch)) {
-        if(resolve_sresult(build_jmp_to_endif(id, generator, variable_manager), then_branch.offset, generator)
-            || resolve_sresult(build_branch(else_branch, id, "else", generator, variable_manager), else_branch.offset, generator)) {
-            return;
-        }
+    if(resolve_sresult(build_jmp_to_endif(id, generator, variable_manager), then_branch.offset, generator)
+        || resolve_sresult(build_branch(else_branch, id, "else", generator, variable_manager), else_branch.offset, generator)) {
+        return;
     }
 
     char endif_label[256];

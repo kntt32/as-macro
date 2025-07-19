@@ -139,9 +139,22 @@ bool Argument_match_with(in Argument* self, in Data* data) {
                 || (self->storage.trait.xmm_flag && storage->type == StorageType_xmm))) {
                 return false;
             }
-            if(data->storage.type == StorageType_imm && (self->type.type == Type_Integer || self->type.type == Type_Floating) && self->type.type == data->type.type) {
-                if(data->storage.body.imm.type != Imm_Label) {
-                    return true;
+            if(data->storage.type == StorageType_imm && self->type.type == Type_Integer && self->type.type == data->type.type) {
+                if(data->storage.body.imm.type == Imm_Value) {
+                    Vec* imm_value = &storage->body.imm.body.value;
+                    u32 imm_size = Vec_len(imm_value);
+                    for(i32 i=Vec_len(imm_value)-2; 0<=i; i--) {
+                        u8* byte = Vec_index(imm_value, i);
+                        u8* byte_later = Vec_index(imm_value, i+1);
+                        if((*byte & 0x80) && (*byte_later == 0xff)) {
+                            imm_size--;
+                        }else {
+                            break;
+                        }
+                    }
+                    if(imm_size <= self->type.size) {
+                        return true;
+                    }
                 }
             }
             break;

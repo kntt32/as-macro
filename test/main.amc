@@ -2,7 +2,7 @@ import std;
 import std.io;
 import core.cmp;
 
-pub fn main() {
+fn main() {
     let io: Io@stack;
     new(io, stdout);
     let msg: *char@rsi;

@@ -214,6 +214,7 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
 
 static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
     bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
+    bool static_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "static"));
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "fn"))) {
         return false;
     }
@@ -221,6 +222,12 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
     global_syntax->offset = parser.offset;
     global_syntax->type = GlobalSyntax_FunctionDefinision;
     global_syntax->ok_flag = false;
+    
+    if(public_flag && static_flag) {
+        Error error = Error_new(parser.offset, "keyword \"pub\" and \"static\" can\'t use at same time");
+        Generator_add_error(generator, error);
+        return true;
+    }
 
     char name[256];
     Parser paren_parser;
@@ -255,7 +262,7 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
     check_parser(&parser, generator);
     
     strcpy(global_syntax->body.function_definision.name, name);
-    global_syntax->body.function_definision.public_flag = public_flag;
+    global_syntax->body.function_definision.global_flag = !static_flag;
     global_syntax->body.function_definision.variable_manager = variable_manager;
     global_syntax->body.function_definision.proc_parser = block_parser;
 
@@ -424,7 +431,7 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
     VariableManager_new_block(variable_manager);
     
     resolve_sresult(
-        Generator_append_label(generator, ".text", self->body.function_definision.name, self->body.function_definision.public_flag, Label_Func),
+        Generator_append_label(generator, ".text", self->body.function_definision.name, self->body.function_definision.global_flag, Label_Func),
         parser.offset,
         generator
     );
@@ -519,7 +526,7 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
                 printf("none");
                 break;
             case GlobalSyntax_FunctionDefinision:
-                printf(".function_definision: name: %s, public_flag: %s, variable_manager: ", self->body.function_definision.name, BOOL_TO_STR(self->body.function_definision.public_flag));
+                printf(".function_definision: name: %s, global_flag: %s, variable_manager: ", self->body.function_definision.name, BOOL_TO_STR(self->body.function_definision.global_flag));
                 VariableManager_print(&self->body.function_definision.variable_manager);
                 break;
             case GlobalSyntax_FunctionExtern:

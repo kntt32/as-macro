@@ -11,17 +11,19 @@ pub fn main() {
     strlen(len, msg);
     let data: *i8@stack;
     data = msg;
-    write(io, data, len);
+    for((let i: i64@r9=0;let flag: bool@rax;); lt(flag, i, 10000); i+=1) {
+        write(io, data, len);
+    };
     flush(io);
-
 /*
+
     let msg: *char@rsi;
     msg =& "Hello, World!\n";
     let strlenbuf: i64@rcx;
     let len: i64@rdx = strlen(strlenbuf, msg);
-    let fd: i64@rdi = stdout;
+    let fd: i32@rdi = stdout;
 
-    for((let i: i64@r11; let flag: bool@r10; i=0;); lt(flag, i, 5); inc(i)) {
+    for((let i: i64@r11=0; let flag: bool@r10;); lt(flag, i, 10000); i+=1) {
         write(fd, msg, len);
     };*/
 };

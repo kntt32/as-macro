@@ -4,17 +4,20 @@ import core.cmp;
 
 fn io_test() {
     let io: Io@stack;
-    new(io, stdout);
+    io.new(stdout);
+
     let msg: *char@rsi;
     msg =& "Hello, World!!\n";
+    
     let len: i64@rcx;
-    strlen(len, msg);
+    len.strlen(msg);
+
     let data: *i8@stack;
     data = msg;
-    for((let i: i64@r9=0;let flag: bool@rax;); lt(flag, i, 2); i+=1) {
-        write(io, data, len);
+    for((let i: i64@r9=0;let flag: bool@rax;); flag.lt(i, 2); i+=1) {
+        io.write(data, len);
     };
-    flush(io);
+    io.flush();
 
 };
 

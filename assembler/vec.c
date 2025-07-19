@@ -66,26 +66,23 @@ void Vec_print(Vec* self, void (*f)(void*)) {
     printf("]");
 }
 
-void Vec_reserve(Vec* self, u32 capacity) {
+static inline void Vec_reserve(Vec* self, u32 capacity) {
     if(capacity < self->len) {
-        PANIC("too small capacity");
+        return;
     }
-    void* ptr = realloc(self->ptr, capacity * self->size);
+    u32 new_capacity = (self->len == 0)?(4):(self->len * 2);
+    if(new_capacity < capacity) {
+        new_capacity = capacity;
+    }
+    void* ptr = realloc(self->ptr, new_capacity * self->size);
     UNWRAP_NULL(ptr);
 
     self->ptr = ptr;
-    self->capacity = capacity;
+    self->capacity = new_capacity;
 }
 
 void Vec_push(Vec* self, void* restrict object) {
-    if(self->capacity == self->len) {
-        u32 new_capacity = (self->len == 0)?(4):(self->len * 2);
-        self->ptr = realloc(self->ptr, new_capacity * self->size);
-        if(self->ptr == NULL) {
-            PANIC("failed to realloc");
-        }
-        self->capacity = new_capacity;
-    }
+    Vec_reserve(self, self->len + 1);
     memcpy((u8*)self->ptr + self->size * self->len, object, self->size);
     self->len ++;
 }
@@ -95,6 +92,15 @@ void Vec_pop(Vec* self, void* restrict ptr) {
         Vec_last(self, ptr);
     }
     self->len --;
+}
+
+void Vec_insert(Vec* self, u32 index, void* object) {
+    Vec_reserve(self, self->len + 1);
+    void* dst = (u8*)self->ptr + self->size*(index + 1);
+    void* src = (u8*)self->ptr + self->size*index;
+    memmove(dst, src, (self->len - index)*self->size);
+    self->len ++;
+    memcpy((u8*)self->ptr + self->size * index, object, self->size);
 }
 
 void Vec_last(Vec* self, void* restrict ptr) {

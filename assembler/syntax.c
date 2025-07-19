@@ -760,6 +760,12 @@ static SResult sub_rsp(i32 value, inout Generator* generator, inout VariableMana
 }
 
 bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    Parser firstarg_parser = Parser_split(&parser, ".");
+    if(Parser_is_empty(&parser)) {
+        parser = firstarg_parser;
+        firstarg_parser = Parser_empty(parser.offset);
+    }
+
     char name[256];
     if(!ParserMsg_is_success(Parser_parse_ident(&parser, name))) {
         return false;
@@ -777,6 +783,17 @@ bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, i
         parser.offset, generator
     )) {
         return true;
+    }
+
+    if(!Parser_is_empty(&firstarg_parser)) {
+        Data firstarg_data;
+        if(resolve_sresult(
+            Syntax_build(firstarg_parser, generator, variable_manager, &firstarg_data), firstarg_parser.offset, generator
+        )) {
+            Vec_free_all(arguments, Data_free_for_vec);
+            return true;
+        }
+        Vec_insert(&arguments, 0, &firstarg_data);
     }
     
     if(resolve_sresult(

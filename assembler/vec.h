@@ -18,6 +18,7 @@ void* Vec_as_ptr(Vec* self);
 void Vec_print(Vec* self, void (*f)(void*));
 void Vec_push(Vec* self, void* object);
 void Vec_pop(Vec* self, void* ptr);
+void Vec_insert(Vec* self, u32 index, void* object);
 void Vec_last(Vec* self, void* ptr);
 SResult Vec_last_ptr(Vec* self, void** ptr);
 Vec Vec_from(void* src, u32 len, u32 size);

@@ -1,0 +1,271 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "asmacro",
+  "patterns": [
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#character"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#registers"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#symbols"
+    },
+    {
+      "include": "#function"
+    },
+    {
+      "include": "#asmacro"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.asmacro",
+          "match": "\\b(if|while|for|return)\\b"
+        },
+        {
+          "name": "keyword.other.asmacro",
+          "match": "\\b(as|fn|import|type)\\b"
+        },
+        {
+          "name": "storage.type.asmacro",
+          "match": "\\b(let|static|const)\\b"
+        },
+        {
+          "name": "entity.name.type.asmacro",
+          "match": "\\b(bool|char|i8|i16|i32|i64|b8|b16|b32|b64|void)\\b"
+        },
+        {
+          "name": "storage.access.asmacro",
+          "match": "\\b(pub|static)\\b"
+        },
+        {
+          "name": "storage.modifier.asmacro",
+          "match": "\\b(in|out|inout|reg|mem|imm|xmm)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.asmacro",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.asmacro",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "character": {
+      "name": "string.quoted.single.asmacro",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        {
+          "name": "constant.character.escape.asmacro",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.asmacro",
+          "match": "\\b0x([0-9a-fA-F]+)\\b"
+        },
+        {
+          "name": "constant.numeric.binary.asmacro",
+          "match": "\\b((0|1)+)\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.asmacro",
+          "match": "\\b[0-9]+(\\.[0-9]*)?\\b"
+        }
+      ]
+    },
+    "registers": {
+      "patterns": [
+        {
+          "name": "variable.language.register",
+          "match": "\\b(rax|rcx|rdx|rbx|rsi|rdi|rsp|rbp|r8|r9|r10|r11|r12|r13|r14|r15|rip)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "meta.type.alias.asmacro",
+          "match": "\\btype\\s+(\\w+)\\s*=\\s*(\\w+)"
+        },
+        {
+          "name": "meta.struct.asmacro",
+          "begin": "\\b(struct)\\s+(\\w+)\\s*\\{",
+          "end": "\\}",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.struct.asmacro"
+            },
+            "2": {
+              "name": "entity.name.type.asmacro"
+            }
+          },
+          "patterns": [
+            {
+              "match": "\\b(\\w+)\\s*:\\s*(\\w+)",
+              "captures": {
+                "1": {"name": "variable.field.asmacro"},
+                "2": {"name": "entity.name.type.asmacro"}
+              }
+            }
+          ]
+        },
+        {
+          "name": "meta.enum.asmacro",
+          "begin": "\\b(enum)\\s+(\\w+)\\s*\\{",
+          "end": "\\}",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.enum.asmacro"
+            },
+            "2": {
+              "name": "entity.name.type.asmacro"
+            }
+          },
+          "patterns": [
+            {
+              "match": "\\b(\\w+)\\s*=?",
+              "captures": {
+                "1": { "name": "constant.enumerator.asmacro"}
+              }
+            }
+          ]
+        },
+        {
+          "name": "meta.union.asmacro",
+          "begin": "\\b(union)\\s+(\\w+)\\s*\\{",
+          "end": "\\}",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.union.asmacro"
+            },
+            "2": {
+              "name": "entity.name.type.asmacro"
+            }
+          },
+          "patterns": [
+            {
+              "match": "\\b(\\w+)\\s*:\\s*(\\w+)",
+              "captures": {
+                "1": {"name": "variable.field.asmacro"},
+                "2": {"name": "entity.name.type.asmacro"}
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "symbols": {
+      "patterns": [
+        {
+          "name": "punctuation.operator",
+          "match": "[@:]"
+        },
+        {
+          "name": "punctuation.separator",
+          "match": "[,;]"
+        },
+        {
+          "name": "keyword.operator",
+          "match": "(\\+=|-=|&=|\\|=|\\^=|=&|=|\\*)"
+        }
+      ]
+    },
+    "function": {
+      "name": "meta.function.asmacro",
+      "begin": "\\bfn\\s+(\\w+)\\s*\\(",
+      "beginCaptures": {
+        "0": {
+          "name": "keyword.declaration.function.asmacro"
+        },
+        "1": {
+          "name": "entity.name.function.asmacro"
+        }
+      },
+      "end": "\\)",
+      "patterns": [
+        {
+          "name": "variable.parameter.asmacro",
+          "match": "\\b(in|out|inout)?\\s*(\\w+)\\s*:\\s*(\\w+)\\s*@\\s*(\\w+)",
+          "captures": {
+            "0": {
+              "name": "keyword.declaration.function.asmacro"
+            },
+            "1": {
+              "name": "keyword.modifier.asmacro"
+            },
+            "2": {
+              "name": "variable.parameter.asmacro"
+            },
+            "3": {
+              "name": "entity.name.type.asmacro"
+            },
+            "4": {
+              "name": "variable.language.register"
+            }
+          }
+        }
+      ]
+    },
+    "asmacro": {
+      "name": "meta.macro.asmacro",
+      "begin": "\\bas\\s+(\\w+)\\s*\\(",
+      "beginCaptures": {
+        "0": {
+          "name": "keyword.declaration.function.asmacro"
+        },
+        "1": {
+          "name": "entity.name.macro.asmacro"
+        }
+      },
+      "end": "\\)",
+      "patterns": [
+        {
+          "name": "variable.parameter.asmacro",
+          "match": "\\b(in|out|inout)?\\s*(\\w+)\\s*:\\s*(\\w+)\\s*@\\s*(\\w+)",
+          "captures": {
+            "0": {
+              "name": "keyword.declaration.macro.asmacro"
+            },
+            "1": {
+              "name": "keyword.modifier.asmacro"
+            },
+            "2": {
+              "name": "variable.parameter.asmacro"
+            },
+            "3": {
+              "name": "entity.name.type.asmacro"
+            },
+            "4": {
+              "name": "variable.language.register"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "scopeName": "source.asmacro"
+}

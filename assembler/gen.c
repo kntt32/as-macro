@@ -431,7 +431,7 @@ SResult Generator_append_label(inout Generator* self, optional in char* section,
 
     for(u32 i=0; i<Vec_len(&self->labels); i++) {
         Label* ptr = Vec_index(&self->labels, i);
-        if(strcmp(ptr->name, label.name) == 0 && label.section_name[0] != '\0') {
+        if(strcmp(ptr->name, label.name) == 0) {
             if(label.section_name[0] != '\0') {
                 *ptr = label;
             }

@@ -22,7 +22,7 @@ fn io_test() {
 };
 
 fn main() {
-    let fnptr: *fn()@rax;
+    let fnptr: fn()@rax;
     fnptr =& io_test;
     io_test();
     (fnptr)();

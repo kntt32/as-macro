@@ -248,7 +248,7 @@ ParserMsg Type_parse_struct(inout Parser* parser, in Generator* generator, out T
 ParserMsg Type_parse_enum(inout Parser* parser, out Type* type);
 ParserMsg Type_parse_union(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_parse_lazyptr(inout Parser* parser, out Type* type);
-ParserMsg Type_parse_fn(inout Parser* parser, in Generator* generator, out Type* type);
+ParserMsg Type_parse_fnptr(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type);
 ParserMsg Type_get_enum_member(Type self, Parser parser, out Data* data);
 ParserMsg Type_initialize(in Type* self, inout Parser* parser, inout Vec* bin);

@@ -273,7 +273,7 @@ ParserMsg Type_parse_array(inout Parser* parser, in Generator* generator, out Ty
     return ParserMsg_new(parser->offset, NULL);
 }
 
-ParserMsg Type_parse_fn(inout Parser* parser, in Generator* generator, out Type* type) {
+static ParserMsg Type_parse_fn(inout Parser* parser, in Generator* generator, out Type* type) {
     // fn(..)
 
     Parser parser_copy = *parser;
@@ -311,6 +311,24 @@ ParserMsg Type_parse_fn(inout Parser* parser, in Generator* generator, out Type*
     return ParserMsg_new(parser->offset, NULL);
 }
 
+ParserMsg Type_parse_fnptr(inout Parser* parser, in Generator* generator, out Type* type) {
+    Type fn_type;
+    PARSERMSG_UNWRAP(
+        Type_parse_fn(parser, generator, &fn_type), (void)NULL
+    );
+
+    type->name[0] = '\0';
+    type->valid_path[0] = '\0';
+    type->type = Type_Ptr;
+    type->body.t_ptr = malloc(sizeof(Type));
+    UNWRAP_NULL(type->body.t_ptr);
+    *type->body.t_ptr = fn_type;
+    type->size = 8;
+    type->align = 8;
+
+    return ParserMsg_new(parser->offset, NULL);
+}
+
 ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* type) {
     Parser parser_copy = *parser;
 
@@ -344,7 +362,7 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
         );
     }else if(strcmp(token, "fn") == 0) {
         PARSERMSG_UNWRAP(
-            Type_parse_fn(&parser_copy, generator, type),
+            Type_parse_fnptr(&parser_copy, generator, type),
             (void)NULL
         );
     }else if(!SResult_is_success(

@@ -851,7 +851,12 @@ static SResult Syntax_build_call_fnptr_build(Parser fnptr_parser, Parser args_pa
     Vec var_args = Variables_from_datas(&fn_type.body.t_fn);
     Asmacro asmacro = Asmacro_new_fn_wrapper("", var_args, "");
     if(SResult_is_success(Asmacro_match_with(&asmacro, &arguments, ""))) {
+        VariableManager_new_block(variable_manager);
         result = Syntax_build_asmacro_expansion_fnwrapper(&asmacro, fnptr_data, &arguments, generator, variable_manager);
+        SRESULT_UNWRAP(
+            VariableManager_delete_block(variable_manager, generator),
+            Asmacro_free(asmacro);Type_free(fn_type);Vec_free_all(arguments, Data_free_for_vec)
+        );
         if(SResult_is_success(result)) {
             if(Vec_len(&arguments) != 0) {
                 *data = Data_clone(Vec_index(&arguments, 0));

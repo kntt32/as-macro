@@ -350,7 +350,7 @@ void Data_free(Data self);
 void Data_free_for_vec(inout void* ptr);
 
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable);
-ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, inout Generator* generator);
+ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, bool static_flag, inout Generator* generator);
 ParserMsg Variable_parse_static_local(inout Parser* parser, in Generator* generator, out Variable* variable);
 ParserMsg Variable_parse_const(inout Parser* parser, bool public_flag, inout Generator* generator);
 ParserMsg Variable_parse_const_local(inout Parser* parser, inout Generator* generator, out Variable* variable);

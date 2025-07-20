@@ -51,10 +51,10 @@ static ParserMsg Variable_parse_static_parse(inout Parser* parser, bool public_f
     return ParserMsg_new(parser->offset, NULL);
 }
 
-static ParserMsg Variable_parse_static_init(inout Parser* parser, bool public_flag, in Variable* variable, in char* label, inout Generator* generator) {
+static ParserMsg Variable_parse_static_init(inout Parser* parser, bool static_flag, in Variable* variable, in char* label, inout Generator* generator) {
     if(ParserMsg_is_success(Parser_parse_symbol(parser, "="))) {
         PARSERMSG_UNWRAP(
-            ParserMsg_from_sresult(Generator_append_label(generator, ".data", label, public_flag, Label_Object), parser->offset),
+            ParserMsg_from_sresult(Generator_append_label(generator, ".data", label, !static_flag, Label_Object), parser->offset),
             (void)NULL
         );
 
@@ -78,7 +78,7 @@ static ParserMsg Variable_parse_static_init(inout Parser* parser, bool public_fl
         Vec_free(bin);
     }else {
         PARSERMSG_UNWRAP(
-            ParserMsg_from_sresult(Generator_append_label(generator, ".bss", label, public_flag, Label_Object), parser->offset),
+            ParserMsg_from_sresult(Generator_append_label(generator, ".bss", label, !static_flag, Label_Object), parser->offset),
             (void)NULL
         );
         for(u32 i=0; i<variable->data.type.size; i++) {
@@ -98,7 +98,7 @@ static ParserMsg Variable_parse_static_init(inout Parser* parser, bool public_fl
     return ParserMsg_new(parser->offset, NULL);
 }
 
-ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, inout Generator* generator) {
+ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, bool static_flag, inout Generator* generator) {
     Parser parser_copy = *parser;
 
     Variable variable;
@@ -107,7 +107,7 @@ ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, inout Ge
     );
 
     PARSERMSG_UNWRAP(
-        Variable_parse_static_init(&parser_copy, public_flag, &variable, variable.name, generator),
+        Variable_parse_static_init(&parser_copy, static_flag, &variable, variable.name, generator),
         Variable_free(variable);
     );
 

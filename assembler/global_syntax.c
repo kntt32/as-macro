@@ -306,18 +306,25 @@ static bool GlobalSyntax_parse_function_extern(Parser parser, inout Generator* g
 }
 
 static bool GlobalSyntax_parse_static_variable(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
-    // (pub) static $name: $type (= expr);
+    // (pub|static) static $name: $type (= expr);
 
     bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "static"))) {
         return false;
     }
+    bool static_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "static"));
 
     global_syntax->ok_flag = false;
     global_syntax->type = GlobalSyntax_StaticVariable;
 
+    if(public_flag && static_flag) {
+        Error error = Error_new(parser.offset, "pub and static of visiability can\'t use at same time");
+        Generator_add_error(generator, error);
+        return true;
+    }
+
     if(resolve_parsermsg(
-        Variable_parse_static(&parser, public_flag, generator), generator
+        Variable_parse_static(&parser, public_flag, static_flag, generator), generator
     )) {
         return true;
     }

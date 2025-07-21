@@ -34,6 +34,7 @@ void VariableManager_push_alias(inout VariableManager* self, Variable variable);
 SResult VariableManager_get(inout VariableManager* self, in char* name, out Variable* variable);
 void VariableManager_new_block(inout VariableManager* self);
 SResult VariableManager_delete_block(inout VariableManager* self, inout Generator* generator);
+SResult VariableManager_delete_allblock(inout VariableManager* self, inout Generator* generator);
 void VariableManager_print(in VariableManager* self);
 void VariableManager_print_for_vec(in void* ptr);
 void VariableManager_free(VariableManager self);

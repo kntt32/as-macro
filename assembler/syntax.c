@@ -244,6 +244,16 @@ SResult VariableManager_delete_block(inout VariableManager* self, inout Generato
     return SResult_new(NULL);
 }
 
+SResult VariableManager_delete_allblock(inout VariableManager* self, inout Generator* generator) {
+    for(i32 i=Vec_len(&self->blocks)-1; 0<=i; i--) {
+        SRESULT_UNWRAP(
+            VariableManager_delete_block(self, generator), (void)NULL
+        );
+    }
+
+    return SResult_new(NULL);
+}
+
 void VariableManager_print(in VariableManager* self) {
     printf("VariableManager { variables: ");
     Vec_print(&self->variables, Variable_print_for_vec);
@@ -2044,6 +2054,10 @@ bool Syntax_build_return(Parser parser, inout Generator* generator, inout Variab
     if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "return"))) {
         return false;
     }
+
+    resolve_sresult(
+        VariableManager_delete_allblock(variable_manager, generator), parser.offset, generator
+    );
 
     Vec ret_arg = Vec_new(sizeof(Data));
     Data ret_rel = Data_from_label(".ret");

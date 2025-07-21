@@ -232,6 +232,7 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
     char name[256];
     Parser paren_parser;
     VariableManager variable_manager = VariableManager_new(0);
+    VariableManager_new_block(&variable_manager);
     Vec arguments = Vec_new(sizeof(Variable));
     Parser block_parser;
 
@@ -460,12 +461,12 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
     }
 
     resolve_sresult(
-        Generator_append_label(generator, ".text", ".ret", false, Label_Notype),
+        VariableManager_delete_block(variable_manager, generator),
         parser.offset, generator
     );
 
     resolve_sresult(
-        VariableManager_delete_block(variable_manager, generator),
+        Generator_append_label(generator, ".text", ".ret", false, Label_Notype),
         parser.offset, generator
     );
 

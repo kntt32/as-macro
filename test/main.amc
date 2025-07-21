@@ -23,11 +23,20 @@ fn io_test() {
 
 };
 
+template MyTemp(T) {
+    as mytemp_macro_$(T)() {
+        io_test();
+    };
+};
+
+impl MyTemp(i32);
+
 fn main() {
     let fnptr: fn()@rax;
     fnptr =& io_test;
     io_test();
     (fnptr)();
+    mytemp_macro_i32();
 };
 
 

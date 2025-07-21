@@ -7,6 +7,7 @@
 #include <limits.h>
 #include "parser.h"
 
+static Vec* VARTABLE = NULL;
 static struct { char expr; char code; } ESCAPE_SEQUENCES[] = {
     {'\\', '\\'}, {'\'', '\''}, {'\"', '\"'}, {'?', '?'}, {'a', '\a'}, {'b', '\b'},
     {'f', '\f'}, {'n', '\n'}, {'r', '\r'}, {'t', '\t'}, {'v', '\v'}, {'0', '\0'},
@@ -283,7 +284,7 @@ void Parser_skip(inout Parser* self) {
     Parser_read(self);
 }
 
-ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]) {
+static ParserMsg Parser_parse_ident_without_skipspace(inout Parser* self, out char token[256]) {
     assert(self != NULL && token != NULL);
     
     u32 len = 0;
@@ -309,6 +310,71 @@ ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]) {
     }
     if(len == 0) {
         return ParserMsg_new(self->offset, "expected ident");
+    }
+
+    return ParserMsg_new(self->offset, NULL);
+}
+
+static ParserMsg Parser_parse_ident_parse_var(Parser parser, out char token[256]) {
+    assert(VARTABLE != NULL);
+
+    char ident[256];
+    PARSERMSG_UNWRAP(
+        Parser_parse_ident(&parser, ident), (void)NULL
+    );
+
+    if(!Parser_is_empty(&parser)) {
+        return ParserMsg_new(parser.offset, "unexpected token");
+    }
+    for(u32 i=0; i<Vec_len(VARTABLE); i++) {
+        ParserVar* parser_var = Vec_index(VARTABLE, i);
+        if(strcmp(parser_var->name, ident) == 0) {
+            strcpy(token, parser_var->value);
+            return ParserMsg_new(parser.offset, NULL);
+        }
+    }
+
+    char msg[256];
+    snprintf(msg, 256, "\"%.200s\" is undefined", token);
+    return ParserMsg_new(parser.offset, msg);
+}
+
+ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]) {
+    if(VARTABLE == NULL) {
+        PARSERMSG_UNWRAP(
+            Parser_parse_ident_without_skipspace(self, token), (void)NULL
+        );
+    }else {
+        Parser self_copy = *self;
+        token[0] = '\0';
+        char internal_token[256];
+
+        loop {
+            char c = Parser_look(&self_copy);
+            if(c == '\0') {
+                break;
+            }else if(c == '$') {
+                Parser_read(&self_copy);
+                Parser paren_parser;
+                PARSERMSG_UNWRAP(
+                    Parser_parse_paren(&self_copy, &paren_parser), (void)NULL
+                );
+                PARSERMSG_UNWRAP(
+                    Parser_parse_ident_parse_var(paren_parser, internal_token), (void)NULL
+                );
+            }else if(!ParserMsg_is_success(Parser_parse_ident_without_skipspace(&self_copy, internal_token))){
+                break;
+            }
+
+            u32 token_len = strlen(token);
+            strncat(token, internal_token, 256 - token_len - 1);
+        }
+
+        if(token[0] == '\0') {
+            return ParserMsg_new(self->offset, "expected ident");
+        }
+
+        *self = self_copy;
     }
 
     Parser_skip_space(self);
@@ -458,6 +524,15 @@ ParserMsg Parser_parse_paren(inout Parser* self, out Parser* parser) {
 
 ParserMsg Parser_parse_index(inout Parser* self, out Parser* parser) {
     return Parser_parse_parens_helper(self, parser, "[", "]");
+}
+
+void Parser_set_vartable(in Vec* vartable) {
+    assert(Vec_size(vartable) == sizeof(ParserVar));
+    VARTABLE = vartable;
+}
+
+void Parser_clear_vartable() {
+    VARTABLE = NULL;
 }
 
 ParserMsg ParserMsg_new(Offset offset, optional char* msg) {

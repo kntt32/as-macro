@@ -130,6 +130,7 @@ Generator Generator_new(Vec import_paths) {
         Type_primitives(),
         Vec_new(sizeof(Variable)),
         Vec_new(sizeof(Asmacro)),
+        Vec_new(sizeof(Template)),
         Vec_new(sizeof(Error)),
         Vec_new(sizeof(Import)),
         import_paths,
@@ -243,34 +244,11 @@ ParserMsg Generator_import(inout Generator* self, Parser parser, out bool* doubl
 
     return ParserMsg_new(parser.offset, "module not found");
 }
-/*
-bool Generator_imported(in Generator* self, in char module_path[256]) {
-    assert(self != NULL && module_path != NULL);
 
-    for(u32 i=0; i<Vec_len(&self->imports); i++) {
-        Import* ptr = Vec_index(&self->imports, i);
-
-        if(strcmp(ptr->path, module_path) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void Generator_import(inout Generator* self, in char module_path[256], optional char* src) {
-    Import import;
-
-    strcpy(import.path, module_path);
-    import.src = src;
-
-    Vec_push(&self->imports, &import);
-}
-*/
 SResult Generator_add_type(inout Generator* self, Type type) {
     for(u32 i=0; i<Vec_len(&self->types); i++) {
         Type* ptr = Vec_index(&self->types, i);
-        if(strcmp(ptr->name, type.name) == 0) {
+        if(strcmp(ptr->name, type.name) == 0 && strcmp(ptr->valid_path, type.valid_path)) {
             Type_free(type);
             char msg[256];
             snprintf(msg, 256, "type \"%.10s\" has been already defined", type.name);
@@ -338,13 +316,13 @@ SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro) {
             if(ptr->type == Asmacro_FnExtern) {
                 Asmacro_free(*ptr);
                 *ptr = asmacro;
-                return SResult_new(NULL);
             }else {
                 Asmacro_free(asmacro);
                 char msg[256];
                 snprintf(msg, 256, "asmacro \"%.10s\" has been already defined in same signature", asmacro.name);
                 return SResult_new(msg);
             }
+            return SResult_new(NULL);
         }
     }
 
@@ -581,6 +559,52 @@ void Generator_finish_asmacro_expand(inout Generator* self) {
     Asmacro_free(asmacro);
 }
 
+SResult Generator_add_template(inout Generator* self, Template template) {
+    for(u32 i=0; i<Vec_len(&self->templates); i++) {
+        Template* ptr = Vec_index(&self->templates, i);
+        if(strcmp(ptr->name, template.name) == 0
+            && strcmp(ptr->valid_path, template.valid_path)) {
+            char msg[256];
+            Template_free(template);
+            snprintf(msg, 256, "template \"%.200s\" is already defined", template.name);
+            return SResult_new(msg);
+        }
+    }
+    Vec_push(&self->templates, &template);
+
+    return SResult_new(NULL);
+}
+
+SResult Generator_expand_template(inout Generator* self, in char* name, in char* path, out bool* expanded_flag, out optional Template* template) {
+    Template* temp = NULL;
+    for(u32 i=0; i<Vec_len(&self->templates); i++) {
+        Template* ptr = Vec_index(&self->templates, i);
+        if(strcmp(ptr->name, name) == 0) {
+            if(ptr->valid_path[0] == '\0') {
+                temp = ptr;
+            }else if(strcmp(ptr->valid_path, path) == 0) {
+                temp = ptr;
+                break;
+            }
+        }
+    }
+
+    if(temp == NULL) {
+        char msg[256];
+        snprintf(msg, 256, "template \"%.200s\" is undefined", name);
+        return SResult_new(msg);
+    }
+    
+    if(temp->expanded_flag) {
+        *expanded_flag = true;
+    }else {
+        *expanded_flag = false;
+        *template = Template_clone(temp);
+    }
+    temp->expanded_flag = true;
+    return SResult_new(NULL);
+}
+
 bool Generator_is_error(in Generator* self) {
     return Vec_len(&self->errors) != 0;
 }
@@ -592,6 +616,8 @@ void Generator_print(in Generator* self) {
     Vec_print(&self->global_variables, Variable_print_for_vec);
     printf(", asmacroes: ");
     Vec_print(&self->asmacroes, Asmacro_print_for_vec);
+    printf(", templates: ");
+    Vec_print(&self->templates, Template_print_for_vec);
     printf(", errors: ");
     Vec_print(&self->errors, Error_print_for_vec);
     printf(", imports: ");
@@ -610,6 +636,7 @@ void Generator_print(in Generator* self) {
 void Generator_free(Generator self) {
     Vec_free_all(self.types, Type_free_for_vec);
     Vec_free_all(self.global_variables, Variable_free_for_vec);
+    Vec_free_all(self.templates, Template_free_for_vec);
     Vec_free_all(self.asmacroes, Asmacro_free_for_vec);
     Vec_free(self.errors);
     Vec_free_all(self.imports, Import_free_for_vec);
@@ -641,3 +668,4 @@ bool resolve_parsermsg(ParserMsg msg, inout Generator* generator) {
     }
     return false;
 }
+

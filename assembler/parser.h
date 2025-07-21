@@ -20,6 +20,11 @@ typedef struct {
     char msg[256];
 } ParserMsg;
 
+typedef struct {
+    char name[256];
+    char value[256];
+} ParserVar;
+
 Offset Offset_new(in char* path);
 bool Offset_cmp(in Offset* self, in Offset* other);
 void Offset_seek_char(inout Offset* self, char c);
@@ -47,6 +52,8 @@ ParserMsg Parser_parse_char(inout Parser* self, out char* code);
 ParserMsg Parser_parse_block(inout Parser* self, out Parser* parser);
 ParserMsg Parser_parse_paren(inout Parser* self, out Parser* parser);
 ParserMsg Parser_parse_index(inout Parser* self, out Parser* parser);
+void Parser_set_vartable(in Vec* vartable);
+void Parser_clear_vartable();
 
 #define PARSERMSG_UNWRAP(parser_msg, catch_proc) {\
     ParserMsg msg = (parser_msg);\

@@ -363,6 +363,132 @@ static bool GlobalSyntax_parse_const_variable(Parser parser, inout Generator* ge
     return true;
 }
 
+static bool GlobalSyntax_parse_template(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    global_syntax->ok_flag = false;
+    global_syntax->offset = parser.offset;
+    global_syntax->type = GlobalSyntax_TemplateDefinision;
+
+    Parser parser_copy = parser;
+    Parser_parse_keyword(&parser_copy, "pub");
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "template"))) {
+        return false;
+    }
+
+    Template template;
+    if(resolve_parsermsg(
+        Template_parse(&parser, &template), generator
+    )) {
+        return true;
+    }
+
+    if(resolve_sresult(
+        Generator_add_template(generator, template), parser.offset, generator
+    )) {
+        return true;
+    }
+
+    global_syntax->ok_flag = true;
+
+    check_parser(&parser, generator);
+
+    return true;
+}
+
+static ParserMsg GlobalSyntax_parse_impl_parse_args(Parser parser, in Vec* template_args, out Vec* args) {
+    *args = Vec_new(sizeof(ParserVar));
+
+    for(u32 i=0; i<Vec_len(template_args); i++) {
+        char token[256];
+        PARSERMSG_UNWRAP(
+            Parser_parse_ident(&parser, token), Vec_free(*args)
+        );
+        ParserVar parser_var;
+        strcpy(parser_var.name, Vec_index(template_args, i));
+        strcpy(parser_var.value, token);
+        Vec_push(args, &parser_var);
+
+        if(!Parser_is_empty(&parser)) {
+            PARSERMSG_UNWRAP(
+                Parser_parse_symbol(&parser, ","), Vec_free(*args)
+            );
+        }
+    }
+
+    if(!Parser_is_empty(&parser)) {
+        Vec_free(*args);
+        return ParserMsg_new(parser.offset, "unexpected token");
+    }
+
+    return ParserMsg_new(parser.offset, NULL);
+}
+
+static void GlobalSyntax_parse_impl_childparse(Template template, in Vec* vars, inout Generator* generator) {
+    Parser parser = template.parser;
+    Template_free(template);
+    Parser_set_vartable(vars);
+
+    while(!Parser_is_empty(&parser)) {
+        Parser syntax_parser = Parser_split(&parser, ";");
+        GlobalSyntax global_syntax;
+
+        if(resolve_parsermsg(
+            GlobalSyntax_parse(syntax_parser, generator, &global_syntax), generator
+        )) {
+            return;
+        }
+
+        GlobalSyntax_free(global_syntax);
+    }
+
+    Parser_clear_vartable();
+
+    return;
+}
+
+static bool GlobalSyntax_parse_impl(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    // impl $ident ( T .. )
+
+    global_syntax->ok_flag = false;
+    global_syntax->offset = parser.offset;
+    global_syntax->type = GlobalSyntax_ImplDeclaration;
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "impl"))) {
+        return false;
+    }
+
+    char name[256];
+    if(resolve_parsermsg(Parser_parse_ident(&parser, name), generator)) {
+        return true;
+    }
+
+    Parser paren_parser;
+    if(resolve_parsermsg(Parser_parse_paren(&parser, &paren_parser), generator)) {
+        return true;
+    }
+
+    bool expanded_flag;
+    Template template;
+    if(resolve_sresult(
+        Generator_expand_template(generator, name, Parser_path(&parser), &expanded_flag, &template), parser.offset, generator
+    )) {
+        return true;
+    }
+
+    Vec vars;// Vec<ParserVar>
+    if(resolve_parsermsg(GlobalSyntax_parse_impl_parse_args(paren_parser, &template.vars, &vars), generator)) {
+        Template_free(template);
+        return true;
+    }
+
+    if(!expanded_flag) {
+        GlobalSyntax_parse_impl_childparse(template, &vars, generator);
+    }
+    Vec_free(vars);
+
+    check_parser(&parser, generator);
+    global_syntax->ok_flag = true;
+    return true;
+}
+
 ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
     bool (*BUILDERS[])(Parser, inout Generator*, out GlobalSyntax*) = {
         GlobalSyntax_parse_asmacro_definision,
@@ -373,7 +499,9 @@ ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out Glob
         GlobalSyntax_parse_function_definision,
         GlobalSyntax_parse_function_extern,
         GlobalSyntax_parse_static_variable,
-        GlobalSyntax_parse_const_variable
+        GlobalSyntax_parse_const_variable,
+        GlobalSyntax_parse_template,
+        GlobalSyntax_parse_impl
     };
     
     for(u32 i=0; i<LEN(BUILDERS); i++) {
@@ -507,6 +635,8 @@ void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
         case GlobalSyntax_StaticVariable:
         case GlobalSyntax_ConstVariable:
         case GlobalSyntax_FunctionExtern:
+        case GlobalSyntax_TemplateDefinision:
+        case GlobalSyntax_ImplDeclaration:
             break;
         case GlobalSyntax_FunctionDefinision:
             GlobalSyntax_build_function_definision(self, generator);
@@ -551,7 +681,13 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
                 printf("none");
                 break;
             case GlobalSyntax_ConstVariable:
-                    printf("none");
+                printf("none");
+                break;
+            case GlobalSyntax_TemplateDefinision:
+                printf("none");
+                break;
+            case GlobalSyntax_ImplDeclaration:
+                printf("none");
                 break;
         }
     }
@@ -574,6 +710,8 @@ void GlobalSyntax_free(GlobalSyntax self) {
         case GlobalSyntax_ConstVariable:
         case GlobalSyntax_StaticVariable:
         case GlobalSyntax_FunctionExtern:
+        case GlobalSyntax_TemplateDefinision:
+        case GlobalSyntax_ImplDeclaration:
             break;
         case GlobalSyntax_AsmacroDefinision:
             Asmacro_free(self.body.asmacro_definision);

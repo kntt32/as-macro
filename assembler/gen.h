@@ -212,17 +212,25 @@ typedef struct {
 } Label;
 
 typedef struct {
-    pub char label[256];
-    pub char section_name[256];
-    pub u32 offset;
-    pub i32 addend;
-    pub bool flag;
+    char label[256];
+    char section_name[256];
+    u32 offset;
+    i32 addend;
+    bool flag;
 } Rela;
 
 typedef struct {
     char path[4096];
     char* src;
 } Import;
+
+typedef struct {
+    char name[256];
+    char valid_path[256];
+    Vec vars;// Vec<char[256]>
+    Parser parser;
+    bool expanded_flag;
+} Template;
 
 typedef struct {
     Offset offset;
@@ -233,6 +241,7 @@ typedef struct {
     Vec types;// Vec<Type>
     Vec global_variables;// Vec<Variable>
     Vec asmacroes;// Vec<Asmacro>
+    Vec templates;// Vec<Template>
     Vec errors;// Vec<Error>
     Vec imports;// Vec<Import>
     Vec import_paths;// Vec<char*>
@@ -417,6 +426,13 @@ void Import_print_for_vec(in void* ptr);
 void Import_free(Import self);
 void Import_free_for_vec(inout void* ptr);
 
+ParserMsg Template_parse(inout Parser* parser, out Template* template);
+void Template_print(in Template* self);
+void Template_print_for_vec(in void* self);
+Template Template_clone(in Template* self);
+void Template_free(Template self);
+void Template_free_for_vec(inout void* ptr);
+
 Error Error_new(Offset offset, in char* msg);
 Error Error_from_parsermsg(ParserMsg parser_msg);
 Error Error_from_sresult(Offset offset, SResult result);
@@ -443,6 +459,8 @@ SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte);
 SResult Generator_binary_len(in Generator* self, in char* name, out u32* len);
 SResult Generator_asmacro_expand_check(inout Generator* self, Asmacro asmacro);
 void Generator_finish_asmacro_expand(inout Generator* self);
+SResult Generator_add_template(inout Generator* self, Template template);
+SResult Generator_expand_template(inout Generator* self, in char* name, in char* path, out bool* expanded_flag, out optional Template* template);
 bool Generator_is_error(in Generator* self);
 void Generator_print(in Generator* self);
 void Generator_free(Generator self);

@@ -142,6 +142,7 @@ typedef struct {
     char name[256];
     char valid_path[256];
     Data data;
+    bool defer_flag;
 } Variable;
 
 typedef struct {
@@ -359,6 +360,7 @@ void Data_print_for_vec(in void* ptr);
 void Data_free(Data self);
 void Data_free_for_vec(inout void* ptr);
 
+Variable Variable_new(in char* name, in char* valid_path, Data data, bool defer_flag);
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable);
 ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, bool static_flag, inout Generator* generator);
 ParserMsg Variable_parse_static_local(inout Parser* parser, in Generator* generator, out Variable* variable);

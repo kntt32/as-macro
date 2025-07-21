@@ -2,10 +2,22 @@
 #include <assert.h>
 #include "gen.h"
 
+Variable Variable_new(in char* name, in char* valid_path, Data data, bool defer_flag) {
+    Variable variable;
+
+    snprintf(variable.name, 256, "%.255s", name);
+    snprintf(variable.valid_path, 256, "%.255s", valid_path);
+    variable.data = data;
+    variable.defer_flag = defer_flag;
+
+    return variable;
+}
+
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, out Variable* variable) {
-    // name: Data
+    // (defer) name: Data
     Parser parser_copy = *parser;
 
+    variable->defer_flag = ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "defer"));
     variable->valid_path[0] = '\0';
 
     PARSERMSG_UNWRAP(
@@ -43,6 +55,7 @@ static ParserMsg Variable_parse_static_parse(inout Parser* parser, bool public_f
     );
 
     variable->data = Data_from_mem(Rip, 0, variable->name, type);
+    variable->defer_flag = false;
     variable->valid_path[0] = '\0';
     if(public_flag) {
         snprintf(variable->valid_path, 256, "%.255s", Parser_path(parser));
@@ -175,7 +188,8 @@ static ParserMsg Variable_parse_const_parse_(inout Parser* parser, bool public_f
         Vec_free(bin);Type_free(type);
     );
     variable->data = Data_from_imm_bin(bin, type);
-    
+    variable->defer_flag = false;
+
     return ParserMsg_new(parser->offset, NULL);
 }
 
@@ -215,6 +229,7 @@ Variable Variable_from_function(in char* name, in char* valid_path, in Vec* argu
     Type type = Type_fn_from(arguments);
     variable.data = Data_from_mem(Rip, 0, name, type);
     snprintf(variable.valid_path, 256, "%.255s", valid_path);
+    variable.defer_flag = false;
 
     return variable;
 }
@@ -228,7 +243,10 @@ void Variable_restrict_namespace(inout Variable* self, in char* namespace) {
 bool Variable_cmp(in Variable* self, in Variable* other) {
     assert(self != NULL && other != NULL);
     
-    if(strcmp(self->name, other->name) != 0 || strcmp(self->valid_path, other->valid_path) != 0 || !Data_cmp(&self->data, &other->data)) {
+    if(self->defer_flag != other->defer_flag
+        || strcmp(self->name, other->name) != 0
+        || strcmp(self->valid_path, other->valid_path) != 0
+        || !Data_cmp(&self->data, &other->data)) {
         return false;
     }
     
@@ -245,6 +263,7 @@ Variable Variable_clone(in Variable* self) {
     strcpy(variable.name, self->name);
     strcpy(variable.valid_path, self->valid_path);
     variable.data = Data_clone(&self->data);
+    variable.defer_flag = self->defer_flag;
 
     return variable;
 }
@@ -270,7 +289,7 @@ Vec Variables_from_datas(in Vec* datas) {
         Data data = Data_clone(Vec_index(datas, i));
         Variable variable = {
             "", "",
-            data
+            data, false
         };
 
         Vec_push(&vec, &variable);
@@ -282,7 +301,7 @@ Vec Variables_from_datas(in Vec* datas) {
 void Variable_print(in Variable* self) {
     printf("Variable { name: %s, valid_path: %s, data: ", self->name, self->valid_path);
     Data_print(&self->data);
-    printf(" }");
+    printf(" defer_flag: %s }", BOOL_TO_STR(self->defer_flag));
 }
 
 void Variable_print_for_vec(in void* ptr) {

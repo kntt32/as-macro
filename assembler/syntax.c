@@ -117,9 +117,22 @@ static bool is_stored(in VariableManager* self, in Variable* variable, u32 varia
     return false;
 }
 
+static SResult drop_variable(in Variable* variable, inout VariableManager* variable_manager, inout Generator* generator) {
+    Vec drop_args = Vec_new(sizeof(Data));
+    Data drop_data = Data_clone(&variable->data);
+    Vec_push(&drop_args, &drop_data);
+
+    Data data;
+    SRESULT_UNWRAP(
+        expand_asmacro("drop", "", drop_args, generator, variable_manager, &data), (void)NULL
+    );
+    Data_free(data);
+
+    return SResult_new(NULL);
+}
+
 SResult VariableManager_push(inout VariableManager* self, Variable variable, inout Generator* generator) {
-    VariableBlock* block = get_last_block(self);
-    u32 variable_base = block->variables_base;
+    u32 variable_base = get_last_block(self)->variables_base;
     
     for(i32 i=Vec_len(&self->variables)-1; 0<=i; i--) {
         Variable* ptr = Vec_index(&self->variables, i);
@@ -128,6 +141,12 @@ SResult VariableManager_push(inout VariableManager* self, Variable variable, ino
 
         if(doubling_storage_flag) {
             if((i32)variable_base <= i) {
+                if(ptr->defer_flag) {
+                    SRESULT_UNWRAP(
+                        drop_variable(ptr, self, generator), (void)NULL
+                    );
+                    ptr = Vec_index(&self->variables, i);
+                }
                 ptr->name[0] = '\0';
                 break;
             }else {
@@ -168,6 +187,7 @@ SResult VariableManager_push(inout VariableManager* self, Variable variable, ino
 
 void VariableManager_push_alias(inout VariableManager* self, Variable variable) {
     assert(self != NULL);
+    variable.defer_flag = false;
     Vec_push(&self->variables, &variable);
 }
 
@@ -216,14 +236,25 @@ static SResult restore_variable(in StoredReg* stored_reg, inout Generator* gener
 SResult VariableManager_delete_block(inout VariableManager* self, inout Generator* generator) {
     assert(self != NULL && generator != NULL);
 
+    VariableBlock* block_ptr = get_last_block(self);
+    u32 variables_base = block_ptr->variables_base;
+    for(i32 i=Vec_len(&self->variables)-1; (i32)(variables_base)<=i; i--) {
+        Variable* variable = Vec_index(&self->variables, i);
+        if(variable->defer_flag && variable->name[0] != '\0') {
+            SRESULT_UNWRAP(
+                drop_variable(variable, self, generator), (void)NULL
+            );
+        }
+    }
+
     VariableBlock block;
     Vec_pop(&self->blocks, &block);
-
-    for(i32 i=Vec_len(&self->variables)-1; (i32)block.variables_base<=i; i--) {
+    for(i32 i=Vec_len(&self->variables)-1; (i32)(block.variables_base)<=i; i--) {
         Variable variable;
         Vec_pop(&self->variables, &variable);
         Variable_free(variable);
     }
+
     assert(Vec_len(&self->variables) == block.variables_base);
 
     for(i32 i=Vec_len(&block.stored_regs)-1; 0<=i; i--) {
@@ -430,9 +461,7 @@ static void Syntax_build_asmacro_expansion_usermacro(in Asmacro* asmacro, in Vec
         Argument* arg = Vec_index(&asmacro->arguments, i);
         Data* data = Vec_index(dataes, i);
 
-        Variable variable;
-        strcpy(variable.name, arg->name);
-        variable.data = Data_clone(data);
+        Variable variable = Variable_new(arg->name, "", Data_clone(data), false);
 
         VariableManager_push_alias(variable_manager, variable);
     }

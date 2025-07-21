@@ -31,12 +31,13 @@ template MyTemp(T) {
 
 impl MyTemp(i32);
 
-fn main() {
-    let fnptr: fn()@rax;
-    fnptr =& io_test;
+pub as drop(x: i32@reg) {
     io_test();
-    (fnptr)();
-    mytemp_macro_i32();
+};
+
+fn main() {
+    let defer a: i32@rax = 5;
+    let defer b: i32@rax = 6;
 };
 
 

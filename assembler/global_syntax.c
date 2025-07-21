@@ -106,6 +106,10 @@ static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* genera
         return true;
     }
 
+    if(resolve_parsermsg(Parser_parse_symbol(&parser, "="), generator)) {
+        return true;
+    }
+
     Type type;
     if(resolve_parsermsg(Type_parse(&parser, generator, &type), generator)) {
         return true;

@@ -22,6 +22,7 @@ struct Type {
         Type_Union,
         Type_Floating,
         Type_LazyPtr,
+        Type_Alias,
         Type_Fn,
     } type;
     union {

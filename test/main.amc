@@ -2,8 +2,10 @@ import std;
 import std.io;
 import core.cmp;
 
+type MyIo = Io;
+
 fn io_test() {
-    let io: Io@stack;
+    let io: MyIo@stack;
     io.new(stdout);
 
     let msg: *char@rsi;

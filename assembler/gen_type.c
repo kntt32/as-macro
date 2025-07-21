@@ -646,6 +646,8 @@ SResult Type_dot_element(in Type* self, in char* element, out u32* offset, out T
         case Type_Union:
             members = &self->body.t_union;
             break;
+        case Type_Alias:
+            return Type_dot_element(self->body.t_alias, element, offset, type);
         default:
             return SResult_new("expected struct or union");
     }
@@ -678,6 +680,11 @@ SResult Type_ref(in Type* src, in Generator* generator, out Type* type) {
                 (void)NULL
             );
             break;
+        case Type_Alias:
+            SRESULT_UNWRAP(
+                Type_ref(src->body.t_alias, generator, type), (void)NULL
+            );
+            break;
         default:
             return SResult_new("expected pointer");
     }
@@ -698,6 +705,11 @@ SResult Type_subscript(in Type* self, in Generator* generator, u32 index, out Ty
                 return SResult_new("out of range");
             }
             *type = Type_clone(self->body.t_array.type);
+            break;
+        case Type_Alias:
+            SRESULT_UNWRAP(
+                Type_subscript(self->body.t_alias, generator, index, type), (void)NULL
+            );
             break;
         case Type_LazyPtr:
             SRESULT_UNWRAP(
@@ -723,9 +735,16 @@ Type Type_void(void) {
 Type Type_as_alias(Type self, in char* name) {
     assert(name != NULL);
 
-    snprintf(self.name, 256, "%.255s", name);
+    Type type;
+    snprintf(type.name, 256, "%.255s", name);
+    type.type = Type_Alias;
+    type.body.t_alias = malloc(sizeof(Type));
+    UNWRAP_NULL(type.body.t_alias);
+    *type.body.t_alias = self;
+    type.size = self.size;
+    type.align = self.align;
     
-    return self;
+    return type;
 }
 
 bool Type_cmp(in Type* self, in Type* other) {
@@ -764,10 +783,26 @@ static bool Type_match_bound(in Type* self, in Type* other) {
     return false;
 }
 
+static bool Type_match_alias(in Type* self, in Type* other) {
+    if(self->type == Type_Alias) {
+        Type* self_type = self->body.t_alias;
+        return Type_match(self_type, other);
+    }
+    if(other->type == Type_Alias) {
+        Type* other_type = other->body.t_alias;
+        return Type_match(self, other_type);
+    }
+    return false;
+}
+
 bool Type_match(in Type* self, in Type* other) {
     assert(self != NULL && other != NULL);
 
     if(Type_match_bound(self, other)) {
+        return true;
+    }
+
+    if(Type_match_alias(self, other)) {
         return true;
     }
 
@@ -815,6 +850,11 @@ Type Type_clone(in Type* self) {
             break;
         case Type_LazyPtr:
             break;
+        case Type_Alias:
+            type.body.t_alias = malloc(sizeof(Type));
+            UNWRAP_NULL(type.body.t_alias);
+            *type.body.t_alias = Type_clone(self->body.t_alias);
+            break;
         case Type_Fn:
             type.body.t_fn = Vec_clone(&self->body.t_fn, Data_clone_for_vec);
             break;
@@ -855,6 +895,10 @@ void Type_print(in Type* self) {
         case Type_LazyPtr:
             printf(".t_lazy_ptr: %s", self->body.t_lazy_ptr);
             break;
+        case Type_Alias:
+            printf(".t_alias: ");
+            Type_print(self->body.t_alias);
+            break;
         case Type_Fn:
             printf(".fn: ");
             Vec_print(&self->body.t_fn, Data_free_for_vec);
@@ -892,6 +936,10 @@ void Type_free(Type self) {
         case Type_Floating:
             break;
         case Type_LazyPtr:
+            break;
+        case Type_Alias:
+            Type_free(*self.body.t_alias);
+            free(self.body.t_alias);
             break;
         case Type_Fn:
             Vec_free_all(self.body.t_fn, Data_free_for_vec);

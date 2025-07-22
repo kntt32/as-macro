@@ -1538,8 +1538,12 @@ static void Syntax_build_if_build(Parser condition_parser, Parser then_branch, P
         return;
     }
 
-    if(resolve_sresult(build_jmp_to_endif(id, generator, variable_manager), then_branch.offset, generator)
-        || resolve_sresult(build_branch(else_branch, id, "else", generator, variable_manager), else_branch.offset, generator)) {
+    if(!Parser_is_empty(&else_branch)) {
+        if(resolve_sresult(build_jmp_to_endif(id, generator, variable_manager), then_branch.offset, generator)) {
+            return;
+        }
+    }
+    if(resolve_sresult(build_branch(else_branch, id, "else", generator, variable_manager), else_branch.offset, generator)) {
         return;
     }
 

@@ -1,6 +1,6 @@
 import std;
-import std.io;
 import core.cmp;
+import std.io;
 
 type MyIo = Io;
 
@@ -39,6 +39,7 @@ fn main() {
     let defer a: i32@rax = 5;
     let defer b: i32@rax = 6;
 };
+
 
 
 

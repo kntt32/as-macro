@@ -261,14 +261,24 @@ SResult Generator_add_type(inout Generator* self, Type type) {
     return SResult_new(NULL);
 }
 
-SResult Generator_get_type(in Generator* self, in char* name, out Type* type) {
-    Type* ptr = NULL;
+SResult Generator_get_type(in Generator* self, in char* name, in char* path, out Type* type) {
+    Type* temp = NULL;
+
     for(u32 i=0; i<Vec_len(&self->types); i++) {
-        ptr = Vec_index(&self->types, i);
+        Type* ptr = Vec_index(&self->types, i);
         if(strcmp(ptr->name, name) == 0) {
-            *type = Type_clone(ptr);
-            return SResult_new(NULL);
+            if(ptr->valid_path[0] == '\0') {
+                temp = ptr;
+            }else if(strcmp(ptr->valid_path, path) == 0) {
+                temp = ptr;
+                break;
+            }
         }
+    }
+
+    if(temp != NULL) {
+        *type = Type_clone(temp);
+        return SResult_new(NULL);
     }
 
     char msg[256];
@@ -293,15 +303,23 @@ SResult Generator_add_global_variable(inout Generator* self, Variable variable) 
 }
 
 SResult Generator_get_global_variable(in Generator* self, in char* path, in char* name, out Variable* variable) {
+    Variable* temp = NULL;
+
     for(u32 i=0; i<Vec_len(&self->global_variables); i++) {
         Variable* ptr = Vec_index(&self->global_variables, i);
-        if(ptr->valid_path[0] != '\0' && strcmp(ptr->valid_path, path) != 0) {
-            continue;
-        }
         if(strcmp(ptr->name, name) == 0) {
-            *variable = Variable_clone(ptr);
-            return SResult_new(NULL);
+            if(ptr->valid_path[0] == '\0') {
+                temp = ptr;
+            }else if(strcmp(ptr->valid_path, path) == 0) {
+                temp = ptr;
+                break;
+            }
         }
+    }
+
+    if(temp != NULL) {
+        *variable = Variable_clone(temp);
+        return SResult_new(NULL);
     }
 
     char msg[256];

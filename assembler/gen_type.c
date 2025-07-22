@@ -34,7 +34,8 @@ static ParserMsg Type_parse_ptr_lazyptr(inout Parser* parser, out Type* type) {
     snprintf(type->name, 256, "*%.254s", token);
     type->valid_path[0] = '\0';
     type->type = Type_LazyPtr;
-    snprintf(type->body.t_lazy_ptr, 256, "%.255s", token);
+    snprintf(type->body.t_lazy_ptr.name, 256, "%.255s", token);
+    snprintf(type->body.t_lazy_ptr.path, 256, "%.255s", Parser_path(parser));
     type->size = 8;
     type->align = 8;
 
@@ -366,7 +367,7 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
             (void)NULL
         );
     }else if(!SResult_is_success(
-        Generator_get_type(generator, token, type)
+        Generator_get_type(generator, token, Parser_path(parser), type)
     )) {
         return ParserMsg_new(parser->offset, "expected type");
     }
@@ -676,7 +677,7 @@ SResult Type_ref(in Type* src, in Generator* generator, out Type* type) {
             break;
         case Type_LazyPtr:
             SRESULT_UNWRAP(
-                Generator_get_type(generator, src->body.t_lazy_ptr, type),
+                Generator_get_type(generator, src->body.t_lazy_ptr.name, src->body.t_lazy_ptr.path, type),
                 (void)NULL
             );
             break;
@@ -713,7 +714,7 @@ SResult Type_subscript(in Type* self, in Generator* generator, u32 index, out Ty
             break;
         case Type_LazyPtr:
             SRESULT_UNWRAP(
-                Generator_get_type(generator, self->body.t_lazy_ptr, type),
+                Generator_get_type(generator, self->body.t_lazy_ptr.name, self->body.t_lazy_ptr.path, type),
                 (void)NULL
             );
             break;
@@ -893,7 +894,7 @@ void Type_print(in Type* self) {
             printf("none");
             break;
         case Type_LazyPtr:
-            printf(".t_lazy_ptr: %s", self->body.t_lazy_ptr);
+            printf(".t_lazy_ptr: { name: %s, path: %s }", self->body.t_lazy_ptr.name, self->body.t_lazy_ptr.path);
             break;
         case Type_Alias:
             printf(".t_alias: ");

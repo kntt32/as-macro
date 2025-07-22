@@ -17,7 +17,6 @@ ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i3
     // (defer) name: Data
     Parser parser_copy = *parser;
 
-    variable->defer_flag = ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "defer"));
     variable->valid_path[0] = '\0';
 
     PARSERMSG_UNWRAP(
@@ -28,6 +27,7 @@ ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i3
         Parser_parse_symbol(&parser_copy, ":"),
         (void)NULL
     );
+    variable->defer_flag = ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "defer"));
     PARSERMSG_UNWRAP(
         Data_parse(&parser_copy, generator, stack_offset, &variable->data),
         (void)NULL

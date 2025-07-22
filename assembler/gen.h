@@ -31,7 +31,7 @@ struct Type {
         Vec t_struct;// Vec<StructMember>
         Vec t_enum;// Vec<EnumMember>
         Vec t_union;// Vec<UnionMember>
-        char t_lazy_ptr[256];
+        struct {char name[256]; char path[256];} t_lazy_ptr;
         struct Type* t_alias;
         Vec t_fn;// Vec<Data>
     } body;
@@ -445,7 +445,7 @@ Generator Generator_new(Vec import_paths);
 SResult Generator_import_by_path(inout Generator* self, in char* path, out bool* doubling_flag, out Parser* optional parser);
 ParserMsg Generator_import(inout Generator* self, Parser parser, out bool* doubling_flag, out Parser* optional import_parser);
 SResult Generator_add_type(inout Generator* self, Type type);
-SResult Generator_get_type(in Generator* self, in char* name, out Type* type);
+SResult Generator_get_type(in Generator* self, in char* name, in char* path, out Type* type);
 SResult Generator_add_global_variable(inout Generator* self, Variable variable);
 SResult Generator_get_global_variable(in Generator* self, in char* path, in char* name, out Variable* variable);
 SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro);

@@ -458,6 +458,8 @@ ParserMsg Parser_parse_string(inout Parser* self, out Vec* string) {
             }
         }else {
             if(c == '\"') {
+                c = '\0';
+                Vec_push(string, &c);
                 break;
             }
             if(c == '\0') {

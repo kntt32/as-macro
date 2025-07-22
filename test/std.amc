@@ -16,4 +16,9 @@ pub as exit(in status: i32@rdi) {
     syscall();
 };
 
+pub fn panic_handler() {
+    let code: i32@rdi = -1;
+    exit(code);
+};
+
 

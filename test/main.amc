@@ -1,43 +1,13 @@
 import std;
 import core.cmp;
+import core.slice;
+import core.panic;
 import std.io;
 
-type MyIo = Io;
-
-fn io_test() {
-    let io: MyIo@stack;
-    io.new(stdout);
-
-    let msg: *char@rsi;
-    msg =& "Hello, World!!\n";
-    
-    let len: i64@rcx;
-    len.strlen(msg);
-
-    let data: *i8@stack;
-    data = msg;
-    for((let i: i64@r9=0;let flag: bool@rax;); flag.lt(i, 2); i+=1) {
-        io.write(data, len);
-    };
-    io.flush();
-
-};
-
-template MyTemp(T) {
-    as mytemp_macro_$(T)() {
-        io_test();
-    };
-};
-
-impl MyTemp(i32);
-
-pub as drop(x: i32@reg) {
-    io_test();
-};
+impl Slice(char);
 
 fn main() {
-    let defer a: i32@rax = 5;
-    let defer b: i32@rax = 6;
+    panic();
 };
 
 

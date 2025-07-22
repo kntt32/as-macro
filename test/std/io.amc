@@ -56,10 +56,3 @@ pub as write(inout self: Io@mem, in data: *i8@reg+mem, in len: i64@reg+mem) {
 };
 
 
-
-
-
-
-
-
-

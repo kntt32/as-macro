@@ -305,6 +305,9 @@ static bool GlobalSyntax_parse_function_extern(Parser parser, inout Generator* g
     if(resolve_sresult(Generator_add_asmacro(generator, extern_asmacro), parser.offset, generator)) {
         return true;
     }
+    if(resolve_sresult(Generator_append_label(generator, NULL, name, true, Label_Func), parser.offset, generator)) {
+        return true;
+    }
     check_parser(&parser, generator);
 
     return true;

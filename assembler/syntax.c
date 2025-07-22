@@ -663,10 +663,6 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper(in Asmacro* asmacro, in 
     i32 stack_offset = variable_manager->stack_offset;
 
     SRESULT_UNWRAP(
-        Generator_append_label(generator, NULL, asmacro->name, true, Label_Func), (void)NULL
-    );
-
-    SRESULT_UNWRAP(
         Syntax_build_asmacro_expansion_fnwrapper_push_volatile_vars(arguments, variable_manager, generator),
         (void)NULL
     );
@@ -2072,11 +2068,12 @@ bool Syntax_build_implicit_static_string(Parser parser, inout Generator* generat
     *type_char_boxed = type_char;
 
     Type type_string = {
-        "*char", "", Type_Array,
+        "", "", Type_Array,
         {.t_array = {type_char_boxed, len}},
         len,
         1
     };
+    snprintf(type_string.name, 256, "[char; %u]", len);
 
     *data = Data_from_mem(Rip, 0, label, type_string);
 

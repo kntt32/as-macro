@@ -1,0 +1,28 @@
+import core;
+import slice;
+
+impl Slice(char);
+pub struct Str {
+    slice: Slice_char,
+};
+
+pub as len(in self: Str@mem, out len: i64@reg+mem) {
+    self.slice.len(len);
+};
+
+pub as from(out self: Str@mem, in cstr: *char@reg+mem) {
+    let len: i64@rsi;
+    cstr.strlen(len);
+    self.slice.from(cstr, len);
+};
+
+pub as index(in self: Str@mem, in index: i64@reg+mem+imm, out c: char@reg+mem) {
+    let c_ptr: *char@rax;
+    self.slice.index(index, c_ptr);
+    c = *c_ptr;
+};
+
+pub as slice(in self: Str@mem, in start: i64@reg+mem+imm, in end: i64@reg+mem+imm, out buff: Str@mem) {
+    self.slice.slice(start, end, buff);
+};
+

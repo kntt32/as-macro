@@ -1,5 +1,2 @@
 import core.x64_ins;
-import core.mem;
-import core.string;
-import core.cmp;
 

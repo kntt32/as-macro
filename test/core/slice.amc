@@ -1,0 +1,43 @@
+import core;
+import panic;
+
+pub template Slice(T) {
+    pub struct Slice_$(T) {
+        ptr: *$(T),
+        len: i64,
+    };
+
+    pub as from(out self: Slice_$(T)@mem, in ptr: *$(T)@reg+mem, in len: i64@reg+mem+imm) {
+        panic_eq(ptr, null);
+        self.ptr = ptr;
+        self.len = len;
+    };
+    
+    pub as index(in self: Slice_$(T)@mem, in index: i64@reg+mem+imm, out ptr: *$(T)@reg+mem) {
+        ptr = sizeof($(T));
+        ptr.imul(index);
+        ptr += self.ptr;
+    };
+
+    pub as len(in self: Slice_$(T)@mem, out len: i64@reg+mem) {
+        len = self.len;
+    };
+
+    pub as as_ptr(in self: Slice_$(T)@mem, out ptr: *$(T)@reg+mem) {
+        ptr = self.ptr;
+    };
+
+    pub as slice(in self: Slice_$(T)@mem, in start: i64@reg+mem+imm, in end: i64@reg+mem+imm, out buff: Slice_$(T)@mem) {
+        panic_le(self.len, start);
+        panic_le(self.len, end);
+        panic_gt(start, end);
+
+        buff.ptr = sizeof($(T));
+        buff.ptr.imul(start);
+        buff.ptr += self.ptr;
+
+        buff.len = end;
+        buff.len -= start;
+    };
+};
+

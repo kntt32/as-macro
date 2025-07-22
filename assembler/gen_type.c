@@ -698,9 +698,6 @@ SResult Type_subscript(in Type* self, in Generator* generator, u32 index, out Ty
     assert(self->name[0] != '\0');
 
     switch(self->type) {
-        case Type_Ptr:
-            *type = Type_clone(self->body.t_ptr);
-            break;
         case Type_Array:
             if(self->body.t_array.len <= index) {
                 return SResult_new("out of range");
@@ -712,14 +709,8 @@ SResult Type_subscript(in Type* self, in Generator* generator, u32 index, out Ty
                 Type_subscript(self->body.t_alias, generator, index, type), (void)NULL
             );
             break;
-        case Type_LazyPtr:
-            SRESULT_UNWRAP(
-                Generator_get_type(generator, self->body.t_lazy_ptr.name, self->body.t_lazy_ptr.path, type),
-                (void)NULL
-            );
-            break;
         default:
-            return SResult_new("expected pointer or array");
+            return SResult_new("expected array");
     }
 
     return SResult_new(NULL);

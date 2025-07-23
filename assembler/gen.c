@@ -593,7 +593,8 @@ SResult Generator_add_template(inout Generator* self, Template template) {
     return SResult_new(NULL);
 }
 
-SResult Generator_expand_template(inout Generator* self, in char* name, in char* path, out bool* expanded_flag, out optional Template* template) {
+SResult Generator_expand_template(
+    inout Generator* self, in char* name, in char* path, Vec parser_vars, out bool* expanded_flag, out Parser* template_parser) {
     Template* temp = NULL;
     for(u32 i=0; i<Vec_len(&self->templates); i++) {
         Template* ptr = Vec_index(&self->templates, i);
@@ -610,16 +611,13 @@ SResult Generator_expand_template(inout Generator* self, in char* name, in char*
     if(temp == NULL) {
         char msg[256];
         snprintf(msg, 256, "template \"%.200s\" is undefined", name);
+        Vec_free(parser_vars);
         return SResult_new(msg);
     }
     
-    if(temp->expanded_flag) {
-        *expanded_flag = true;
-    }else {
-        *expanded_flag = false;
-        *template = Template_clone(temp);
-    }
-    temp->expanded_flag = true;
+    SRESULT_UNWRAP(
+        Template_expand(temp, parser_vars, expanded_flag, template_parser), (void)NULL
+    );
     return SResult_new(NULL);
 }
 

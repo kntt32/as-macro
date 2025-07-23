@@ -397,16 +397,16 @@ static bool GlobalSyntax_parse_template(Parser parser, inout Generator* generato
     return true;
 }
 
-static ParserMsg GlobalSyntax_parse_impl_parse_args(Parser parser, in Vec* template_args, out Vec* args) {
+static ParserMsg GlobalSyntax_parse_impl_parse_args(Parser parser, out Vec* args) {
     *args = Vec_new(sizeof(ParserVar));
 
-    for(u32 i=0; i<Vec_len(template_args); i++) {
+    while(!Parser_is_empty(&parser)) {
         char token[256];
         PARSERMSG_UNWRAP(
             Parser_parse_ident(&parser, token), Vec_free(*args)
         );
         ParserVar parser_var;
-        strcpy(parser_var.name, Vec_index(template_args, i));
+        parser_var.name[0] = '\0';
         strcpy(parser_var.value, token);
         Vec_push(args, &parser_var);
 
@@ -417,19 +417,10 @@ static ParserMsg GlobalSyntax_parse_impl_parse_args(Parser parser, in Vec* templ
         }
     }
 
-    if(!Parser_is_empty(&parser)) {
-        Vec_free(*args);
-        return ParserMsg_new(parser.offset, "unexpected token");
-    }
-
     return ParserMsg_new(parser.offset, NULL);
 }
 
-static void GlobalSyntax_parse_impl_childparse(Template template, in Vec* vars, inout Generator* generator) {
-    Parser parser = template.parser;
-    Template_free(template);
-    Parser_set_vartable(vars);
-
+static void GlobalSyntax_parse_impl_childparse(Parser parser, inout Generator* generator) {
     while(!Parser_is_empty(&parser)) {
         Parser syntax_parser = Parser_split(&parser, ";");
         GlobalSyntax global_syntax;
@@ -442,8 +433,6 @@ static void GlobalSyntax_parse_impl_childparse(Template template, in Vec* vars, 
 
         GlobalSyntax_free(global_syntax);
     }
-
-    Parser_clear_vartable();
 
     return;
 }
@@ -468,24 +457,22 @@ static bool GlobalSyntax_parse_impl(Parser parser, inout Generator* generator, o
         return true;
     }
 
-    bool expanded_flag;
-    Template template;
+    Vec vars;// Vec<ParserVar>
+    if(resolve_parsermsg(GlobalSyntax_parse_impl_parse_args(paren_parser, &vars), generator)) {
+        return true;
+    }
+
+    bool expanded_flag = false;
+    Parser template_parser;
     if(resolve_sresult(
-        Generator_expand_template(generator, name, Parser_path(&parser), &expanded_flag, &template), parser.offset, generator
+        Generator_expand_template(generator, name, Parser_path(&parser), vars, &expanded_flag, &template_parser), parser.offset, generator
     )) {
         return true;
     }
 
-    Vec vars;// Vec<ParserVar>
-    if(resolve_parsermsg(GlobalSyntax_parse_impl_parse_args(paren_parser, &template.vars, &vars), generator)) {
-        Template_free(template);
-        return true;
-    }
-
     if(!expanded_flag) {
-        GlobalSyntax_parse_impl_childparse(template, &vars, generator);
+        GlobalSyntax_parse_impl_childparse(template_parser, generator);
     }
-    Vec_free(vars);
 
     check_parser(&parser, generator);
     global_syntax->ok_flag = true;

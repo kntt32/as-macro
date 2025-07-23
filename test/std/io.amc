@@ -1,5 +1,8 @@
 import core;
+import core.str;
+import core.cmp;
 import std.syscall;
+import core.fmt;
 
 pub const stdin: i32 = 0;
 pub const stdout: i32 = 1;
@@ -16,6 +19,8 @@ pub struct Io {
     buff: [char; 1024],
     len: i64,
 };
+
+impl Display(Io);
 
 pub as new(out self: Io@mem, in fd: i32@reg+imm) {
     self.fd = fd;
@@ -35,7 +40,16 @@ pub as flush(inout self: Io@mem) {
     };
 };
 
-pub as write(inout self: Io@mem, in data: *i8@reg+mem, in len: i64@reg+mem) {
+pub as write(inout self: Io@mem, in str: Str@mem) {
+    let str_ptr: *char@rax;
+    str.as_ptr(str_ptr);
+    let str_ptr_i8: *i8@rdx = str_ptr;
+    let len: i64@rcx;
+    str.len(len);
+    self.write(str_ptr_i8, len);
+};
+
+pub as write(inout self: Io@mem, in data: *i8@reg+mem, in len: i64@rcx) {
     let buff_new_len: i64@r8 = self.len;
     buff_new_len += len;
     let flag: bool@rax;

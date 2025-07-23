@@ -14,6 +14,7 @@ pub template Slice(T) {
     };
     
     pub as index(in self: Slice_$(T)@mem, in index: i64@reg+mem+imm, out ptr: *$(T)@reg+mem) {
+        panic_ge(index, self.len);
         ptr = sizeof($(T));
         ptr.imul(index);
         ptr += self.ptr;

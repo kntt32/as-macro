@@ -1,4 +1,5 @@
 import core;
+import core.string;
 import slice;
 
 impl Slice(char);
@@ -7,19 +8,34 @@ pub struct Str {
 };
 
 pub as len(in self: Str@mem, out len: i64@reg+mem) {
-    self.slice.len(len);
+    (self.slice).len(len);
 };
 
 pub as from(out self: Str@mem, in cstr: *char@reg+mem) {
     let len: i64@rsi;
     cstr.strlen(len);
+    self.from(cstr, len);
+};
+
+pub as from(out self: Str@mem, in cstr: *char@reg+mem, in len: i64@reg+mem+imm) {
     self.slice.from(cstr, len);
 };
 
-pub as index(in self: Str@mem, in index: i64@reg+mem+imm, out c: char@reg+mem) {
-    let c_ptr: *char@rax;
-    self.slice.index(index, c_ptr);
-    c = *c_ptr;
+pub as as_ptr(in self: Str@mem, out ptr: *char@reg+mem) {
+    (self.slice).as_ptr(ptr);
+};
+
+pub as from_char_array(out self: Str@mem, in cstr_array: bin@mem) {
+    // cstr must be array of char
+    let cstr_array_ptr: *char@rsi;
+    cstr_array_ptr =& cstr_array;
+    let cstr_len: i64@rcx;
+    cstr_array_ptr.strlen(cstr_len);
+    (self.slice).from(cstr_array_ptr, cstr_len);
+};
+
+pub as index(in self: Str@mem, in index: i64@reg+mem+imm, out c: *char@reg+mem) {
+    self.slice.index(index, c);
 };
 
 pub as slice(in self: Str@mem, in start: i64@reg+mem+imm, in end: i64@reg+mem+imm, out buff: Str@mem) {

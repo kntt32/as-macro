@@ -1,4 +1,34 @@
 import core;
+import core.cmp;
 import core.slice;
+import core.str;
 
+pub template Display(Formatter) {
+    pub as display(inout self: $(Formatter)@mem, in object: i64@reg+mem+imm) {
+        let object_copy: i64@rax = object;
+        let str: Str@stack;
+        let flag: bool@r9;
 
+        if(flag.lt(object_copy, 0)) {
+            str.from_char_array("-");
+            self.write(str);
+            object_copy.neg();
+        };
+        
+        let remainder: i64@rdx;
+        let divisor: i64@r8 = 10;
+        
+        while(flag.neq(object_copy, 0)) {
+            remainder = 0;
+            object_copy.div(remainder, divisor);
+
+            let chararray: [char; 2]@stack;
+            chararray[0] = '0';
+            let remainder_i8: i8@r10 = remainder;
+            chararray[0] += remainder_i8;
+            chararray[1] = '\0';
+            str.from_char_array(chararray);
+            self.write(str);
+        };
+    };
+};

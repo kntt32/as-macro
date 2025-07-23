@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <assert.h>
 #include "types.h"
 #include "parser.h"
 #include "vec.h"
@@ -54,10 +55,50 @@ ParserMsg Template_parse(inout Parser* parser, out Template* template) {
         Template_parse_arguments(paren_parser, template), (void)NULL
     );
     template->parser = block_parser;
-    template->expanded_flag = false;
+    template->parser_vars = Vec_new(sizeof(Vec*));
 
     *parser = parser_copy;
     return ParserMsg_new(parser->offset, NULL);
+}
+
+SResult Template_expand(inout Template* self, Vec parser_vars, out bool* expanded_flag, out optional Parser* template_parser) {
+    assert(self != NULL && expanded_flag != NULL && template_parser != NULL);
+    assert(Vec_size(&parser_vars) == sizeof(ParserVar));
+
+    if(Vec_len(&self->vars) != Vec_len(&parser_vars)) {
+        Vec_free(parser_vars);
+        return SResult_new("mismatching template arguments");
+    }
+
+    assert(Vec_size(&self->parser_vars) == sizeof(Vec*));
+    for(u32 i=0; i<Vec_len(&self->parser_vars); i++) {
+        Vec** expanded_parser_vars = Vec_index(&self->parser_vars, i);
+        assert(Vec_size(*expanded_parser_vars) == sizeof(ParserVar));
+        if(Vec_cmp(*expanded_parser_vars, &parser_vars, ParserVar_cmp_value_for_vec)) {
+            Vec_free(parser_vars);
+            *expanded_flag = true;
+            return SResult_new(NULL);
+        }
+    }
+
+    for(u32 i=0; i<Vec_len(&self->vars); i++) {
+        ParserVar* parser_var = Vec_index(&parser_vars, i);
+        char* name = Vec_index(&self->vars, i);
+
+        snprintf(parser_var->name, 256, "%.255s", name);
+    }
+
+    Vec* parser_vars_buff = malloc(sizeof(Vec));
+    UNWRAP_NULL(parser_vars_buff);
+    *parser_vars_buff = parser_vars;
+    Vec_push(&self->parser_vars, &parser_vars_buff);
+
+    *template_parser = self->parser;
+    Parser_set_parser_vars(template_parser, parser_vars_buff);
+
+    *expanded_flag = false;
+
+    return SResult_new(NULL);
 }
 
 void Template_print(in Template* self) {
@@ -80,13 +121,22 @@ Template Template_clone(in Template* self) {
     strcpy(template.valid_path, self->valid_path);
     template.vars = Vec_clone(&self->vars, NULL);
     template.parser = self->parser;
-    template.expanded_flag = self->expanded_flag;
+    template.parser_vars = Vec_new(sizeof(ParserVar));
 
     return template;
 }
 
+static void Template_free_helper(in void* ptr) {
+    Vec** vec_ptr = ptr;
+    Vec* vec = *vec_ptr;
+
+    Vec_free(*vec);
+    free(vec);
+}
+
 void Template_free(Template self) {
     Vec_free(self.vars);
+    Vec_free_all(self.parser_vars, Template_free_helper);
 }
 
 void Template_free_for_vec(inout void* ptr) {

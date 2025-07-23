@@ -139,7 +139,7 @@ bool Argument_match_with(in Argument* self, in Data* data) {
                 || (self->storage.trait.xmm_flag && storage->type == StorageType_xmm))) {
                 return false;
             }
-            if(data->storage.type == StorageType_imm && self->type.type == Type_Integer && self->type.type == data->type.type) {
+            if(data->storage.type == StorageType_imm && self->type.type == Type_Integer && (data->type.type == Type_Integer || data->type.type == Type_Ptr)) {
                 if(data->storage.body.imm.type == Imm_Value) {
                     Vec* imm_value = &storage->body.imm.body.value;
                     u32 imm_size = Vec_len(imm_value);
@@ -147,7 +147,9 @@ bool Argument_match_with(in Argument* self, in Data* data) {
                         u8* byte = Vec_index(imm_value, i);
                         u8* byte_later = Vec_index(imm_value, i+1);
                         if((*byte & 0x80) && (*byte_later == 0xff)) {
-                            imm_size--;
+                            imm_size --;
+                        }else if((*byte_later == 0)) {
+                            imm_size --;
                         }else {
                             break;
                         }

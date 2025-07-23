@@ -7,7 +7,6 @@
 #include <limits.h>
 #include "parser.h"
 
-static Vec* VARTABLE = NULL;
 static struct { char expr; char code; } ESCAPE_SEQUENCES[] = {
     {'\\', '\\'}, {'\'', '\''}, {'\"', '\"'}, {'?', '?'}, {'a', '\a'}, {'b', '\b'},
     {'f', '\f'}, {'n', '\n'}, {'r', '\r'}, {'t', '\t'}, {'v', '\v'}, {'0', '\0'},
@@ -64,17 +63,16 @@ void Offset_print(in Offset* self) {
     printf("Offset { path: %s, line: %u, column: %u }", self->path, self->line, self->column);
 }
 
-Parser Parser_new(in char* src, in char* path) {
-    assert(src != NULL);
+Parser Parser_new(optional in char* src, in char* path) {
     assert(path != NULL);
 
-    Parser parser = {src, strlen(src), Offset_new(path)};
+    Parser parser = {src, (src != NULL)?(strlen(src)):(0), Offset_new(path), NULL};
     Parser_skip_space(&parser);
     return parser;
 }
 
 Parser Parser_empty(Offset offset) {
-    Parser parser = {NULL, 0, offset};
+    Parser parser = {NULL, 0, offset, NULL};
     return parser;
 }
 
@@ -87,6 +85,12 @@ void Parser_print(in Parser* self) {
     }
     printf("\", len: %lu, offset: ", self->len);
     Offset_print(&self->offset);
+    printf(", parser_vars: ");
+    if(self->parser_vars != NULL) {
+        Vec_print(self->parser_vars, ParserVar_print_for_vec);
+    }else {
+        printf("null");
+    }
     printf(" }");
 }
 
@@ -316,7 +320,7 @@ static ParserMsg Parser_parse_ident_without_skipspace(inout Parser* self, out ch
 }
 
 static ParserMsg Parser_parse_ident_parse_var(Parser parser, out char token[256]) {
-    assert(VARTABLE != NULL);
+    assert(parser.parser_vars != NULL);
 
     char ident[256];
     PARSERMSG_UNWRAP(
@@ -326,8 +330,8 @@ static ParserMsg Parser_parse_ident_parse_var(Parser parser, out char token[256]
     if(!Parser_is_empty(&parser)) {
         return ParserMsg_new(parser.offset, "unexpected token");
     }
-    for(u32 i=0; i<Vec_len(VARTABLE); i++) {
-        ParserVar* parser_var = Vec_index(VARTABLE, i);
+    for(u32 i=0; i<Vec_len(parser.parser_vars); i++) {
+        ParserVar* parser_var = Vec_index(parser.parser_vars, i);
         if(strcmp(parser_var->name, ident) == 0) {
             strcpy(token, parser_var->value);
             return ParserMsg_new(parser.offset, NULL);
@@ -340,7 +344,7 @@ static ParserMsg Parser_parse_ident_parse_var(Parser parser, out char token[256]
 }
 
 ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]) {
-    if(VARTABLE == NULL) {
+    if(self->parser_vars == NULL) {
         PARSERMSG_UNWRAP(
             Parser_parse_ident_without_skipspace(self, token), (void)NULL
         );
@@ -528,13 +532,9 @@ ParserMsg Parser_parse_index(inout Parser* self, out Parser* parser) {
     return Parser_parse_parens_helper(self, parser, "[", "]");
 }
 
-void Parser_set_vartable(in Vec* vartable) {
-    assert(Vec_size(vartable) == sizeof(ParserVar));
-    VARTABLE = vartable;
-}
-
-void Parser_clear_vartable() {
-    VARTABLE = NULL;
+void Parser_set_parser_vars(inout Parser* self, optional in Vec* parser_vars) {
+    assert(Vec_size(parser_vars) == sizeof(ParserVar));
+    self->parser_vars = parser_vars;
 }
 
 ParserMsg ParserMsg_new(Offset offset, optional char* msg) {
@@ -561,4 +561,21 @@ ParserMsg ParserMsg_from_sresult(SResult sresult, Offset offset) {
 
     return ParserMsg_new(offset, sresult.error);
 }
+
+bool ParserVar_cmp_value(in ParserVar* self, in ParserVar* other) {
+    return strcmp(self->value, other->value) == 0;
+}
+
+bool ParserVar_cmp_value_for_vec(in void* left, in void* right) {
+    return ParserVar_cmp_value(left, right);
+}
+
+void ParserVar_print(in ParserVar* self) {
+    printf("ParserVar { name: %s, value: %s }", self->name, self->value);
+}
+
+void ParserVar_print_for_vec(in void* ptr) {
+    ParserVar_print(ptr);
+}
+
 

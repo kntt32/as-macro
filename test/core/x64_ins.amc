@@ -185,17 +185,17 @@ pub as dec(_: b64@reg+mem) : (double: 0xff, /1);
 pub as dec(_: b16@reg) : (double: 0x48, rw);
 pub as dec(_: b32@reg) : (double: 0x48, rd);
 
-pub as div(_: b8@reg+mem) : (double: 0xf6, /6);
-pub as div(_: b16@reg+mem) : (double: 0xf7, /6);
-pub as div(_: b32@reg+mem) : (double: 0xf7, /6);
-pub as div(_: b64@reg+mem) : (double: 0xf7, /6);
+pub as div(target: b8@rax, divisor: b8@reg+mem) : (double: 0xf6, /6);
+pub as div(target: b16@rax, target2: b16@rdx, divisor: b16@reg+mem) : (double: 0xf7, /6);
+pub as div(target: b32@rax, target2: b32@rdx, divisor: b32@reg+mem) : (double: 0xf7, /6);
+pub as div(target: b64@rax, target2: b64@rdx, divisor: b64@reg+mem) : (double: 0xf7, /6);
 
 pub as enter(_: b16@imm, _: b8@imm) : (quad: 0xc8, iw, ib);
 
-pub as idiv(_: b8@reg+mem) : (double: 0xf6, /7);
-pub as idiv(_: b16@reg+mem) : (double: 0xf7, /7);
-pub as idiv(_: b32@reg+mem) : (double: 0xf7, /7);
-pub as idiv(_: b64@reg+mem) : (double: 0xf7, /7);
+pub as idiv(target: b8@rax, divisor: b8@reg+mem) : (double: 0xf6, /7);
+pub as idiv(target: b16@rax, target2: b16@rdx, divisor: b16@reg+mem) : (double: 0xf7, /7);
+pub as idiv(target: b32@rax, target2: b32@rdx, divisor: b32@reg+mem) : (double: 0xf7, /7);
+pub as idiv(target: b64@rax, target2: b64@rdx, divisor: b64@reg+mem) : (double: 0xf7, /7);
 
 pub as imul(_: b8@reg+mem) : (double: 0xf6, /5);
 pub as imul(_: b16@reg+mem) : (double: 0xf7, /5);

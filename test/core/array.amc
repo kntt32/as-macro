@@ -1,0 +1,14 @@
+import core;
+import panic;
+
+pub template ArrayIndex(T, L) {
+    pub as index(in self: [$(T); $(L)]@mem, in index: i64@reg+mem+imm, out obj: *$(T)@reg) {
+        obj = sizeof(self[0]);
+        obj.imul(index);
+        panic_ge(obj, sizeof(self));
+        let ptr:* $(T)@rax;
+        ptr =& self;
+        obj += ptr;
+    };
+};
+

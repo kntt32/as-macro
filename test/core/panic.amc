@@ -7,16 +7,23 @@ pub as panic() {
     ud2();
 };
 
-pub as panic_eq(in left: i64@reg+mem, in right: i64@reg+mem+imm) {
+pub as panic_eq(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
     let flag: bool@rax;
     if(flag.eq(left, right)) {
         panic();
     };
 };
 
-pub as panic_le(in left: i64@reg+mem, in right: i64@reg+mem+imm) {
+pub as panic_le(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
     let flag: bool@rax;
     if(flag.le(left, right)) {
+        panic();
+    };
+};
+
+pub as panic_ge(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
+    let flag: bool@rax;
+    if(flag.ge(left, right)) {
         panic();
     };
 };

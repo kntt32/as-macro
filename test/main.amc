@@ -1,13 +1,12 @@
 import std;
-import core.cmp;
-import core.slice;
-import core.panic;
 import std.io;
 
-impl Slice(char);
-
 fn main() {
-    panic();
+    let value: i64@rdi = 15;
+    let io: Io@stack;
+    io.new(stdout);
+    io.display(value);
+    io.flush();
 };
 
 

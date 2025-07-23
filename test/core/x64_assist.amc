@@ -1,0 +1,14 @@
+import x64_ins;
+
+template MovAsist(D, S) {
+    pub as mov(dst: $(D)@reg+mem, src: $(S)@reg) {
+        let src_rax: $(S)@rax = src;
+        let src_rax: $(D)@rax;
+        dst = src_rax;
+    };
+};
+
+impl MovAsist(b8, b16);
+impl MovAsist(b8, b32);
+impl MovAsist(b8, b64);
+

@@ -230,7 +230,7 @@ typedef struct {
     char valid_path[256];
     Vec vars;// Vec<char[256]>
     Parser parser;
-    bool expanded_flag;
+    Vec parser_vars;// Vec<Vec<ParserVar>*>
 } Template;
 
 typedef struct {
@@ -429,6 +429,7 @@ void Import_free(Import self);
 void Import_free_for_vec(inout void* ptr);
 
 ParserMsg Template_parse(inout Parser* parser, out Template* template);
+SResult Template_expand(inout Template* self, Vec parser_vars, out bool* expanded_flag, out Parser* template_parser);
 void Template_print(in Template* self);
 void Template_print_for_vec(in void* self);
 Template Template_clone(in Template* self);
@@ -462,7 +463,8 @@ SResult Generator_binary_len(in Generator* self, in char* name, out u32* len);
 SResult Generator_asmacro_expand_check(inout Generator* self, Asmacro asmacro);
 void Generator_finish_asmacro_expand(inout Generator* self);
 SResult Generator_add_template(inout Generator* self, Template template);
-SResult Generator_expand_template(inout Generator* self, in char* name, in char* path, out bool* expanded_flag, out optional Template* template);
+SResult Generator_expand_template(
+    inout Generator* self, in char* name, in char* path, Vec parser_vars, out bool* expanded_flag, out Parser* template_parser);
 bool Generator_is_error(in Generator* self);
 void Generator_print(in Generator* self);
 void Generator_free(Generator self);

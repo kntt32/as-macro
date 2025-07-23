@@ -12,13 +12,14 @@ pub as len(in self: Str@mem, out len: i64@reg+mem) {
 };
 
 pub as from(out self: Str@mem, in cstr: *char@reg+mem) {
-    let len: i64@rsi;
-    cstr.strlen(len);
-    self.from(cstr, len);
+    let len: i64@rcx;
+    let cstr_rsi: *char@rsi = cstr;
+    cstr_rsi.strlen(len);
+    self.from(cstr_rsi, len);
 };
 
 pub as from(out self: Str@mem, in cstr: *char@reg+mem, in len: i64@reg+mem+imm) {
-    self.slice.from(cstr, len);
+    (self.slice).from(cstr, len);
 };
 
 pub as as_ptr(in self: Str@mem, out ptr: *char@reg+mem) {

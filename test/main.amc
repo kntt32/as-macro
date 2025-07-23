@@ -2,10 +2,12 @@ import std;
 import std.io;
 
 fn main() {
-    let value: i64@rdi = 15;
+    let value: i64@rdi = 12345678901234567;
     let io: Io@stack;
+    let str: Str@stack;
     io.new(stdout);
     io.display(value);
+    io.write(str.from_char_array("\nHello, World!\n"));
     io.flush();
 };
 

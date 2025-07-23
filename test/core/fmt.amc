@@ -14,6 +14,11 @@ pub template Display(Formatter) {
             self.write(str);
             object_copy.neg();
         };
+
+        let buffer: [char; 32]@stack;
+        buffer[31] = '\0';
+        let buffer_index: i64@r11 = 31;
+        let buffer_ptr: *char@r12;
         
         let remainder: i64@rdx;
         let divisor: i64@r8 = 10;
@@ -21,14 +26,19 @@ pub template Display(Formatter) {
         while(flag.neq(object_copy, 0)) {
             remainder = 0;
             object_copy.div(remainder, divisor);
-
-            let chararray: [char; 2]@stack;
-            chararray[0] = '0';
             let remainder_i8: i8@r10 = remainder;
-            chararray[0] += remainder_i8;
-            chararray[1] = '\0';
-            str.from_char_array(chararray);
-            self.write(str);
+
+            buffer_index -= 1;
+            buffer_ptr =& buffer;
+            buffer_ptr += buffer_index;
+            *buffer_ptr = '0';
+            *buffer_ptr += remainder_i8;
         };
+
+        buffer_ptr =& buffer;
+        buffer_ptr += buffer_index;
+        
+        str.from(buffer_ptr);
+        self.write(str);
     };
 };

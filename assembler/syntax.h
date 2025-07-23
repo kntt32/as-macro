@@ -40,7 +40,7 @@ void VariableManager_print_for_vec(in void* ptr);
 void VariableManager_free(VariableManager self);
 void VariableManager_free_for_vec(inout void* ptr);
 
-SResult SyntaxTree_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager);
+void SyntaxTree_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager);
 
 void check_parser(in Parser* parser, inout Generator* generator);
 SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);

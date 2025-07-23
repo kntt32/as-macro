@@ -148,7 +148,7 @@ bool Argument_match_with(in Argument* self, in Data* data) {
                         u8* byte_later = Vec_index(imm_value, i+1);
                         if((*byte & 0x80) && (*byte_later == 0xff)) {
                             imm_size --;
-                        }else if((*byte_later == 0)) {
+                        }else if(*byte_later == 0) {
                             imm_size --;
                         }else {
                             break;

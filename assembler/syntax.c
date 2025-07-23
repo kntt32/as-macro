@@ -312,23 +312,23 @@ void check_parser(in Parser* parser, inout Generator* generator) {
     }
 }
 
-SResult SyntaxTree_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager) {
+void SyntaxTree_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager) {
     VariableManager_new_block(variable_manager);
 
     while(!Parser_is_empty(&parser)) {
         Parser syntax_parser = Parser_split(&parser, ";");
         Data data;
-        SRESULT_UNWRAP(
-            Syntax_build(syntax_parser, generator, variable_manager, &data), (void)NULL
-        );
+        if(resolve_sresult(Syntax_build(syntax_parser, generator, variable_manager, &data), syntax_parser.offset, generator)) {
+            return;
+        }
         Data_free(data);
     }
 
-    SRESULT_UNWRAP(
-        VariableManager_delete_block(variable_manager, generator), (void)NULL
+    resolve_sresult(
+        VariableManager_delete_block(variable_manager, generator), parser.offset, generator
     );
 
-    return SResult_new(NULL);
+    return;
 }
 
 SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
@@ -470,12 +470,13 @@ static void Syntax_build_asmacro_expansion_usermacro(in Asmacro* asmacro, in Vec
         Parser syntax_parser = Parser_split(&proc_parser, ";");
         
         Data data;
-        if(!resolve_sresult(
+        if(resolve_sresult(
             Syntax_build(syntax_parser, generator, variable_manager, &data),
             syntax_parser.offset, generator
         )) {
-            Data_free(data);
+            return;
         }
+        Data_free(data);
     }
 }
 
@@ -980,13 +981,13 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
     resolve_sresult(
         sub_rsp_raw(stack_offset - variable_manager->stack_offset, generator, variable_manager), parser.offset, generator
     );
-
+ 
     resolve_sresult(
         VariableManager_push(variable_manager, variable, generator),
         parser.offset,
         generator
     );
-    
+
     if(ParserMsg_is_success(Parser_parse_symbol(&parser, "="))) {
         Data init_data;
         if(!resolve_sresult(Syntax_build(parser, generator, variable_manager, &init_data), parser.offset, generator)) {
@@ -1470,9 +1471,7 @@ static SResult build_branch(Parser parser, u32 id, in char* branch_name, inout G
 
     VariableManager_new_block(variable_manager);
 
-    SRESULT_UNWRAP(
-        SyntaxTree_build(parser, generator, variable_manager), (void)NULL
-    );
+    SyntaxTree_build(parser, generator, variable_manager);
 
     SRESULT_UNWRAP(
         VariableManager_delete_block(variable_manager, generator), (void)NULL
@@ -1652,11 +1651,7 @@ static void Syntax_build_for_build_proc(Parser proc_parser, u32 id, inout Genera
 
     VariableManager_new_block(variable_manager);
 
-    if(resolve_sresult(
-        SyntaxTree_build(proc_parser, generator, variable_manager), proc_parser.offset, generator
-    )) {
-        return;
-    }
+    SyntaxTree_build(proc_parser, generator, variable_manager);
 
     resolve_sresult(
         VariableManager_delete_block(variable_manager, generator), proc_parser.offset, generator
@@ -1772,9 +1767,7 @@ static SResult Syntax_build_while_build_proc(u32 id, Parser proc_parser, inout G
 
     VariableManager_new_block(variable_manager);
     
-    SRESULT_UNWRAP(
-        SyntaxTree_build(proc_parser, generator, variable_manager), (void)NULL
-    );
+    SyntaxTree_build(proc_parser, generator, variable_manager);
 
     SRESULT_UNWRAP(
         VariableManager_delete_block(variable_manager, generator), (void)NULL
@@ -1827,9 +1820,7 @@ bool Syntax_build_block(Parser parser, inout Generator* generator, inout Variabl
         return false;
     }
 
-    if(resolve_sresult(SyntaxTree_build(proc_parser, generator, variable_manager), proc_parser.offset, generator)) {
-        return true;
-    }
+    SyntaxTree_build(proc_parser, generator, variable_manager);
 
     check_parser(&parser, generator);
 

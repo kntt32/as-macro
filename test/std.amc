@@ -1,4 +1,6 @@
 import core;
+import core.syscall;
+import std.syscall;
 
 pub extern fn main();
 
@@ -7,13 +9,6 @@ pub fn _start() {
     let status: i32@rdi;
     status = 0;
     exit(status);
-};
-
-
-pub as exit(in status: i32@rdi) {
-    let number: i64@rax;
-    number = 60;
-    syscall();
 };
 
 pub fn panic_handler() {

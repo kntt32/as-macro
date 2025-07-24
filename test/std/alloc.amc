@@ -1,6 +1,7 @@
 import core;
+import core.panic;
 
-struct MemBlock {
+pub struct MemBlock {
     page_ptr: *void,
     page_count: i64,
     alloc_line: i64,
@@ -8,9 +9,19 @@ struct MemBlock {
 };
 
 pub as new(out self: MemBlock@mem, in page_count: i64@reg+mem+imm) {
-    self.page_ptr = null;
+    let addr: *void@rdi = null;
+    let length: i64@rsi = page_count;
+    let prot: i64@rdx = 0x3;
+    let flags: i64@r10 = 0x22;
+    let fd: i64@r8 = -1;
+    let offset: i64@r9 = 0;
+    length.imul(length, 0x4096);
+    addr.mmap(length, prot, flags, fd, offset).panic_null();
+    
+    self.page_ptr = addr;
     self.page_count = page_count;
     self.alloc_line = 0;
     self.alloc_count = 0;
+    page_count;
 };
 

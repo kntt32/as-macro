@@ -1,6 +1,7 @@
 import std;
 import std.io;
 import core.option;
+import std.alloc;
 
 impl Option(i64);
 impl Display_Option(Io, i64);
@@ -20,6 +21,9 @@ fn main() {
     str.from("\n");
     io.write(str);
     io.flush();
+
+    let memblock: MemBlock@stack;
+    memblock.new(1);
 };
 
 

@@ -1,0 +1,24 @@
+import core;
+
+pub as syscall(number: i64@rax) {
+    push(rdi);
+    push(rsi);
+    push(rdx);
+    push(r10);
+    push(r8);
+    push(r9);
+    push(rcx);
+    push(r11);
+
+    syscall();
+
+    pop(r11);
+    pop(rcx);
+    pop(r9);
+    pop(r8);
+    pop(r10);
+    pop(rdx);
+    pop(rsi);
+    pop(rdi);
+};
+

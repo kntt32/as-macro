@@ -28,3 +28,7 @@ pub as panic_ge(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
     };
 };
 
+pub as panic_null(in addr: *void@reg+mem) {
+    panic_eq(addr, null);
+};
+

@@ -8,12 +8,6 @@ pub const stdin: i32 = 0;
 pub const stdout: i32 = 1;
 pub const stderr: i32 = 2;
 
-pub as write(in fd: i32@rdi, in msg: *char@rsi, in len: i64@rdx) {
-    let number: i64@rax;
-    number = 1;
-    syscall(number);
-};
-
 pub struct Io {
     fd: i32,
     buff: [char; 1024],

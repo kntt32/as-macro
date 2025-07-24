@@ -205,6 +205,11 @@ pub as imul(_: b16@reg, _: b16@reg+mem) : (double: 0x0f, 0xaf, /r);
 pub as imul(_: b32@reg, _: b32@reg+mem) : (double: 0x0f, 0xaf, /r);
 pub as imul(_: b64@reg, _: b64@reg+mem) : (double: 0x0f, 0xaf, /r);
 pub as imul(_: b16@reg, _: b16@reg+mem, _: b8@imm) : (double: 0x6b, /r, ib);
+pub as imul(_: b32@reg, _: b32@reg+mem, _: b8@imm) : (double: 0x6b, /r, ib);
+pub as imul(_: b64@reg, _: b64@reg+mem, _: b8@imm) : (double: 0x6b, /r, ib);
+pub as imul(_: b16@reg, _: b16@reg+mem, _: b16@imm) : (double: 0x69, /r, iw);
+pub as imul(_: b32@reg, _: b32@reg+mem, _: b32@imm) : (double: 0x69, /r, id);
+pub as imul(_: b64@reg, _: b64@reg+mem, _: b32@imm) : (double: 0x69, /r, id);
 
 pub as in(_: b8@rax, _: b8@imm) : (double: 0xe4, ib);
 pub as in(_: b32@rax, _: b8@imm) : (double: 0xe5, ib);

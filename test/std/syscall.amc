@@ -1,9 +1,38 @@
 import core;
+import core.cmp;
+import core.syscall;
 
-pub as syscall(number: i64@rax) {
-    let rcx:  i64@rcx;
-    let r11: i64@r11;
-
-    syscall();
+pub as write(in fd: i32@rdi, in msg: *char@rsi, in len: i64@rdx) {
+    let number: i64@rax;
+    number = 1;
+    syscall(number);
 };
+
+pub const MMAP_PROT_NONE: i64 = 0x0;
+pub const MMAP_PROT_READ: i64 = 0x1;
+pub const MMAP_PROT_WRITE: i64 = 0x2;
+pub const MMAP_PROT_EXEC: i64 = 0x4;
+pub const MMAP_MAP_SHARED: i64 = 0x01;
+pub const MMAP_MAP_PRIVATE: i64 = 0x02;
+pub const MMAP_MAP_FIXED: i64 = 0x10;
+pub const MMAP_MAP_ANONYMOUS: i64 = 0x20;
+
+pub as mmap(inout addr: *void@rdi, in len: i64@rsi, in prot: i64@rdx, in flags: i64@r10, in fd: i64@r8, in offset: i64@r9) {
+    let number: i64@rax;
+    number = 9;
+    syscall(number);
+    let flag: bool@r10 = false;
+    if(flag.lt(number, 0)) {
+        addr = null;
+    }else {
+        addr = number;
+    };
+};
+
+pub as exit(in status: i32@rdi) {
+    let number: i64@rax;
+    number = 60;
+    syscall(number);
+};
+
 

@@ -361,6 +361,8 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_assignlea,
         Syntax_build_assignment,
         Syntax_build_enum_expr,
+        Syntax_build_inc,
+        Syntax_build_dec,
         Syntax_build_dot_operator,
         Syntax_build_refer_operator,
         Syntax_build_subscript_operator,
@@ -796,7 +798,7 @@ static SResult sub_rsp(i32 value, inout Generator* generator, inout VariableMana
 }
 
 bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-    Parser firstarg_parser = Parser_split(&parser, ".");
+    Parser firstarg_parser = Parser_rsplit(&parser, ".");
     if(Parser_is_empty(&parser)) {
         parser = firstarg_parser;
         firstarg_parser = Parser_empty(parser.offset);
@@ -2067,6 +2069,61 @@ bool Syntax_build_implicit_static_string(Parser parser, inout Generator* generat
     snprintf(type_string.name, 256, "[char; %u]", len);
 
     *data = Data_from_mem(Rip, 0, label, type_string);
+
+    return true;
+}
+
+static SResult Syntax_build_unary_ops_helper(
+    in char* macro_name, Data operand, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    Vec args = Vec_new(sizeof(Data));
+    Vec_push(&args, &operand);
+    SRESULT_UNWRAP(
+        expand_asmacro(macro_name, "", args, generator, variable_manager, data),
+        (void)NULL
+    );
+    return SResult_new(NULL);
+}
+
+bool Syntax_build_inc(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    if(!ParserMsg_is_success(Parser_parse_symbol(&parser, "++"))) {
+        return false;
+    }
+
+    Data syntax_data;
+    if(resolve_sresult(
+        Syntax_build(parser, generator, variable_manager, &syntax_data), parser.offset, generator
+    )) {
+        return true;
+    }
+
+    if(resolve_sresult(
+        Syntax_build_unary_ops_helper("inc", syntax_data, generator, variable_manager, data), parser.offset, generator
+    )) {
+        *data = Data_void();
+        return true;
+    }
+
+    return true;
+}
+
+bool Syntax_build_dec(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    if(!ParserMsg_is_success(Parser_parse_symbol(&parser, "--"))) {
+        return false;
+    }
+
+    Data syntax_data;
+    if(resolve_sresult(
+        Syntax_build(parser, generator, variable_manager, &syntax_data), parser.offset, generator
+    )) {
+        return true;
+    }
+
+    if(resolve_sresult(
+        Syntax_build_unary_ops_helper("dec", syntax_data, generator, variable_manager, data), parser.offset, generator
+    )) {
+        *data = Data_void();
+        return true;
+    }
 
     return true;
 }

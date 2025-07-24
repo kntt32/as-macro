@@ -1,0 +1,16 @@
+import core;
+
+struct MemBlock {
+    page_ptr: *void,
+    page_count: i64,
+    alloc_line: i64,
+    alloc_count: i64,
+};
+
+pub as new(out self: MemBlock@mem, in page_count: i64@reg+mem+imm) {
+    self.page_ptr = null;
+    self.page_count = page_count;
+    self.alloc_line = 0;
+    self.alloc_count = 0;
+};
+

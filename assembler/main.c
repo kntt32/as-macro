@@ -6,8 +6,6 @@
 #include "cmd.h"
 
 int main(int argc, char* argv[]) {
-    Cmd_interpreter(argc, argv);
-
-    return 0;
+    return Cmd_interpreter(argc, argv);
 }
 

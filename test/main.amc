@@ -1,13 +1,24 @@
 import std;
 import std.io;
+import core.option;
+
+impl Option(i64);
+impl Display_Option(Io, i64);
 
 fn main() {
-    let value: i64@rdi = 12345678901234567;
+    let value: i64@rdi = -12345678910;
+    let option: Option_i64@stack;
+    option.some(5);
+    // option.none();
+
     let io: Io@stack;
     let str: Str@stack;
     io.new(stdout);
     io.display(value);
-    io.write(str.from_char_array("\nHello, World!\n"));
+    io.write(str.from("\nHello, World!\n"));
+    io.display(option);
+    str.from("\n");
+    io.write(str);
     io.flush();
 };
 

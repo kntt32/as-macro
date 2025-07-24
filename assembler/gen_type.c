@@ -341,10 +341,9 @@ ParserMsg Type_parse(inout Parser* parser, in Generator* generator, out Type* ty
                 (void)NULL
             );
         }else {
-            PARSERMSG_UNWRAP(
-                Type_parse_array(&parser_copy, generator, type),
-                (void)NULL
-            );
+            if(!ParserMsg_is_success(Type_parse_array(&parser_copy, generator, type))) {
+                return ParserMsg_new(parser->offset, "expected type");
+            }
         }
     }else if(strcmp(token, "struct") == 0) {
         PARSERMSG_UNWRAP(

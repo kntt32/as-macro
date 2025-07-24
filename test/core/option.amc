@@ -1,0 +1,65 @@
+import core;
+
+pub template Option(T) {
+    pub struct Option_$(T) {
+        flag: bool,
+        body: union {
+            object: $(T)
+        },
+    };
+    
+    pub as some(out self: Option_$(T)@mem, in object: $(T)@reg+mem+imm) {
+        self.flag = true;
+        self.body.object = object;
+    };
+
+    pub as none(out self: Option_$(T)@mem) {
+        self.flag = false;
+    };
+
+    pub as is_some(out flag: bool@reg+mem, in self: Option_$(T)@mem) {
+        flag = self.flag;
+    };
+
+    pub as take(inout self: Option_$(T)@mem, out object: $(T)@mem) {
+        if(self.flag) {
+            object = self.body.object;
+        }else {
+            panic();
+        };
+        self.flag = false;
+    };
+
+    pub as try(inout self: Option_$(T)@mem, out object: $(T)@mem) {
+        if(self.flag) {
+            object = self.body.object;
+        }else {
+            return;
+        };
+    };
+
+    pub as drop(inout self: Option_$(T)@mem) {
+        if(self.flag) {
+            self.body.drop();
+        };
+        self.flag = false;
+    };
+};
+
+pub template Display_Option(Formatter, T) {
+    pub as display(inout self: $(Formatter)@mem, in object: Option_$(T)@mem) {
+        let str: Str@stack;
+
+        if(object.flag) {
+            str.from("Some(");
+            self.write(str);
+            self.display(object.body.object);
+            str.from(")");
+            self.write(str);
+        }else {
+            str.from("None");
+            self.write(str);
+        };
+    };
+};
+

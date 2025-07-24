@@ -130,13 +130,17 @@ ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, in Type* 
         storage->body.imm.type = Imm_Value;
         storage->body.imm.body.value = Vec_new(sizeof(u8));
     }else if(ParserMsg_is_success(Parser_parse_keyword(parser, "stack"))) {
-        *stack_offset -= type->size;
-        *stack_offset = ceil_div(*stack_offset - (i32)type->align + 1, type->align)*type->align;
-        storage->type = StorageType_mem;
-        Memory* mem = &storage->body.mem;
-        mem->base = Rbp;
-        mem->disp.label[0] = '\0';
-        mem->disp.offset = *stack_offset;
+        if(stack_offset == NULL) {
+            return ParserMsg_new(parser->offset, "storage \"stack\" can not be used here");
+        }else {
+            *stack_offset -= type->size;
+            *stack_offset = ceil_div(*stack_offset - (i32)type->align + 1, type->align)*type->align;
+            storage->type = StorageType_mem;
+            Memory* mem = &storage->body.mem;
+            mem->base = Rbp;
+            mem->disp.label[0] = '\0';
+            mem->disp.offset = *stack_offset;
+        }
     }else {
         return ParserMsg_new(parser->offset, "expected storage");
     }

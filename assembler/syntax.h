@@ -76,5 +76,7 @@ bool Syntax_build_assignor(Parser parser, inout Generator* generator, inout Vari
 bool Syntax_build_assignxor(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_assignlea(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_implicit_static_string(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+bool Syntax_build_inc(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+bool Syntax_build_dec(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_return(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 

@@ -1,4 +1,5 @@
 import core;
+import core.cmp;
 import core.panic;
 import alloc.memblock;
 
@@ -97,5 +98,46 @@ as push_memblock(inout self: Self@mem, in pages: i64@reg+mem) {
     (*new_memblock).new(pages);
 };
 
+pub as dealloc(inout self: Self@mem, in ptr: *void@reg+mem) {
+    let flag: bool@r8;
+    if(flag.neq(ptr, null)) {
+        for((let i: i64@r9=0;); flag.lt(i, self.len); ++i) {
+            let mem_block: *MemBlock@r10;
+            mem_block.imul(i, sizeof(MemBlock));
+            mem_block += self.table;
 
+            let lower_bound: i64@r11;
+            let upper_bound: i64@r12;
+            (*mem_block).get_lower_bound(lower_bound);
+            (*mem_block).get_upper_bound(upper_bound);
+
+            if(flag.ge(ptr, lower_bound)) {
+                if(flag.lt(ptr, upper_bound)) {
+                    (*mem_block).dealloc(ptr);
+                };
+            };
+        };
+    };
+};
+
+pub as drop(inout self: Alloc@mem) {
+    let flag: bool@r8;
+
+    for(let i: i64@r9=0; flag.lt(i, self.len); ++i) {
+        let mem_block: *MemBlock@r10;
+        mem_block.imul(i, sizeof(MemBlock));
+        mem_block += self.table;
+
+        (*mem_block).drop();
+    };
+
+    let addr: *void@rdi = self.table;
+    let size: i64@rsi;
+    size.imul(self.pages, 4096);
+    munmap(addr, size);
+
+    self.table = null;
+    self.len = 0;
+    self.pages = 0;
+};
 

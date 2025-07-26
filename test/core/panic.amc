@@ -14,9 +14,23 @@ pub as panic_eq(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
     };
 };
 
+pub as panic_neq(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
+    let flag: bool@rax;
+    if(flag.neq(left, right)) {
+        panic();
+    };
+};
+
 pub as panic_le(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
     let flag: bool@rax;
     if(flag.le(left, right)) {
+        panic();
+    };
+};
+
+pub as panic_lt(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
+    let flag: bool@rax;
+    if(flag.lt(left, right)) {
         panic();
     };
 };
@@ -28,7 +42,18 @@ pub as panic_ge(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
     };
 };
 
+pub as panic_gt(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
+    let flag: bool@rax;
+    if(flag.gt(left, right)) {
+        panic();
+    };
+};
+
 pub as panic_null(in addr: *void@reg+mem) {
     panic_eq(addr, null);
+};
+
+pub as panic_not_null(in addr: *void@reg+mem) {
+    panic_neq(addr, null);
 };
 

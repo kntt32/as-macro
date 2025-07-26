@@ -22,7 +22,7 @@ fn main() {
     io.write(str);
     io.flush();
 
-    let alloc: Alloc@stack;
+    let alloc: defer Alloc@stack;
     alloc.new();
     let ptr: *void@rdx;
     alloc.alloc(8, ptr);
@@ -34,5 +34,7 @@ fn main() {
     io.display(*ptr_of_i64);
     io.write(str.from("\n"));
     io.flush();
+
+    alloc.dealloc(ptr);
 };
 

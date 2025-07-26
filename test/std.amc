@@ -1,12 +1,18 @@
 import core;
 import core.string;
-import core.syscall;
 import std.syscall;
+import std.alloc;
 
 pub extern fn main();
 
+// pub static STD_ALLOC: Alloc;
+
 pub fn _start() {
+    // STD_ALLOC.new();
+
     main();
+
+    // STD_ALLOC.drop();
     let status: i32@rdi;
     status = 0;
     exit(status);

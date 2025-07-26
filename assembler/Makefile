@@ -8,7 +8,7 @@ ifeq ($(FSANITIZE), 0)
     CFLAGS := -Wall -Wextra -O0 -g
 endif
 ifeq ($(RELEASE),1)
-	CFLAGS := -Wall -Wextra -Ofast -g
+	CFLAGS := -Wall -Wextra -Ofast -flto -g
 endif
 
 asm.elf: main.o types.o vec.o str.o parser.o util.o register.o gen.o gen_type.o gen_encode.o gen_storage.o gen_data.o gen_variable.o gen_asmacro.o gen_elf.o gen_template.o syntax.o global_syntax.o cmd.o path.o

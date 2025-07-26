@@ -463,7 +463,7 @@ SResult AsmEncodingElement_encode_rexprefix(in AsmEncodingElement* self, in AsmA
             if(args->reg_flag && args->reg_type != AsmArgs_Reg_Reg) {
                 return SResult_new("expecting integer register argument");
             }
-            u8 addreg_code;
+            u8 addreg_code = 0;
             SRESULT_UNWRAP(
                 Register_get_addreg_code(args->reg.reg, &addreg_code),
                 (void)NULL
@@ -530,13 +530,13 @@ static SResult AsmEncodingElement_encode_addreg(in AsmArgs* args, inout Generato
         return SResult_new("expected register argument");
     }
 
-    u8 addreg_code;
+    u8 addreg_code = 0;
     SRESULT_UNWRAP(
         Register_get_addreg_code(args->reg.reg, &addreg_code),
         (void)NULL
     );
 
-    u8* byte;
+    u8* byte = NULL;
     SRESULT_UNWRAP(
         Generator_last_binary(generator, ".text", &byte),
         (void)NULL

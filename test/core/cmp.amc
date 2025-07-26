@@ -15,6 +15,11 @@ pub as lt(flag: bool@reg+mem, left: b64@reg+mem+imm, right: b64@reg+mem+imm) {
     setl(flag);
 };
 
+pub as le(flag: bool@reg+mem, left: b64@reg+mem+imm, right: b64@reg+mem+imm) {
+    cmp(left, right);
+    setle(flag);
+};
+
 pub as ge(flag: bool@reg+mem, left: b64@reg+mem+imm, right: b64@reg+mem+imm) {
     cmp(left, right);
     setge(flag);

@@ -260,10 +260,6 @@ bool Storage_is_depend_on(in Storage* self, in Storage* other) {
     if(self->type != StorageType_mem || other->type != StorageType_reg) {
         return false;
     }
-    if(self->body.mem.base == R8) {
-        int a = 5;
-        a = 3;
-    }
     
     return self->body.mem.base == other->body.reg;
 }

@@ -330,6 +330,7 @@ SResult Storage_replace_label(inout Storage* self, in char* label);
 Storage Storage_refer_reg(Register reg);
 SResult Storage_subscript(in Storage* self, u32 index, u32 size, out Storage* storage);
 bool Storage_cmp(in Storage* self, in Storage* other);
+bool Storage_is_depend_on(in Storage* self, in Storage* other);
 void Storage_print(in Storage* self);
 Storage Storage_clone(in Storage* self);
 void Storage_free(Storage self);

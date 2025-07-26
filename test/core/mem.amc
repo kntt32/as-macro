@@ -1,6 +1,6 @@
 import core;
 
-pub as memcpy(dst: *void@rdi, src: *void@rsi, size: i64@rcx) {
+pub as memcpy(in dst: *void@rdi, in src: *void@rsi, in size: i64@rcx) {
     let dst_store: i64@r13 = dst;
     let src_store: i64@r14 = src;
     let size_store: i64@r15 = size;

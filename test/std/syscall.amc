@@ -2,6 +2,10 @@ import core;
 import core.cmp;
 import core.syscall;
 
+pub const STDIN: i32 = 0;
+pub const STDOUT: i32 = 1;
+pub const STDERR: i32 = 2;
+
 pub as write(in fd: i32@rdi, in msg: *char@rsi, in len: i64@rdx) {
     let number: i64@rax;
     number = 1;
@@ -18,14 +22,22 @@ pub const MMAP_MAP_FIXED: i64 = 0x10;
 pub const MMAP_MAP_ANONYMOUS: i64 = 0x20;
 
 pub as mmap(inout addr: *void@rdi, in len: i64@rsi, in prot: i64@rdx, in flags: i64@r10, in fd: i64@r8, in offset: i64@r9) {
-    let number: i64@rax;
-    number = 9;
+    let number: i64@rax = 9;
     syscall(number);
-    let flag: bool@r10 = false;
+    let flag: bool@r11;
     if(flag.lt(number, 0)) {
         addr = null;
     }else {
         addr = number;
+    };
+};
+
+pub as munmap(in addr: *void@rdi, in size: i64@rsi) {
+    let number: i64@rax = 11;
+    syscall(number);
+    let flag: bool@r11;
+    if(flag.lt(number, 0)) {
+        panic();
     };
 };
 

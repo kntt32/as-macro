@@ -574,9 +574,13 @@ pub as sal(_: b32@reg+mem, _: b8@imm) : (double: 0xc1, /4, ib);
 pub as sal(_: b64@reg+mem, _: b8@imm) : (double: 0xc1, /4, ib);
 
 pub as shl(_: b8@reg+mem, _: b8@imm) : (double: 0xc0, /4, ib);
+pub as shl(_: b8@reg+mem, _: b8@rcx) : (double: 0xd2, /4);
 pub as shl(_: b16@reg+mem, _: b8@imm) : (double: 0xc1, /4, ib);
+pub as shl(_: b16@reg+mem, _: b8@rcx) : (double: 0xd3, /4);
 pub as shl(_: b32@reg+mem, _: b8@imm) : (double: 0xc1, /4, ib);
+pub as shl(_: b32@reg+mem, _: b8@rcx) : (double: 0xd3, /4);
 pub as shl(_: b64@reg+mem, _: b8@imm) : (double: 0xc1, /4, ib);
+pub as shl(_: b64@reg+mem, _: b8@rcx) : (double: 0xd3, /4);
 
 pub as sar(_: b8@reg+mem, _: b8@imm) : (double: 0xc0, /7, ib);
 pub as sar(_: b16@reg+mem, _: b8@imm) : (double: 0xc1, /7, ib);
@@ -649,9 +653,13 @@ pub as shld(_: b32@reg+mem, _: b32@reg, _: b8@imm) : (double: 0x0f, 0xa4, /r, ib
 pub as shld(_: b64@reg+mem, _: b64@reg, _: b8@imm) : (double: 0x0f, 0xa4, /r, ib);
 
 pub as shr(_: b8@reg+mem, _: b8@imm) : (double: 0xc0, /5, ib);
+pub as shr(_: b8@reg+mem, _: b8@rcx) : (double: 0xd2, /5);
 pub as shr(_: b16@reg+mem, _: b8@imm) : (double: 0xc1, /5, ib);
+pub as shr(_: b16@reg+mem, _: b8@rcx) : (double: 0xd3, /5);
 pub as shr(_: b32@reg+mem, _: b8@imm) : (double: 0xc1, /5, ib);
+pub as shr(_: b32@reg+mem, _: b8@rcx) : (double: 0xd3, /5);
 pub as shr(_: b64@reg+mem, _: b8@imm) : (double: 0xc1, /5, ib);
+pub as shr(_: b64@reg+mem, _: b8@rcx) : (double: 0xd3, /5);
 
 pub as shrd(_: b16@reg+mem, _: b16@reg, _: b8@imm) : (double: 0x0f, 0xac, /r, ib);
 pub as shrd(_: b32@reg+mem, _: b32@reg, _: b8@imm) : (double: 0x0f, 0xac, /r, ib);

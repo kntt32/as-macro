@@ -109,7 +109,8 @@ static SResult store_variable(inout VariableManager* self, in Variable* variable
 static bool is_stored(in VariableManager* self, in Variable* variable, u32 variable_index) {
     for(u32 i=variable_index+1; i<Vec_len(&self->variables); i++) {
         Variable* ptr = Vec_index(&self->variables, i);
-        if(Storage_cmp(&variable->data.storage, &ptr->data.storage)) {
+        if(Storage_cmp(&variable->data.storage, &ptr->data.storage)
+            || Storage_is_depend_on(&variable->data.storage, &ptr->data.storage)) {
             return true;
         }
     }
@@ -191,10 +192,27 @@ void VariableManager_push_alias(inout VariableManager* self, Variable variable) 
     Vec_push(&self->variables, &variable);
 }
 
+static u32 get_block_index(in VariableManager* self, u32 var_index) {
+    for(u32 i=0; i<Vec_len(&self->blocks); i++) {
+        VariableBlock* variable_block = Vec_index(&self->blocks, i);
+        if(var_index < variable_block->variables_base) {
+            return i-1;
+        }
+    }
+
+    return Vec_len(&self->blocks) - 1;
+}
+
 SResult VariableManager_get(inout VariableManager* self, in char* name, out Variable* variable) {
     for(i32 i=Vec_len(&self->variables)-1; 0<=i; i--) {
         Variable* ptr = Vec_index(&self->variables, i);
-        if(strcmp(ptr->name, name) == 0 && !is_stored(self, ptr, i)) {
+        if(strcmp(ptr->name, name) == 0) {
+            if(is_stored(self, ptr, i)) {
+                printf("SHADOWED\n");
+                char msg[256];
+                snprintf(msg, 256, "variable \"%.200s\" is shadowed", name);
+                return SResult_new(msg);
+            }
             *variable = Variable_clone(ptr);
             return SResult_new(NULL);
         }
@@ -458,6 +476,13 @@ static SResult Syntax_build_asmacro_expansion_asmmacro(in Asmacro* asmacro, in V
 
 static void Syntax_build_asmacro_expansion_usermacro(in Asmacro* asmacro, in Vec* dataes, inout Generator* generator, inout VariableManager* variable_manager) {
     Parser proc_parser = asmacro->body.user_macro;
+    u32 id = get_id();
+
+    char label[256];
+    snprintf(label, 256, ".%u.%.100s@%.100s:%u", id, asmacro->name, Parser_path(&proc_parser), proc_parser.offset.line);
+    resolve_sresult(
+        Generator_append_label(generator, ".text", label, false, Label_Notype), proc_parser.offset, generator
+    );
     
     for(u32 i=0; i<Vec_len(dataes); i++) {
         Argument* arg = Vec_index(&asmacro->arguments, i);
@@ -467,6 +492,8 @@ static void Syntax_build_asmacro_expansion_usermacro(in Asmacro* asmacro, in Vec
 
         VariableManager_push_alias(variable_manager, variable);
     }
+
+    VariableManager_new_block(variable_manager);
 
     while(!Parser_is_empty(&proc_parser)) {
         Parser syntax_parser = Parser_split(&proc_parser, ";");
@@ -480,6 +507,15 @@ static void Syntax_build_asmacro_expansion_usermacro(in Asmacro* asmacro, in Vec
         }
         Data_free(data);
     }
+
+    resolve_sresult(
+        VariableManager_delete_block(variable_manager, generator), proc_parser.offset, generator
+    );
+
+    snprintf(label, 256, ".%u.%.100s@%.100s:%u.end", id, asmacro->name, Parser_path(&proc_parser), proc_parser.offset.line);
+    resolve_sresult(
+        Generator_append_label(generator, ".text", label, false, Label_Notype), proc_parser.offset, generator
+    );
 }
 
 static SResult Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(in Vec* arguments, in Data* data, inout VariableManager* variable_manager, inout Generator* generator, bool volatile_flag) {
@@ -1295,8 +1331,8 @@ bool Syntax_build_variable_expression(Parser parser, inout Generator* generator,
     *data = Data_void();
     
     Variable variable;
-    if(!SResult_is_success(VariableManager_get(variable_manager, name, &variable))
-        && resolve_sresult(Generator_get_global_variable(generator, Parser_path(&parser), name, &variable), parser.offset, generator)) {
+    if(!SResult_is_success(Generator_get_global_variable(generator, Parser_path(&parser), name, &variable))
+        && resolve_sresult(VariableManager_get(variable_manager, name, &variable), parser.offset, generator)) {
         return true;
     }
     
@@ -1512,7 +1548,7 @@ static void Syntax_build_if_build(Parser condition_parser, Parser then_branch, P
     u32 id = get_id();
 
     char if_label[256];
-    snprintf(if_label, 256, ".%u.if", id);
+    snprintf(if_label, 256, ".%u.if@%.200s:%u", id, Parser_path(&condition_parser), condition_parser.offset.line);
     if(resolve_sresult(Generator_append_label(generator, ".text", if_label, false, Label_Notype), condition_parser.offset, generator)) {
         return;
     }

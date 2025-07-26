@@ -4,10 +4,6 @@ import core.cmp;
 import std.syscall;
 import core.fmt;
 
-pub const stdin: i32 = 0;
-pub const stdout: i32 = 1;
-pub const stderr: i32 = 2;
-
 pub struct Io {
     fd: i32,
     buff: [char; 1024],

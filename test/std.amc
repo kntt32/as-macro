@@ -1,4 +1,5 @@
 import core;
+import core.string;
 import core.syscall;
 import std.syscall;
 
@@ -12,6 +13,14 @@ pub fn _start() {
 };
 
 pub fn panic_handler() {
+    static PANICED: [char; 10] = "paniced\n";
+    let fd: i32@rdi = STDERR;
+    let msg: *char@rsi;
+    msg =& PANICED;
+    let len_rcx: i64@rcx;
+    msg.strlen(len_rcx);
+    let len: i64@rdx = len_rcx;
+    write(fd, msg, len);
     let code: i32@rdi = -1;
     exit(code);
 };

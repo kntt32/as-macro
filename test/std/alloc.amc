@@ -1,27 +1,101 @@
 import core;
 import core.panic;
+import alloc.memblock;
 
-pub struct MemBlock {
-    page_ptr: *void,
-    page_count: i64,
-    alloc_line: i64,
-    alloc_count: i64,
+pub struct Alloc {
+    table: *MemBlock,
+    len: i64,
+    pages: i64,
 };
 
-pub as new(out self: MemBlock@mem, in page_count: i64@reg+mem+imm) {
-    let addr: *void@rdi = null;
-    let length: i64@rsi = page_count;
-    let prot: i64@rdx = 0x3;
-    let flags: i64@r10 = 0x22;
-    let fd: i64@r8 = -1;
-    let offset: i64@r9 = 0;
-    length.imul(length, 0x4096);
-    addr.mmap(length, prot, flags, fd, offset).panic_null();
+type Self = Alloc;
+
+pub as new(out self: Self@mem) {
+    self.table = null;
+    self.len = 0;
+    self.pages = 0;
+};
+
+pub as alloc(inout self: Self@mem, in size: i64@reg+mem+imm, out ptr: *void@reg+mem) {
+    let flag: bool@r8;
+
+    ptr = null;
+    let memblock: *MemBlock@rax = self.table;
+    for((let i: i64@r10=0); flag.lt(i, self.len); ++i) {
+        (*memblock).alloc(size, ptr);
+        if(flag.neq(ptr, null)) {
+            i = self.len;
+        };
+        memblock += sizeof(MemBlock);
+    };
+
+    if(flag.eq(ptr, null)) {
+        let alloc_pages: i64@rdi = size;
+        alloc_pages += 4096;
+        alloc_pages.shr(12);
+        self.push_memblock(alloc_pages);
+        self.alloc_from_last(size, ptr);
+    };
+
+    ptr.panic_null();
+};
+
+as alloc_from_last(inout self: Self@mem, in size: i64@reg+mem+imm, out ptr: *void@reg+mem) {
+    let last_memblock: *MemBlock@rdi = self.len;
+    last_memblock -= 1;
+    last_memblock.imul(last_memblock, sizeof(MemBlock));
+    last_memblock += self.table;
+
+    (*last_memblock).alloc(size, ptr);
+};
+
+as push_memblock(inout self: Self@mem, in pages: i64@reg+mem) {
+    let flag: bool@rax;
     
-    self.page_ptr = addr;
-    self.page_count = page_count;
-    self.alloc_line = 0;
-    self.alloc_count = 0;
-    page_count;
+    ++ self.len;
+    let new_pages: i64@r11 = self.len;
+    new_pages.imul(new_pages, sizeof(MemBlock));
+    new_pages += 4095;
+    new_pages.shr(12);
+    
+    if(flag.neq(new_pages, self.pages)) {
+        let new_table: *MemBlock@r12 = null;
+        let new_size: i64@rsi = new_pages;
+        new_size.shl(12);
+        let new_prot: i64@rdx = 0x3;
+        let new_flags: i64@r10 = 0x22;
+        let new_fd: i64@r8 = -1;
+        let new_offset: i64@r9 = 0;
+        let new_table_rdi: *void@rdi = new_table;
+        new_table_rdi
+            .mmap(new_size, new_prot, new_flags, new_fd, new_offset);
+        new_table_rdi.panic_null();
+        new_table = new_table_rdi;
+
+        let memcpy_dst: *void@rdi = new_table;
+        let memcpy_src: *void@rsi = self.table;
+        let memcpy_size: i64@rcx = self.pages;
+        memcpy_size.shl(12);
+        memcpy(memcpy_dst, memcpy_src, memcpy_size);
+
+        let munmap_addr: *void@rdi = self.table;
+        let munmap_size: i64@rsi = self.pages;
+        if(flag.neq(munmap_addr, null)) {
+            munmap_size.shl(12);
+            munmap(munmap_addr, munmap_size);
+        };
+
+        self.table = new_table;
+        self.pages = new_pages;
+    };
+
+    let new_memblock: *MemBlock@rax = self.len;
+    new_memblock -= 1;
+    new_memblock.imul(new_memblock, sizeof(MemBlock));
+    new_memblock += self.table;
+
+    (*new_memblock).new(pages);
 };
+
+
 

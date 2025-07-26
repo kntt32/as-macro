@@ -73,7 +73,7 @@ bool Imm_cmp(in Imm* self, in Imm* other) {
 
     switch(self->type) {
         case Imm_Value:
-            if(Vec_cmp(&self->body.value, &other->body.value, u8_cmp_for_vec)) {
+            if(!Vec_cmp(&self->body.value, &other->body.value, u8_cmp_for_vec)) {
                 return false;
             }
             break;
@@ -254,6 +254,18 @@ bool Storage_cmp(in Storage* self, in Storage* other) {
             return Imm_cmp(&self->body.imm, &other->body.imm);
     }
     return false;
+}
+
+bool Storage_is_depend_on(in Storage* self, in Storage* other) {
+    if(self->type != StorageType_mem || other->type != StorageType_reg) {
+        return false;
+    }
+    if(self->body.mem.base == R8) {
+        int a = 5;
+        a = 3;
+    }
+    
+    return self->body.mem.base == other->body.reg;
 }
 
 void Storage_print(in Storage* self) {

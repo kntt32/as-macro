@@ -1,7 +1,7 @@
 import std;
 import std.io;
-import core.option;
 import std.alloc;
+import core.option;
 
 impl Option(i64);
 impl Display_Option(Io, i64);
@@ -14,7 +14,7 @@ fn main() {
 
     let io: Io@stack;
     let str: Str@stack;
-    io.new(stdout);
+    io.new(STDOUT);
     io.display(value);
     io.write(str.from("\nHello, World!\n"));
     io.display(option);
@@ -22,10 +22,17 @@ fn main() {
     io.write(str);
     io.flush();
 
-    let memblock: MemBlock@stack;
-    memblock.new(1);
+    let alloc: Alloc@stack;
+    alloc.new();
+    let ptr: *void@rdx;
+    alloc.alloc(8, ptr);
+    let ptr_i64: i64@rdi = ptr;
+    let ptr_of_i64: *i64@rsi = ptr;
+    *ptr_of_i64 = 15;
+    io.display(ptr_i64);
+    io.write(str.from("\n"));
+    io.display(*ptr_of_i64);
+    io.write(str.from("\n"));
+    io.flush();
 };
-
-
-
 

@@ -363,7 +363,8 @@ void Data_free_for_vec(inout void* ptr);
 
 Variable Variable_new(in char* name, in char* valid_path, Data data, bool defer_flag);
 ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable);
-ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, bool static_flag, inout Generator* generator);
+ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, inout Generator* generator, out Variable* variable);
+ParserMsg Variable_parse_static_init(inout Parser* parser, bool static_flag, in Variable* variable, in char* label, inout Generator* generator);
 ParserMsg Variable_parse_static_local(inout Parser* parser, in Generator* generator, out Variable* variable);
 ParserMsg Variable_parse_const(inout Parser* parser, bool public_flag, inout Generator* generator);
 ParserMsg Variable_parse_const_local(inout Parser* parser, inout Generator* generator, out Variable* variable);
@@ -456,7 +457,7 @@ void Generator_add_error(inout Generator* self, Error error);
 SResult Generator_new_section(inout Generator* self, in char* name);
 SResult Generator_append_label(inout Generator* self, optional in char* section, in char* name, bool global_flag, LabelType type);
 SResult Generator_end_label(inout Generator* self, in char* name);
-SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, bool flag);
+SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, i32 addend, bool flag);
 SResult Generator_addend_rela(inout Generator* self, in char* section);
 SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte);
 SResult Generator_last_binary(in Generator* self, in char* name, out u8** byte);

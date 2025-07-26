@@ -64,7 +64,7 @@ static ParserMsg Variable_parse_static_parse(inout Parser* parser, bool public_f
     return ParserMsg_new(parser->offset, NULL);
 }
 
-static ParserMsg Variable_parse_static_init(inout Parser* parser, bool static_flag, in Variable* variable, in char* label, inout Generator* generator) {
+ParserMsg Variable_parse_static_init(inout Parser* parser, bool static_flag, in Variable* variable, in char* label, inout Generator* generator) {
     if(ParserMsg_is_success(Parser_parse_symbol(parser, "="))) {
         PARSERMSG_UNWRAP(
             ParserMsg_from_sresult(Generator_append_label(generator, ".data", label, !static_flag, Label_Object), parser->offset),
@@ -111,24 +111,11 @@ static ParserMsg Variable_parse_static_init(inout Parser* parser, bool static_fl
     return ParserMsg_new(parser->offset, NULL);
 }
 
-ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, bool static_flag, inout Generator* generator) {
+ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, inout Generator* generator, out Variable* variable) {
     Parser parser_copy = *parser;
 
-    Variable variable;
     PARSERMSG_UNWRAP(
-        Variable_parse_static_parse(&parser_copy, public_flag, generator, &variable), (void)NULL
-    );
-
-    PARSERMSG_UNWRAP(
-        Variable_parse_static_init(&parser_copy, static_flag, &variable, variable.name, generator),
-        Variable_free(variable);
-    );
-
-    PARSERMSG_UNWRAP(
-        ParserMsg_from_sresult(
-            Generator_add_global_variable(generator, variable), parser->offset
-        ),
-        (void)NULL
+        Variable_parse_static_parse(&parser_copy, public_flag, generator, variable), (void)NULL
     );
 
     *parser = parser_copy;

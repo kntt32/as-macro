@@ -477,12 +477,6 @@ static SResult Syntax_build_asmacro_expansion_asmmacro(in Asmacro* asmacro, in V
 static void Syntax_build_asmacro_expansion_usermacro(in Asmacro* asmacro, in Vec* dataes, inout Generator* generator, inout VariableManager* variable_manager) {
     Parser proc_parser = asmacro->body.user_macro;
     u32 id = get_id();
-
-    char label[256];
-    snprintf(label, 256, ".%u.%.100s@%.100s:%u", id, asmacro->name, Parser_path(&proc_parser), proc_parser.offset.line);
-    resolve_sresult(
-        Generator_append_label(generator, ".text", label, false, Label_Notype), proc_parser.offset, generator
-    );
     
     for(u32 i=0; i<Vec_len(dataes); i++) {
         Argument* arg = Vec_index(&asmacro->arguments, i);
@@ -510,11 +504,6 @@ static void Syntax_build_asmacro_expansion_usermacro(in Asmacro* asmacro, in Vec
 
     resolve_sresult(
         VariableManager_delete_block(variable_manager, generator), proc_parser.offset, generator
-    );
-
-    snprintf(label, 256, ".%u.%.100s@%.100s:%u.end", id, asmacro->name, Parser_path(&proc_parser), proc_parser.offset.line);
-    resolve_sresult(
-        Generator_append_label(generator, ".text", label, false, Label_Notype), proc_parser.offset, generator
     );
 }
 

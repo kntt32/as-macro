@@ -263,7 +263,7 @@ Elf64_Shdr Elf64_Shdr_from(in Section* section, inout StrTable* shstrtable, inou
         header.sh_entsize = 0;
     }else if(strcmp(section->name, ".data") == 0) {
         header.sh_type = SHT_PROGBITS;
-        header.sh_flags = SHF_ALLOC;
+        header.sh_flags = SHF_ALLOC | SHF_WRITE;
         header.sh_addr = 0;
         header.sh_offset = RawBin_push(rawbin, Vec_as_ptr(&section->binary), Vec_len(&section->binary), 0x10);
         header.sh_size = Vec_len(&section->binary);
@@ -273,7 +273,7 @@ Elf64_Shdr Elf64_Shdr_from(in Section* section, inout StrTable* shstrtable, inou
         header.sh_entsize = 0;
     }else if(strcmp(section->name, ".bss") == 0) {
         header.sh_type = SHT_NOBITS;
-        header.sh_flags = SHF_ALLOC;
+        header.sh_flags = SHF_ALLOC | SHF_WRITE;
         header.sh_addr = 0;
         header.sh_offset = 0;
         header.sh_size = Vec_len(&section->binary);

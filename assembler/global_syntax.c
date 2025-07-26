@@ -331,11 +331,22 @@ static bool GlobalSyntax_parse_static_variable(Parser parser, inout Generator* g
         return true;
     }
 
+    Variable variable;
     if(resolve_parsermsg(
-        Variable_parse_static(&parser, public_flag, static_flag, generator), generator
+        Variable_parse_static(&parser, public_flag, generator, &variable), generator
     )) {
         return true;
     }
+    Variable variable_clone = Variable_clone(&variable);
+    if(resolve_sresult(
+        Generator_add_global_variable(generator, variable_clone), parser.offset, generator
+    )) {
+        return true;
+    }
+
+    global_syntax->body.static_variable.variable = variable;
+    global_syntax->body.static_variable.init_parser = parser;
+    global_syntax->body.static_variable.static_flag = static_flag;
 
     check_parser(&parser, generator);
 
@@ -609,6 +620,23 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
     );
 }
 
+static void GlobalSyntax_build_static_variable(inout GlobalSyntax* self, inout Generator* generator) {
+    assert(self->type == GlobalSyntax_StaticVariable);
+
+    Variable* variable = &self->body.static_variable.variable;
+    if(resolve_parsermsg(
+        Variable_parse_static_init(
+            &self->body.static_variable.init_parser,
+            self->body.static_variable.static_flag,
+            variable,
+            variable->name,
+            generator),
+            generator
+    )) {
+        return;
+    }
+}
+
 void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
     assert(self != NULL);
     assert(generator != NULL);
@@ -622,7 +650,6 @@ void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
         case GlobalSyntax_TypeAlias:
         case GlobalSyntax_AsmacroDefinision:
         case GlobalSyntax_Import:
-        case GlobalSyntax_StaticVariable:
         case GlobalSyntax_ConstVariable:
         case GlobalSyntax_FunctionExtern:
         case GlobalSyntax_TemplateDefinision:
@@ -630,6 +657,9 @@ void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
             break;
         case GlobalSyntax_FunctionDefinision:
             GlobalSyntax_build_function_definision(self, generator);
+            break;
+        case GlobalSyntax_StaticVariable:
+            GlobalSyntax_build_static_variable(self, generator);
             break;
     }
 }
@@ -667,8 +697,12 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
             case GlobalSyntax_Import:
                 printf("none");
                 break;
-                case GlobalSyntax_StaticVariable:
-                printf("none");
+            case GlobalSyntax_StaticVariable:
+                printf(".static_variable: { variable: ");
+                Variable_print(&self->body.static_variable.variable);
+                printf(", init_parser: ");
+                Parser_print(&self->body.static_variable.init_parser);
+                printf(", static_flag: %s }", BOOL_TO_STR(self->body.static_variable.static_flag));
                 break;
             case GlobalSyntax_ConstVariable:
                 printf("none");
@@ -698,7 +732,6 @@ void GlobalSyntax_free(GlobalSyntax self) {
         case GlobalSyntax_TypeAlias:
         case GlobalSyntax_Import:
         case GlobalSyntax_ConstVariable:
-        case GlobalSyntax_StaticVariable:
         case GlobalSyntax_FunctionExtern:
         case GlobalSyntax_TemplateDefinision:
         case GlobalSyntax_ImplDeclaration:
@@ -708,6 +741,9 @@ void GlobalSyntax_free(GlobalSyntax self) {
             break;
         case GlobalSyntax_FunctionDefinision:
             VariableManager_free(self.body.function_definision.variable_manager);
+            break;
+        case GlobalSyntax_StaticVariable:
+            Variable_free(self.body.static_variable.variable);
             break;
     }
 }

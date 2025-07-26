@@ -70,7 +70,7 @@ static inline void Vec_reserve(Vec* self, u32 capacity) {
     if(capacity < self->len) {
         return;
     }
-    u32 new_capacity = (self->len == 0)?(4):(self->len * 2);
+    u32 new_capacity = (self->len == 0)?(4):(self->len * 1.5);
     if(new_capacity < capacity) {
         new_capacity = capacity;
     }

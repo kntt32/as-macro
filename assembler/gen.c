@@ -465,7 +465,7 @@ SResult Generator_end_label(inout Generator* self, in char* name) {
     return SResult_new("unknown section");
 }
 
-SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, bool flag) {
+SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, i32 addend, bool flag) {
     Rela rela;
     if(label[0] == '.') {
         snprintf(rela.label, sizeof(rela.label), "%.127s%.127s", self->namespace, label);
@@ -473,7 +473,7 @@ SResult Generator_append_rela(inout Generator* self, in char* section, in char* 
         snprintf(rela.label, sizeof(rela.label), "%.255s", label);
     }
     snprintf(rela.section_name, sizeof(rela.section_name), "%.255s", section);
-    rela.addend = 0;
+    rela.addend = addend;
     rela.flag = flag;
 
     SRESULT_UNWRAP(
@@ -495,7 +495,7 @@ SResult Generator_addend_rela(inout Generator* self, in char* section) {
                 Generator_binary_len(self, section, &section_len),
                 (void)NULL
             );
-            rela->addend = section_len - rela->offset - 0x8;
+            rela->addend += rela->offset - section_len;
             rela->flag = true;
         }
     }

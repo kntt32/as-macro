@@ -20,6 +20,11 @@ typedef struct {
     union {
         Asmacro asmacro_definision;
         struct { char name[256]; bool global_flag; Parser proc_parser; VariableManager variable_manager; } function_definision;
+        struct {
+            Variable variable;
+            Parser init_parser;
+            bool static_flag;
+        } static_variable;
     } body;
 } GlobalSyntax;
 

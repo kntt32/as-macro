@@ -6,7 +6,10 @@ import core.option;
 impl Option(i64);
 impl Display_Option(Io, i64);
 
+static a: i64;
+
 fn main() {
+    a = 5;
     let value: i64@rdi = -12345678910;
     let option: Option_i64@stack;
     option.some(5);
@@ -25,16 +28,23 @@ fn main() {
     let alloc: defer Alloc@stack;
     alloc.new();
     let ptr: *void@rdx;
+    let ptr2: *void@rcx;
     alloc.alloc(8, ptr);
+    alloc.alloc(16, ptr2);
     let ptr_i64: i64@rdi = ptr;
     let ptr_of_i64: *i64@rsi = ptr;
+    let ptr2_of_i64: *i64@rbx = ptr2;
     *ptr_of_i64 = 15;
+    *ptr2_of_i64 = 18;
     io.display(ptr_i64);
     io.write(str.from("\n"));
     io.display(*ptr_of_i64);
     io.write(str.from("\n"));
+    io.display(*ptr2_of_i64);
+    io.write(str.from("\n"));
     io.flush();
 
     alloc.dealloc(ptr);
+    alloc.dealloc(ptr2);
 };
 

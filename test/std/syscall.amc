@@ -33,11 +33,14 @@ pub as mmap(inout addr: *void@rdi, in len: i64@rsi, in prot: i64@rdx, in flags: 
 };
 
 pub as munmap(in addr: *void@rdi, in size: i64@rsi) {
-    let number: i64@rax = 11;
-    syscall(number);
-    let flag: bool@r11;
-    if(flag.lt(number, 0)) {
-        panic();
+    let flag: bool@r8;
+    if(flag.neq(addr, null)) {
+        let number: i64@rax = 11;
+        syscall(number);
+        let flag: bool@r11;
+        if(flag.lt(number, 0)) {
+            panic();
+        };
     };
 };
 

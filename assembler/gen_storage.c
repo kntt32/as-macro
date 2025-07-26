@@ -23,7 +23,7 @@ i32 Disp_value(in Disp* self) {
 
 SResult Disp_set_label(in Disp* self, inout Generator* generator) {
     if(self->label[0] != '\0') {
-        return Generator_append_rela(generator, ".text", self->label, false);
+        return Generator_append_rela(generator, ".text", self->label, self->offset, false);
     }
 
     return SResult_new(NULL);

@@ -510,7 +510,7 @@ static SResult AsmEncodingElement_encode_imm(in AsmEncodingElement* self, in Asm
             break;
         case Imm_Label:
             SRESULT_UNWRAP(
-                Generator_append_rela(generator, ".text", imm->body.label, false),
+                Generator_append_rela(generator, ".text", imm->body.label, 0, false),
                 (void)NULL
             );
             for(u32 i=0; i<4; i++) {

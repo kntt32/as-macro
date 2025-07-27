@@ -197,9 +197,10 @@ SResult VariableManager_get(inout VariableManager* self, in char* name, out Vari
         Variable* ptr = Vec_index(&self->variables, i);
         if(strcmp(ptr->name, name) == 0) {
             if(is_stored(self, ptr, i)) {
-                printf("SHADOWED\n");
                 char msg[256];
-                snprintf(msg, 256, "variable \"%.200s\" is shadowed", name);
+                wrapped_strcpy(msg, "variable \"", sizeof(msg));
+                wrapped_strcat(msg, name, sizeof(msg));
+                wrapped_strcat(msg, "\" is shadowed", sizeof(msg));
                 return SResult_new(msg);
             }
             *variable = Variable_clone(ptr);
@@ -1560,7 +1561,8 @@ static SResult build_je_to_else(u32 id, inout Generator* generator, inout Variab
 
 static SResult build_branch(Parser parser, u32 id, in char* branch_name, inout Generator* generator, inout VariableManager* variable_manager) {
     char branch_label[256];
-    snprintf(branch_label, 256, ".%u.if.%.10s", id, branch_name);
+    snprintf(branch_label, 256, ".%u.if.", id);
+    wrapped_strcat(branch_label, branch_name, sizeof(branch_label));
     SRESULT_UNWRAP(
         Generator_append_label(generator, ".text", branch_label, false, Label_Notype), (void)NULL
     );
@@ -2230,9 +2232,9 @@ bool Syntax_build_debug_label_syntax(Parser parser, inout Generator* generator, 
     
     *data = Data_void();
 
-    char name[256];
+    char name[257] = ".";
     if(resolve_parsermsg(
-        Parser_parse_ident(&parser, name), generator
+        Parser_parse_ident(&parser, name+1), generator
     )) {
         return true;
     }

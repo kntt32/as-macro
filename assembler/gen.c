@@ -163,7 +163,7 @@ SResult Generator_import_by_path(inout Generator* self, in char* path, out bool*
     *doubling_flag = false;
     Import import;
     char added_path[4096];
-    snprintf(added_path, 4096, "%.4095s", path);
+    wrapped_strcpy(added_path, path, sizeof(added_path));
     if(path_real(added_path, import.path) == NULL) {
         return SResult_new("too long module name");
     }
@@ -179,7 +179,7 @@ SResult Generator_import_by_path(inout Generator* self, in char* path, out bool*
 static bool import_rel(inout Generator* self, in char* parent_path, in char* child_path, out bool* doubling_flag, out Parser* optional parser) {
     char added_path[4096];
     char real_path[4096];
-    snprintf(added_path, 4096, "%.4095s", parent_path);
+    wrapped_strcpy(added_path, parent_path, sizeof(added_path));
     if(path_super(added_path) == NULL || path_child(added_path, child_path) == NULL) {
         return false;
     }
@@ -231,7 +231,9 @@ ParserMsg Generator_import(inout Generator* self, Parser parser, out bool* doubl
         char* import_path = *import_path_ptr;
 
         char module_added_path[4096] = "";
-        snprintf(module_added_path, 4096, "%.3000s/%.1094s", import_path, module_path);
+        wrapped_strcpy(module_added_path, import_path, sizeof(module_added_path));
+        wrapped_strcat(module_added_path, "/", sizeof(module_added_path));
+        wrapped_strcat(module_added_path, module_path, sizeof(module_added_path));
         char module_realpath[4096];
         if(path_real(module_added_path, module_realpath) == NULL) {
             continue;
@@ -403,16 +405,17 @@ SResult Generator_append_label(inout Generator* self, optional in char* section,
     Label label;
     if(section != NULL) {
         if(name[0] == '.') {
-            snprintf(label.name, sizeof(label.name), "%.127s%.127s", self->namespace, name);
+            wrapped_strcpy(label.name, self->namespace, sizeof(label.name));
+            wrapped_strcat(label.name, name, sizeof(label.name));
         }else {
-            snprintf(self->namespace, 256, "%.255s", name);
-            snprintf(label.name, 256, "%.255s", name);
+            wrapped_strcpy(self->namespace, name, sizeof(self->namespace));
+            wrapped_strcpy(label.name, name, sizeof(label.name));
         }
     }else {
-        snprintf(label.name, 256, "%.255s", name);
+        wrapped_strcpy(label.name, name, sizeof(label.name));
     }
     if(section != NULL) {
-        snprintf(label.section_name, 256, "%.255s", section);
+        wrapped_strcpy(label.section_name, section, sizeof(label.section_name));
         SRESULT_UNWRAP(
             Generator_binary_len(self, section, &label.offset),
             (void)NULL
@@ -442,9 +445,10 @@ SResult Generator_append_label(inout Generator* self, optional in char* section,
 SResult Generator_end_label(inout Generator* self, in char* name) {
     char resolved_name[256];
     if(name[0] == '.') {
-        snprintf(resolved_name, 256, "%.100s%.155s", self->namespace, name);
+        wrapped_strcpy(resolved_name, self->namespace, sizeof(resolved_name));
+        wrapped_strcat(resolved_name, name, sizeof(resolved_name));
     }else {
-        snprintf(resolved_name, 256, "%.255s", name);
+        wrapped_strcpy(resolved_name, name, sizeof(resolved_name));
     }
 
     for(u32 i=0; i<Vec_len(&self->labels); i++) {
@@ -468,11 +472,12 @@ SResult Generator_end_label(inout Generator* self, in char* name) {
 SResult Generator_append_rela(inout Generator* self, in char* section, in char* label, i32 addend, bool flag) {
     Rela rela;
     if(label[0] == '.') {
-        snprintf(rela.label, sizeof(rela.label), "%.127s%.127s", self->namespace, label);
+        wrapped_strcpy(rela.label, self->namespace, sizeof(rela.label));
+        wrapped_strcat(rela.label, label, sizeof(rela.label));
     }else {
-        snprintf(rela.label, sizeof(rela.label), "%.255s", label);
+        wrapped_strcpy(rela.label, label, sizeof(rela.label));
     }
-    snprintf(rela.section_name, sizeof(rela.section_name), "%.255s", section);
+    wrapped_strcpy(rela.section_name, section, sizeof(rela.section_name));
     rela.addend = addend;
     rela.flag = flag;
 

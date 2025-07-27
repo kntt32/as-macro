@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "types.h"
+#include "util.h"
 
 SResult SResult_new(optional char* error) {
     SResult result = {""};
     if(error != NULL) {
-        strncpy(result.error, error, 255);
+        wrapped_strcpy(result.error, error, sizeof(result.error));
     }
 
     return result;

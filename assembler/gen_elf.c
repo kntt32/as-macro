@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <elf.h>
 #include "gen_elf.h"
+#include "util.h"
 
 static Vec Elf64_shdrs(in Generator* generator, inout RawBin* rawbin, inout u32* elf_offset) {
     assert(generator != NULL && rawbin != NULL);
@@ -365,7 +366,8 @@ Elf64_Shdr Elf64_Shdr_rela(in Generator* generator, in char* section_name, in Ve
     memset(&shdr, 0, sizeof(shdr));
 
     char shdr_name[300];
-    snprintf(shdr_name, sizeof(shdr_name), ".rela%.256s", section_name);
+    wrapped_strcpy(shdr_name, ".rela", sizeof(shdr_name));
+    wrapped_strcat(shdr_name, section_name, sizeof(shdr_name));
     shdr.sh_name = StrTable_push(shstrtable, shdr_name);
     shdr.sh_type = SHT_RELA;
     shdr.sh_flags = 0;

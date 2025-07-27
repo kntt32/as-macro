@@ -131,7 +131,7 @@ Data Data_from_mem(Register reg, i32 offset, in optional char* label, Type type)
         {StorageType_mem, {.mem = {reg, {offset, ""}}}}
     };
     if(label != NULL) {
-        snprintf(data.storage.body.mem.disp.label, 256, "%.255s", label);
+        wrapped_strcpy(data.storage.body.mem.disp.label, label, 256);
     }
 
     return data;

@@ -69,3 +69,35 @@ u32 get_id() {
     return id;
 }
 
+void wrapped_strcpy(out char* dst, in char* src, u64 buff_len) {
+    assert(dst != NULL && src != NULL);
+
+    if(buff_len == 0) {
+        PANIC("buff_len is zero");
+    }
+    u64 copy_len = strlen(src);
+    if(buff_len <= copy_len) {
+        copy_len = buff_len - 1;
+    }
+
+    memcpy(dst, src, copy_len);
+    dst[copy_len] = '\0';
+}
+
+void wrapped_strcat(inout char* dst, in char* src, u64 buff_len) {
+    assert(dst != NULL && src != NULL);
+
+    u64 dst_len = strlen(dst);
+    u64 copy_len = strlen(src);
+    if(buff_len <= dst_len + copy_len) {
+        if(buff_len < dst_len + 1) {
+            PANIC("buff len is invalid");
+        }
+        copy_len = buff_len - dst_len - 1;
+    }
+
+    memcpy(dst + dst_len, src, copy_len);
+    dst[dst_len + copy_len] = '\0';
+}
+
+

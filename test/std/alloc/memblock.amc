@@ -77,6 +77,10 @@ pub as dealloc(inout self: MemBlock@mem, in ptr: *void@reg+mem) {
 
         -- self.alloc_count;
     };
+
+    if(flag.eq(self.alloc_count, 0)) {
+        self.alloc_line = 0;
+    };
 };
 
 pub as drop(inout self: MemBlock@mem) {

@@ -61,7 +61,7 @@ SResult AsmCmdArgs_parse(Args args, out AsmCmdArgs* asm_cmd_args) {
                 AsmCmdArgs_free(*asm_cmd_args);
                 return SResult_new("expected output path");
             }
-            snprintf(asm_cmd_args->output_path, 256, "%.255s", output_path);
+            wrapped_strcpy(asm_cmd_args->output_path, output_path, 256);
             continue;
         }
         if(strcmp(arg, "-v") == 0) {
@@ -98,15 +98,16 @@ u32 Cmd_interpreter(int argc, char* argv[]) {
 static void Cmd_build_file_save(Generator generator, AsmCmdArgs asm_cmd_args) {
     char save_path[256];
     if(asm_cmd_args.output_path[0] != '\0') {
-        snprintf(save_path, 256, "%.255s", asm_cmd_args.output_path);
+        wrapped_strcpy(save_path, asm_cmd_args.output_path, sizeof(save_path));
     }else {
         char temp_path[256];
-        snprintf(temp_path, 256, "%.255s", asm_cmd_args.path);
+        wrapped_strcpy(temp_path, asm_cmd_args.path, sizeof(temp_path));
         char* extension = strrchr(temp_path, '.');
         if(extension != NULL) {
             *extension = '\0';
         }
-        snprintf(save_path, 256, "%.253s.o", temp_path);
+        wrapped_strcpy(save_path, temp_path, sizeof(save_path));
+        wrapped_strcpy(save_path, ".o", sizeof(save_path));
     }
     Vec elf_binary = Elf64(&generator);
     Vec_save(elf_binary, save_path);

@@ -164,7 +164,7 @@ SResult Storage_replace_label(inout Storage* self, in char* label) {
         return SResult_new("expected memory storage");
     }
 
-    snprintf(self->body.mem.disp.label, 256, "%.255s", label);
+    wrapped_strcpy(self->body.mem.disp.label, label, 256);
     return SResult_new(NULL);
 }
 

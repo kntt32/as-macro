@@ -580,16 +580,7 @@ static void GlobalSyntax_build_function_definision(inout GlobalSyntax* self, ino
         generator
     );
 
-    while(!Parser_is_empty(&parser)) {
-        Parser syntax_parser = Parser_split(&parser, ";");
-        Data data;
-        
-        if(!resolve_sresult(
-            Syntax_build(syntax_parser, generator, variable_manager, &data), parser.offset, generator
-        )) {
-            Data_free(data);
-        }
-    }
+    SyntaxTree_build(parser, generator, variable_manager);
 
     resolve_sresult(
         VariableManager_delete_block(variable_manager, generator),

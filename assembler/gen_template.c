@@ -4,6 +4,7 @@
 #include "parser.h"
 #include "vec.h"
 #include "gen.h"
+#include "util.h"
 
 static ParserMsg Template_parse_arguments(Parser parser, inout Template* template) {
     Vec args_vec = Vec_new(sizeof(char)*256);
@@ -39,7 +40,7 @@ ParserMsg Template_parse(inout Parser* parser, out Template* template) {
     if(public_flag) {
         template->valid_path[0] = '\0';
     }else {
-        snprintf(template->valid_path, 256, "%.255s", Parser_path(parser));
+        wrapped_strcpy(template->valid_path, Parser_path(parser), 256);
     }
 
     Parser paren_parser;
@@ -85,7 +86,7 @@ SResult Template_expand(inout Template* self, Vec parser_vars, out bool* expande
         ParserVar* parser_var = Vec_index(&parser_vars, i);
         char* name = Vec_index(&self->vars, i);
 
-        snprintf(parser_var->name, 256, "%.255s", name);
+        wrapped_strcpy(parser_var->name, name, sizeof(parser_var->name));
     }
 
     Vec* parser_vars_buff = malloc(sizeof(Vec));

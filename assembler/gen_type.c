@@ -2,6 +2,7 @@
 #include <assert.h>
 #include "types.h"
 #include "gen.h"
+#include "util.h"
 
 Vec Type_primitives(void) {
     Type primitives[] = {
@@ -31,11 +32,12 @@ static ParserMsg Type_parse_ptr_lazyptr(inout Parser* parser, out Type* type) {
         Parser_parse_ident(parser, token), (void)NULL
     );
 
-    snprintf(type->name, 256, "*%.254s", token);
+    wrapped_strcpy(type->name, "*", sizeof(type->name));
+    wrapped_strcat(type->name, token, sizeof(type->name));
     type->valid_path[0] = '\0';
     type->type = Type_LazyPtr;
-    snprintf(type->body.t_lazy_ptr.name, 256, "%.255s", token);
-    snprintf(type->body.t_lazy_ptr.path, 256, "%.255s", Parser_path(parser));
+    wrapped_strcpy(type->body.t_lazy_ptr.name, token, sizeof(type->body.t_lazy_ptr.name));
+    wrapped_strcpy(type->body.t_lazy_ptr.path, Parser_path(parser), sizeof(type->body.t_lazy_ptr.path));
     type->size = 8;
     type->align = 8;
 
@@ -47,8 +49,11 @@ static ParserMsg Type_parse_ptr(inout Parser* parser, in Generator* generator, o
 
     Type child_type;
     if(ParserMsg_is_success(Type_parse(parser, generator, &child_type))) {
-        snprintf(type->name, 256, "*%.254s", child_type.name);
-        snprintf(type->valid_path, 256, "%.255s", child_type.valid_path);
+        wrapped_strcpy(type->name, "*", sizeof(type->name));
+        wrapped_strcat(type->name, child_type.name, sizeof(type->name));
+        
+        wrapped_strcpy(type->valid_path, child_type.valid_path, sizeof(type->valid_path));
+
         type->type = Type_Ptr;
         type->body.t_ptr = malloc(sizeof(Type));
         UNWRAP_NULL(type->body.t_ptr);
@@ -613,7 +618,7 @@ ParserMsg Type_initialize(in Type* self, inout Parser* parser, inout Vec* bin) {
 }
 
 void Type_restrict_namespace(inout Type* self, in char* namespace) {
-    snprintf(self->valid_path, 256, "%.255s", namespace);
+    wrapped_strcpy(self->valid_path, namespace, sizeof(self->valid_path));
 }
 
 Type Type_fn_from(in Vec* arguments) {
@@ -727,7 +732,7 @@ Type Type_as_alias(Type self, in char* name) {
     assert(name != NULL);
 
     Type type;
-    snprintf(type.name, 256, "%.255s", name);
+    wrapped_strcpy(type.name, name, sizeof(type.name));
     type.type = Type_Alias;
     type.body.t_alias = malloc(sizeof(Type));
     UNWRAP_NULL(type.body.t_alias);
@@ -756,17 +761,13 @@ static bool Type_match_bound(in Type* self, in Type* other) {
         || (strcmp(other->name, "*void") == 0 && (self->type == Type_Ptr || self->type == Type_LazyPtr))) {
         return true;
     }
-    if((strcmp(self->name, "b8") == 0 && other->size == 1)
+    if(((other->type == Type_Ptr || other->type == Type_Integer
+        || other->type == Type_LazyPtr || other->type == Type_Enum
+        || other->type == Type_Floating)
+        && ((strcmp(self->name, "b8") == 0 && other->size == 1)
         || (strcmp(self->name, "b16") == 0 && other->size == 2)
         || (strcmp(self->name, "b32") == 0 && other->size == 4)
-        || (strcmp(self->name, "b64") == 0 && other->size == 8)
-        || (strcmp(self->name, "bin") == 0)) {
-        return true;
-    }
-    if((strcmp(other->name, "b8") == 0 && self->size == 1)
-        || (strcmp(other->name, "b16") == 0 && self->size == 2)
-        || (strcmp(other->name, "b32") == 0 && self->size == 4)
-        || (strcmp(other->name, "b64") == 0 && self->size == 8)
+        || (strcmp(self->name, "b64") == 0 && other->size == 8)))
         || (strcmp(self->name, "bin") == 0)) {
         return true;
     }

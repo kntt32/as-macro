@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <limits.h>
 #include "parser.h"
+#include "util.h"
 
 static struct { char expr; char code; } ESCAPE_SEQUENCES[] = {
     {'\\', '\\'}, {'\'', '\''}, {'\"', '\"'}, {'?', '?'}, {'a', '\a'}, {'b', '\b'},
@@ -17,7 +18,7 @@ Offset Offset_new(in char* path) {
 
     Offset offset;
 
-    snprintf(offset.path, 4096, "%.4095s", path);
+    wrapped_strcpy(offset.path, path, sizeof(offset.path));
     offset.line = 1;
     offset.column = 1;
 
@@ -338,8 +339,9 @@ static ParserMsg Parser_parse_ident_parse_var(Parser parser, out char token[256]
         }
     }
 
-    char msg[256];
-    snprintf(msg, 256, "\"%.200s\" is undefined", token);
+    char msg[256] = "\"";
+    wrapped_strcat(msg, token, sizeof(msg));
+    wrapped_strcat(msg, "\" is undefined", sizeof(msg));
     return ParserMsg_new(parser.offset, msg);
 }
 
@@ -404,8 +406,9 @@ ParserMsg Parser_parse_symbol(inout Parser* self, in char* symbol) {
     assert(self != NULL && symbol != NULL);
     
     if(self->len < strlen(symbol) || strncmp(self->src, symbol, strlen(symbol)) != 0) {
-        char msg[256];
-        snprintf(msg, 256, "expected symbol \'%.200s\'", symbol);
+        char msg[256] = "expected symbol \'";
+        wrapped_strcat(msg, symbol, sizeof(msg));
+        wrapped_strcat(msg, "\'", sizeof(msg));
         return ParserMsg_new(self->offset, msg);
     }
     
@@ -544,7 +547,7 @@ ParserMsg ParserMsg_new(Offset offset, optional char* msg) {
     if(msg == NULL) {
         parser_msg.msg[0] = '\0';
     }else {
-        snprintf(parser_msg.msg, 256, "%.255s", msg);
+        wrapped_strcpy(parser_msg.msg, msg, sizeof(msg));
     }
 
     return parser_msg;

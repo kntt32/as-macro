@@ -2232,13 +2232,16 @@ bool Syntax_build_debug_label_syntax(Parser parser, inout Generator* generator, 
     
     *data = Data_void();
 
-    char name[257] = ".";
+    char ident[256];
     if(resolve_parsermsg(
-        Parser_parse_ident(&parser, name+1), generator
+        Parser_parse_ident(&parser, ident), generator
     )) {
         return true;
     }
 
+    u32 id = get_id();
+    char name[256];
+    snprintf(name, 256, ".%u.%.100s", id, ident);
     if(resolve_sresult(
        Generator_append_label(generator, ".text", name, true, Label_Notype),
        parser.offset, generator

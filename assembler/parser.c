@@ -547,7 +547,7 @@ ParserMsg ParserMsg_new(Offset offset, optional char* msg) {
     if(msg == NULL) {
         parser_msg.msg[0] = '\0';
     }else {
-        wrapped_strcpy(parser_msg.msg, msg, sizeof(msg));
+        wrapped_strcpy(parser_msg.msg, msg, sizeof(parser_msg.msg));
     }
 
     return parser_msg;

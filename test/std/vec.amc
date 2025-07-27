@@ -1,0 +1,8 @@
+import core;
+import core.slice;
+import std.alloc;
+
+pub template Vec(T) {
+    
+};
+

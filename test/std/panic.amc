@@ -1,8 +1,0 @@
-import core;
-import std;
-import std.io;
-
-pub fn panic() {
-    exit(-1);
-};
-

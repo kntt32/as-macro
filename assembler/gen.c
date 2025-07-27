@@ -320,6 +320,10 @@ SResult Generator_get_global_variable(in Generator* self, in char* path, in char
     }
 
     if(temp != NULL) {
+        SRESULT_UNWRAP(
+            Generator_append_label(self, NULL, temp->name, true, Label_Object),
+            (void)NULL
+        );
         *variable = Variable_clone(temp);
         return SResult_new(NULL);
     }

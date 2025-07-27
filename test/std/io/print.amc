@@ -1,0 +1,29 @@
+import std;
+import std.io;
+
+pub as print(in msg: bin@reg+mem+imm) {
+    STD_STDOUT.display(msg);
+};
+
+pub as println(in msg: bin@reg+mem+imm) {
+    print(msg);
+
+    let str: Str@stack;
+    str.from("\n");
+    print(str);
+};
+
+pub as eprint(in msg: bin@reg+mem+imm) {
+    STD_STDERR.display(msg);
+    STD_STDERR.flush();
+};
+
+pub as eprintln(in msg: bin@reg+mem+imm) {
+    STD_STDERR.display(msg);
+
+    let str: Str@stack;
+    str.from("\n");
+    STD_STDERR.write(str);
+    STD_STDERR.flush();
+};
+

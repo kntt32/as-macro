@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "gen.h"
+#include "util.h"
 
 Variable Variable_new(in char* name, in char* valid_path, Data data, bool defer_flag) {
     Variable variable;
@@ -57,8 +58,8 @@ static ParserMsg Variable_parse_static_parse(inout Parser* parser, bool public_f
     variable->data = Data_from_mem(Rip, 0, variable->name, type);
     variable->defer_flag = false;
     variable->valid_path[0] = '\0';
-    if(public_flag) {
-        snprintf(variable->valid_path, 256, "%.255s", Parser_path(parser));
+    if(!public_flag) {
+        wrapped_strcpy(variable->valid_path, Parser_path(parser), sizeof(variable->valid_path));
     }
 
     return ParserMsg_new(parser->offset, NULL);
@@ -163,9 +164,8 @@ static ParserMsg Variable_parse_const_parse_(inout Parser* parser, bool public_f
         Type_free(type)
     );
 
-    if(public_flag) {
-        variable->valid_path[0] = '\0';
-    }else {
+    variable->valid_path[0] = '\0';
+    if(!public_flag) {
         snprintf(variable->valid_path, 256, "%.255s", Parser_path(parser));
     }
 

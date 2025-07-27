@@ -1,8 +1,9 @@
 import core;
 import core.str;
 import core.cmp;
-import std.syscall;
 import core.fmt;
+import std;
+import std.syscall;
 
 pub struct Io {
     fd: i32,
@@ -59,4 +60,7 @@ pub as write(inout self: Io@mem, in data: *i8@reg+mem, in len: i64@rcx) {
     data;len;
 };
 
+pub as drop(inout self: Io@mem) {
+    self.flush();
+};
 

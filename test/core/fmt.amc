@@ -5,6 +5,10 @@ import str;
 import option;
 
 pub template Display(Formatter) {
+    pub as display(inout self: $(Formatter)@mem, in object: Str@mem) {
+        self.write(object);
+    };
+
     pub as display(inout self: $(Formatter)@mem, in object: i64@reg+mem+imm) {
         let object_copy: i64@rax = object;
         let str: Str@stack;

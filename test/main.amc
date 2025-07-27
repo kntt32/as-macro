@@ -1,62 +1,14 @@
 import std;
 import std.io;
+import std.io.print;
 import std.alloc;
 import core.option;
-
+/*
 impl Option(i64);
 impl Display_Option(Io, i64);
-
-static a: i64 = 8;
-
-fn functest() {
-    let a: i64@rdi = 5;
-    a = 8;
-};
-
+*/
 fn main() {
-    a = 5;
-    let value: i64@rdi = -12345678910;
-    let option: Option_i64@stack;
-    option.some(5);
-    // option.none();
-!IO_START;
-    let io: Io@stack;
     let str: Str@stack;
-    io.new(STDOUT);
-    io.display(value);
-    io.write(str.from("\nHello, World!\n"));
-    io.display(option);
-    str.from("\n");
-    io.write(str);
-    io.flush();
-
-    let alloc: defer Alloc@stack;
-    alloc.new();
-    let ptr: *void@rdx;
-    let ptr2: *void@rcx;
-    alloc.alloc(8, ptr);
-    alloc.alloc(16, ptr2);
-    let ptr_i64: i64@rdi = ptr;
-    let ptr_of_i64: *i64@rsi = ptr;
-    let ptr2_of_i64: *i64@rbx = ptr2;
-    functest();
-    *ptr_of_i64 = 15;
-    *ptr2_of_i64 = 18;
-    io.display(ptr_i64);
-    io.write(str.from("\n"));
-    io.display(*ptr_of_i64);
-    io.write(str.from("\n"));
-    io.display(*ptr2_of_i64);
-    io.write(str.from("\n"));
-
-    alloc.dealloc(ptr);
-    alloc.dealloc(ptr2);
-
-    alloc.alloc(8, ptr);
-    ptr_i64 = ptr;
-    io.display(ptr_i64);
-    io.write(str.from("\n"));
-    io.flush();
-    alloc.dealloc(ptr);
+    println(str.from("Hello, Println!"));
 };
 

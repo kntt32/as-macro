@@ -1,4 +1,5 @@
 import core;
+import core.str;
 
 extern fn panic_handler();
 

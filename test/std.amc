@@ -2,16 +2,23 @@ import core;
 import core.string;
 import std.syscall;
 import std.alloc;
+import std.io;
 
 pub extern fn main();
 
 pub static STD_ALLOC: Alloc;
+pub static STD_STDOUT: Io;
+pub static STD_STDERR: Io;
 
 pub fn _start() {
     STD_ALLOC.new();
+    STD_STDOUT.new(STDOUT);
+    STD_STDERR.new(STDERR);
 
     main();
 
+    STD_STDERR.drop();
+    STD_STDOUT.drop();
     STD_ALLOC.drop();
     let status: i32@rdi;
     status = 0;

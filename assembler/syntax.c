@@ -192,17 +192,6 @@ void VariableManager_push_alias(inout VariableManager* self, Variable variable) 
     Vec_push(&self->variables, &variable);
 }
 
-static u32 get_block_index(in VariableManager* self, u32 var_index) {
-    for(u32 i=0; i<Vec_len(&self->blocks); i++) {
-        VariableBlock* variable_block = Vec_index(&self->blocks, i);
-        if(var_index < variable_block->variables_base) {
-            return i-1;
-        }
-    }
-
-    return Vec_len(&self->blocks) - 1;
-}
-
 SResult VariableManager_get(inout VariableManager* self, in char* name, out Variable* variable) {
     for(i32 i=Vec_len(&self->variables)-1; 0<=i; i--) {
         Variable* ptr = Vec_index(&self->variables, i);
@@ -371,6 +360,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_null_expression,
         Syntax_build_char_expression,
         Syntax_build_implicit_static_string,
+        Syntax_build_debug_label_syntax,
         Syntax_build_assignadd,
         Syntax_build_assignsub,
         Syntax_build_assignand,
@@ -476,8 +466,7 @@ static SResult Syntax_build_asmacro_expansion_asmmacro(in Asmacro* asmacro, in V
 
 static void Syntax_build_asmacro_expansion_usermacro(in Asmacro* asmacro, in Vec* dataes, inout Generator* generator, inout VariableManager* variable_manager) {
     Parser proc_parser = asmacro->body.user_macro;
-    u32 id = get_id();
-    
+
     for(u32 i=0; i<Vec_len(dataes); i++) {
         Argument* arg = Vec_index(&asmacro->arguments, i);
         Data* data = Vec_index(dataes, i);
@@ -507,7 +496,87 @@ static void Syntax_build_asmacro_expansion_usermacro(in Asmacro* asmacro, in Vec
     );
 }
 
-static SResult Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(in Vec* arguments, in Data* data, inout VariableManager* variable_manager, inout Generator* generator, bool volatile_flag) {
+static SResult Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(in Vec* arguments, in Variable* variable, u32 variable_index, inout VariableManager* variable_manager, inout Generator* generator, bool volatile_flag) {
+    Register reg;
+    switch(variable->data.storage.type) {
+        case StorageType_reg:
+            reg = variable->data.storage.body.reg;
+            break;
+        case StorageType_xmm:
+            reg = variable->data.storage.body.xmm;
+            break;
+        default:
+            return SResult_new(NULL);
+    }
+
+    if(Vec_len(arguments) != 0) {
+        Data* arg = Vec_index(arguments, 0);
+        if(arg->storage.type == StorageType_reg && arg->storage.body.reg == reg) {
+            return SResult_new(NULL);
+        }
+        if(arg->storage.type == StorageType_xmm && arg->storage.body.xmm == reg) {
+            return SResult_new(NULL);
+        }
+    }
+
+    if(Register_is_volatile(reg) == volatile_flag && !is_stored(variable_manager, variable, variable_index)) {
+        Data arg_data = Data_from_register(reg);
+        Vec args = Vec_new(sizeof(Data));
+        Vec_push(&args, &arg_data);
+        Data data;
+        SRESULT_UNWRAP(
+            expand_asmacro("push", "", args, generator, variable_manager, &data),
+            (void)NULL
+        );
+        variable_manager->stack_offset -= 8;
+
+        Data_free(data);
+    }
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_vars_helper(in Vec* arguments, in Variable* variable, u32 variable_index, inout VariableManager* variable_manager, inout Generator* generator, bool volatile_flag) {
+    Register reg;
+    switch(variable->data.storage.type) {
+        case StorageType_reg:
+            reg = variable->data.storage.body.reg;
+            break;
+        case StorageType_xmm:
+            reg = variable->data.storage.body.xmm;
+            break;
+        default:
+            return SResult_new(NULL);
+    }
+
+    if(Vec_len(arguments) != 0) {
+        Data* arg = Vec_index(arguments, 0);
+        if(arg->storage.type == StorageType_reg && arg->storage.body.reg == reg) {
+            return SResult_new(NULL);
+        }
+        if(arg->storage.type == StorageType_xmm && arg->storage.body.xmm == reg) {
+            return SResult_new(NULL);
+        }
+    }
+
+    if(Register_is_volatile(reg) == volatile_flag && !is_stored(variable_manager, variable, variable_index)) {
+        Data arg_data = Data_from_register(reg);
+        Vec args = Vec_new(sizeof(Data));
+        Vec_push(&args, &arg_data);
+        Data data;
+        SRESULT_UNWRAP(
+            expand_asmacro("pop", "", args, generator, variable_manager, &data),
+            (void)NULL
+        );
+        variable_manager->stack_offset += 8;
+
+        Data_free(data);
+    }
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_asmacro_expansion_fnwrapper_push_args_helper(in Vec* arguments, in Data* data, inout VariableManager* variable_manager, inout Generator* generator, bool volatile_flag) {
     Register reg;
     switch(data->storage.type) {
         case StorageType_reg:
@@ -547,7 +616,7 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(in Vec*
     return SResult_new(NULL);
 }
 
-static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_vars_helper(in Vec* arguments, in Data* data, inout VariableManager* variable_manager, inout Generator* generator, bool volatile_flag) {
+static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_args_helper(in Vec* arguments, in Data* data, inout VariableManager* variable_manager, inout Generator* generator, bool volatile_flag) {
     Register reg;
     switch(data->storage.type) {
         case StorageType_reg:
@@ -591,7 +660,7 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_volatile_vars(in Ve
     for(u32 i=0; i<Vec_len(&variable_manager->variables); i++) {
         Variable* variable = Vec_index(&variable_manager->variables, i);
         SRESULT_UNWRAP(
-            Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(arguments, &variable->data, variable_manager, generator, true),
+            Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(arguments, variable, i, variable_manager, generator, true),
             (void)NULL
         );
     }
@@ -605,7 +674,7 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_volatile_vars(in Vec
     for(i32 i=Vec_len(&variable_manager->variables)-1; 0<=i; i--) {
         Variable* variable = Vec_index(&variable_manager->variables, i);
         SRESULT_UNWRAP(
-            Syntax_build_asmacro_expansion_fnwrapper_pop_vars_helper(arguments, &variable->data, variable_manager, generator, true),
+            Syntax_build_asmacro_expansion_fnwrapper_pop_vars_helper(arguments, variable, i, variable_manager, generator, true),
             (void)NULL
         );
     }
@@ -617,7 +686,7 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_nonvolatile_args(in
     for(u32 i=0; i<Vec_len(arguments); i++) {
         Data* fn_arg = Vec_index(arguments, i);
         SRESULT_UNWRAP(
-            Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(arguments, fn_arg, variable_manager, generator, false),
+            Syntax_build_asmacro_expansion_fnwrapper_push_args_helper(arguments, fn_arg, variable_manager, generator, false),
             (void)NULL
         );
     }
@@ -629,7 +698,7 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_nonvolatile_args(in 
     for(i32 i=Vec_len(arguments)-1; 0<=i; i--) {
         Data* fn_arg = Vec_index(arguments, i);
         SRESULT_UNWRAP(
-            Syntax_build_asmacro_expansion_fnwrapper_pop_vars_helper(arguments, fn_arg, variable_manager, generator, false),
+            Syntax_build_asmacro_expansion_fnwrapper_pop_args_helper(arguments, fn_arg, variable_manager, generator, false),
             (void)NULL
         );
     }
@@ -1537,7 +1606,7 @@ static void Syntax_build_if_build(Parser condition_parser, Parser then_branch, P
     u32 id = get_id();
 
     char if_label[256];
-    snprintf(if_label, 256, ".%u.if@%.200s:%u", id, Parser_path(&condition_parser), condition_parser.offset.line);
+    snprintf(if_label, 256, ".%u.if", id);
     if(resolve_sresult(Generator_append_label(generator, ".text", if_label, false, Label_Notype), condition_parser.offset, generator)) {
         return;
     }
@@ -2149,6 +2218,33 @@ bool Syntax_build_dec(Parser parser, inout Generator* generator, inout VariableM
         *data = Data_void();
         return true;
     }
+
+    return true;
+}
+
+bool Syntax_build_debug_label_syntax(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    (void)variable_manager;
+    if(!ParserMsg_is_success(Parser_parse_symbol(&parser, "!"))) {
+        return false;
+    }
+    
+    *data = Data_void();
+
+    char name[256];
+    if(resolve_parsermsg(
+        Parser_parse_ident(&parser, name), generator
+    )) {
+        return true;
+    }
+
+    if(resolve_sresult(
+       Generator_append_label(generator, ".text", name, true, Label_Notype),
+       parser.offset, generator
+    )) {
+        return true;
+    }
+
+    check_parser(&parser, generator);
 
     return true;
 }

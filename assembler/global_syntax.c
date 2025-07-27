@@ -265,7 +265,7 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
     }
 
     check_parser(&parser, generator);
-    
+
     strcpy(global_syntax->body.function_definision.name, name);
     global_syntax->body.function_definision.global_flag = !static_flag;
     global_syntax->body.function_definision.variable_manager = variable_manager;
@@ -347,8 +347,6 @@ static bool GlobalSyntax_parse_static_variable(Parser parser, inout Generator* g
     global_syntax->body.static_variable.variable = variable;
     global_syntax->body.static_variable.init_parser = parser;
     global_syntax->body.static_variable.static_flag = static_flag;
-
-    check_parser(&parser, generator);
 
     global_syntax->ok_flag = true;
     return true;

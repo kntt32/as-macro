@@ -6,7 +6,7 @@ import core.option;
 impl Option(i64);
 impl Display_Option(Io, i64);
 
-static a: i64;
+static a: i64 = 8;
 
 fn main() {
     a = 5;
@@ -14,7 +14,7 @@ fn main() {
     let option: Option_i64@stack;
     option.some(5);
     // option.none();
-
+!IO_START;
     let io: Io@stack;
     let str: Str@stack;
     io.new(STDOUT);

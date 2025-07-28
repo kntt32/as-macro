@@ -66,14 +66,14 @@ pub as alloc(inout self: MemBlock@mem, in size: i64@reg+mem+imm, out ptr: *void@
 pub as dealloc(inout self: MemBlock@mem, in ptr: *void@reg+mem) {
     let flag: bool@r8;
     if(flag.neq(ptr, null)) {
-        self.alloc_count.panic_eq(0);
+        self.alloc_count.panic_eq(0, "doubling free detected");
 
-        self.page_ptr.panic_gt(ptr);
+        self.page_ptr.panic_gt(ptr, "out of page");
         
         let upper_bound: *void@r9;
         upper_bound.imul(self.page_count, 4096);
         upper_bound += self.page_ptr;
-        upper_bound.panic_le(ptr);
+        upper_bound.panic_le(ptr, "out of page");
 
         -- self.alloc_count;
     };
@@ -84,7 +84,7 @@ pub as dealloc(inout self: MemBlock@mem, in ptr: *void@reg+mem) {
 };
 
 pub as drop(inout self: MemBlock@mem) {
-    self.alloc_count.panic_neq(0);
+    self.alloc_count.panic_neq(0, "memory leak detected");
     
     let addr: *void@rdi = self.page_ptr;
     let size: i64@rsi;

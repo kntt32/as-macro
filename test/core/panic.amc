@@ -1,60 +1,61 @@
 import core;
 import core.str;
 
-extern fn panic_handler();
+extern fn panic_handler(msg: Str@stack);
 
-pub as panic() {
-    panic_handler();
+pub as panic(in msg: bin@mem) {
+    let str: Str@stack;
+    panic_handler(str.from(msg));
     ud2();
 };
 
-pub as panic_eq(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
+pub as panic_eq(in left: b64@reg+mem, in right: b64@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@rax;
     if(flag.eq(left, right)) {
-        panic();
+        panic(msg);
     };
 };
 
-pub as panic_neq(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
+pub as panic_neq(in left: b64@reg+mem, in right: b64@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@rax;
     if(flag.neq(left, right)) {
-        panic();
+        panic(msg);
     };
 };
 
-pub as panic_le(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
+pub as panic_le(in left: b64@reg+mem, in right: b64@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@rax;
     if(flag.le(left, right)) {
-        panic();
+        panic(msg);
     };
 };
 
-pub as panic_lt(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
+pub as panic_lt(in left: b64@reg+mem, in right: b64@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@rax;
     if(flag.lt(left, right)) {
-        panic();
+        panic(msg);
     };
 };
 
-pub as panic_ge(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
+pub as panic_ge(in left: b64@reg+mem, in right: b64@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@rax;
     if(flag.ge(left, right)) {
-        panic();
+        panic(msg);
     };
 };
 
-pub as panic_gt(in left: b64@reg+mem, in right: b64@reg+mem+imm) {
+pub as panic_gt(in left: b64@reg+mem, in right: b64@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@rax;
     if(flag.gt(left, right)) {
-        panic();
+        panic(msg);
     };
 };
 
 pub as panic_null(in addr: *void@reg+mem) {
-    panic_eq(addr, null);
+    panic_eq(addr, null, "null pointer detected");
 };
 
 pub as panic_not_null(in addr: *void@reg+mem) {
-    panic_neq(addr, null);
+    panic_neq(addr, null, "unnull pointer detected");
 };
 

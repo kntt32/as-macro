@@ -2,9 +2,12 @@ import std;
 import std.io;
 import std.io.print;
 import std.box;
+import std.vec;
 
 impl Box(i64);
 impl Display_Box(Io, i64);
+
+impl Vec(i64);
 
 pub as drop(inout self: i64@reg+mem) {};
 pub as clone(in self: i64@reg+mem, out buff: i64@reg+mem) {
@@ -26,5 +29,10 @@ fn main() {
         println(box2);
     };
     println(box);
+
+    let vec: Vec_i64@stack;
+    vec.new();
+    vec.push(5);
+    vec.drop();
 };
 

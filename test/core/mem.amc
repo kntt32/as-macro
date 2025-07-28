@@ -17,6 +17,36 @@ pub as memcpy(in dst: *void@rdi, in src: *void@rsi, in size: i64@rcx) {
     dst = dst_store;
 };
 
+pub as memmove(in dst: *i8@rdi, in src: *i8@rsi, in size: i64@rcx) {
+    let flag: bool@rax;
+    let dst_store: i64@r8 = dst;
+    let src_store: i64@r9 = src;
+    let size_store: i64@r10 = size;
+
+    if(flag.lt(dst, src)) {
+        std();
+
+        dst += size;
+        dst -= 1;
+        src += size;
+        src -= 1;
+
+        rep(size);
+        movs(dst, src);
+
+        cld();
+    }else {
+        cld();
+
+        rep(size);
+        movs(dst, src);
+    };
+
+    size = size_store;
+    src = src_store;
+    dst = dst_store;
+};
+
 pub as memset(dst: *void@rdi, value: i8@rax, size: i64@rcx) {
     let dst: *i8@rdi;
 

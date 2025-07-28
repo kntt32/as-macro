@@ -7,6 +7,10 @@ pub struct Str {
     slice: Slice_char,
 };
 
+pub as mov(out dst: Str@mem, in src: Str@mem) {
+    dst.slice = src.slice;
+};
+
 pub as len(in self: Str@mem, out len: i64@reg+mem) {
     (self.slice).len(len);
 };

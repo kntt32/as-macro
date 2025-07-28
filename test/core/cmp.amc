@@ -35,9 +35,16 @@ pub as gt(flag: bool@reg+mem, left: b64@mem+imm, right: b64@reg+mem+imm) {
     flag.gt(left_copy, right);
 };
 
-pub as max(self: i64@reg, other: i64@reg) {
-    bool flag: bool@rax;
-    if(lt(flag, self, other)) {
+pub as max(inout self: b64@reg+mem, out other: b64@reg+mem+imm) {
+    let flag: bool@r8;
+    if(flag.lt(self, other)) {
+        self = other;
+    };
+};
+
+pub as min(inout self: b64@reg+mem, out other: b64@reg+mem+imm) {
+    let flag: bool@r8;
+    if(flag.gt(self. other)) {
         self = other;
     };
 };

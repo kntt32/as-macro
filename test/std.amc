@@ -3,6 +3,7 @@ import core.mem;
 import std.syscall;
 import std.alloc;
 import std.io;
+import std.io.print;
 
 pub extern fn main();
 
@@ -25,15 +26,11 @@ pub fn _start() {
     exit(status);
 };
 
-pub fn panic_handler() {
-    static PANICED: [char; 10] = "paniced\n";
-    let fd: i32@rdi = STDERR;
-    let msg: *char@rsi;
-    msg =& PANICED;
-    let len_rcx: i64@rcx;
-    msg.strlen(len_rcx);
-    let len: i64@rdx = len_rcx;
-    write(fd, msg, len);
+pub fn panic_handler(msg: Str@stack) {
+    let str: Str@stack;
+    eprint(str.from("paniced: "));
+    eprintln(msg);
+
     let code: i32@rdi = -1;
     exit(code);
 };

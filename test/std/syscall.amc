@@ -39,7 +39,7 @@ pub as munmap(in addr: *void@rdi, in size: i64@rsi) {
         syscall(number);
         let flag: bool@r11;
         if(flag.lt(number, 0)) {
-            panic();
+            panic("munmap error");
         };
     };
 };

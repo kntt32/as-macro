@@ -1,8 +1,7 @@
 import core;
-import core.slice;
-import std.alloc;
+import core.vec;
 
 pub template Vec(T) {
-    
+    impl RawVec($(T), STD_ALLOC);
 };
 

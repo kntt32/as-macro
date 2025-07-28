@@ -1,0 +1,97 @@
+import core;
+
+pub template RawVec(T, A) {
+    impl Slice($(T));
+
+    pub struct Vec_$(T) {
+        slice: Slice_$(T),
+        capacity: i64,
+    };
+
+    pub as new(out self: Vec_$(T)@mem) {
+        self.slice.empty();
+        self.capacity = 0;
+    };
+
+    pub as push(inout self: Vec_$(T)@mem, in value: $(T)@reg+mem+imm) {
+        let self_len: i64@r9;
+        self.slice.len(self_len);
+
+        let new_capacity: i64@rax = self_len;
+        new_capacity += 1;
+        self.reserve(new_capacity);
+
+        let self_ptr: *$(T)@rax;
+        self.slice.as_ptr(self_ptr);
+
+        let value_index: i64@r10 = self_len;
+        self_len += 1;
+        self.slice.from(self_ptr, self_len);
+
+        let ptr: *$(T)@r11;
+        self.slice.index(value_index, ptr);
+        *ptr = value;
+    };
+
+    pub as len(in self: Vec_$(T)@mem, out len: i64@reg+mem) {
+        self.slice.len(len);
+    };
+
+    pub as capacity(in self: Vec_$(T)@mem, out capacity: i64@reg+mem) {
+        capacity = self.capacity;
+    };
+
+    as reserve(inout self: Vec_$(T)@mem, in capacity: i64@reg+mem+imm) {
+        let flag: bool@r8;
+
+        if(flag.gt(capacity, self.capacity)) {
+            let self_len: i64@stack;
+            self.slice.len(self_len);
+
+            let new_capacity: i64@r9 = self.capacity;
+            if(flag.eq(new_capacity, 0)) {
+                new_capacity = 4;
+            }else {
+                new_capacity += new_capacity;
+            };
+            new_capacity.max(capacity);
+
+            let new_memsize: i64@rdx;
+            new_memsize.imul(new_capacity, sizeof($(T)));
+
+            let new_ptr: *void@rbx;
+            $(A).alloc(new_memsize, new_ptr);
+
+            let old_memsize: i64@rcx;
+            self.slice.len(old_memsize);
+            old_memsize.imul(old_memsize, sizeof($(T)));
+            let memcpy_dst: *void@rdi = new_ptr;
+            let memcpy_src: *void@rsi;
+            self.slice.as_ptr(memcpy_src);
+            memcpy(memcpy_dst, memcpy_src, old_memsize);
+
+            let old_ptr: *void@rdx;
+            self.slice.as_ptr(old_ptr);
+            $(A).dealloc(old_ptr);
+
+            self.slice.from(new_ptr, self_len);
+            self.capacity = new_capacity;
+        }
+    };
+
+    pub as drop(inout self: Vec_$(T)@mem) {
+        let object_ptr: *$(T)@r8;
+        let self_len: i64@stack;
+        self.slice.len(self_len);
+
+        for((let i: i64@r9 = 0; let flag: bool@r10); flag.lt(i, self_len); ++i) {
+           self.slice.index(i, object_ptr);
+           (*object_ptr).drop();
+        };
+
+        let slice_ptr: *$(T)@stack;
+        self.slice.as_ptr(slice_ptr);
+        $(A).dealloc(slice_ptr);
+    };
+};
+

@@ -1,5 +1,5 @@
 import core;
-import core.string;
+import core.mem;
 import std.syscall;
 import std.alloc;
 import std.io;

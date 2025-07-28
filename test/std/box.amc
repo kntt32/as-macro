@@ -1,0 +1,7 @@
+import core;
+import core.box;
+
+pub template Box(T) {
+    impl RawBox($(T), STD_ALLOC);
+};
+

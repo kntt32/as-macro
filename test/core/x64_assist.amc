@@ -1,6 +1,6 @@
 import x64_ins;
 
-template MovAsist(D, S) {
+template MovCast(D, S) {
     pub as mov(dst: $(D)@reg+mem, src: $(S)@reg) {
         let src_rax: $(S)@rax = src;
         let src_rax: $(D)@rax;
@@ -8,7 +8,40 @@ template MovAsist(D, S) {
     };
 };
 
-impl MovAsist(b8, b16);
-impl MovAsist(b8, b32);
-impl MovAsist(b8, b64);
+template MovMem(T) {
+    pub as mov(dst: $(T)@mem, src: $(T)@mem+imm) {
+        let src_rax: $(T)@r8 = src;
+        dst = src_rax;
+    };
+};
+
+template AddMem(T) {
+    pub as add(dst: $(T)@mem, src: $(T)@mem+imm) {
+        let src_rax: $(T)@r8 = src;
+        dst += src_rax;
+    };
+};
+
+impl MovCast(b8, b16);
+impl MovCast(b8, b32);
+impl MovCast(b8, b64);
+impl MovCast(b16, b8);
+impl MovCast(b16, b32);
+impl MovCast(b16, b64);
+impl MovCast(b32, b8);
+impl MovCast(b32, b16);
+impl MovCast(b32, b64);
+impl MovCast(b64, b8);
+impl MovCast(b64, b16);
+impl MovCast(b64, b32);
+
+impl MovMem(b8);
+impl MovMem(b16);
+impl MovMem(b32);
+impl MovMem(b64);
+
+impl AddMem(b8);
+impl AddMem(b16);
+impl AddMem(b32);
+impl AddMem(b64);
 

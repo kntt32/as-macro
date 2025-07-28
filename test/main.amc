@@ -1,14 +1,20 @@
 import std;
 import std.io;
 import std.io.print;
-import std.alloc;
-import core.option;
-/*
-impl Option(i64);
-impl Display_Option(Io, i64);
-*/
+import std.box;
+
+impl Box(i64);
+impl Display_Box(Io, i64);
+
+pub as drop(inout self: i64@reg+mem) {
+};
+
 fn main() {
     let str: Str@stack;
     println(str.from("Hello, Println!"));
+
+    let box: defer Box_i64@stack;
+    box.new(15);
+    println(box);
 };
 

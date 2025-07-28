@@ -1,0 +1,36 @@
+import core;
+
+pub template RawBox(T, A) {
+    pub struct Box_$(T) { ptr: *$(T) };
+
+    pub as new(out self: Box_$(T)@mem, object: $(T)@reg+mem+imm) {
+        $(A).alloc(sizeof($(T)), self.ptr);
+        let self_ptr: *$(T)@rax = self.ptr;
+        *self_ptr = object;
+    };
+
+    pub as drop(inout self: Box_$(T)@mem) {
+        let self_ptr: *$(T)@r8 = self.ptr;
+        (*self_ptr).drop();
+        $(A).dealloc(self.ptr);
+    };
+
+    pub as ref(in self: Box_$(T)@mem, out ptr: *$(T)@reg+mem) {
+        ptr = self.ptr;
+    };
+};
+
+pub template Display_Box(Formatter, T) {
+    pub as display(inout self: $(Formatter)@mem, in box: Box_$(T)@mem) {
+        let str: Str@stack;
+        str.from("Box(");
+        self.write(str);
+
+        let self_ptr: *$(T)@rax = box.ptr;
+        self.display(*self_ptr);
+        
+        str.from(")");
+        self.write(str);
+    };
+};
+

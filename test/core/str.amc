@@ -1,5 +1,5 @@
 import core;
-import core.string;
+import core.mem;
 import slice;
 
 impl Slice(char);

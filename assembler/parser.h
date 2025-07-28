@@ -34,6 +34,7 @@ void Offset_print(in Offset* self);
 
 Parser Parser_new(optional in char* src, in char* path);
 Parser Parser_empty(Offset offset);
+void Parser_take(in Parser* self, out char string[256]);
 void Parser_print(in Parser* self);
 bool Parser_cmp(in Parser* self, in Parser* other);
 char* Parser_path(in Parser* self);

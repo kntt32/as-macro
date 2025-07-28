@@ -26,5 +26,29 @@ pub as memset(dst: *void@rdi, value: i8@rax, size: i64@rcx) {
     stos(dst, value);
 };
 
+pub as strlen(s: *char@rsi, len: i64@rcx) {
+    let seek_ptr: *i8@rdi;
+    seek_ptr = s;
 
+    let null_code: i8@rax;
+    null_code = '\0';
+    len = -1;
+
+    cld();
+    repne(rcx);
+    scas(seek_ptr, null_code);
+    
+    len = seek_ptr;
+    sub(len, s);
+    dec(len);
+};
+
+pub as strcpy(dst: *char@rdi, src: *char@rsi) {
+    let len: i64@rcx;
+    
+    src.strlen(len);
+    inc(len);
+
+    memcpy(dst, src, len);
+};
 

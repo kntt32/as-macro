@@ -9,14 +9,31 @@ pub template RawBox(T, A) {
         *self_ptr = object;
     };
 
+    pub as clone(in self: Box_$(T)@mem, out buff: Box_$(T)@mem) {
+        $(A).alloc(sizeof($(T)), buff.ptr);
+
+        let self_ptr: *$(T)@r8 = self.ptr;
+        let buff_ptr: *$(T)@r9 = buff.ptr;
+        let self_ptr_rax: *$(T)@rax = self_ptr;
+        let buff_ptr_rdi: *$(T)@rdi = buff_ptr;
+
+        (*self_ptr_rax).clone(*buff_ptr_rdi);
+    };
+
     pub as drop(inout self: Box_$(T)@mem) {
         let self_ptr: *$(T)@r8 = self.ptr;
         (*self_ptr).drop();
         $(A).dealloc(self.ptr);
     };
 
-    pub as ref(in self: Box_$(T)@mem, out ptr: *$(T)@reg+mem) {
-        ptr = self.ptr;
+    pub as addr(in self: Box_$(T)@mem, out addr: *$(T)@reg+mem) {
+        addr = self.ptr;
+    };
+
+    pub as take(inout self: Box_$(T)@mem, out buff: $(T)@reg+mem) {
+        let self_ptr: *$(T)@r8 = self.ptr;
+        buff = (*self_ptr);
+        $(A).dealloc(self.ptr);
     };
 };
 
@@ -25,10 +42,10 @@ pub template Display_Box(Formatter, T) {
         let str: Str@stack;
         str.from("Box(");
         self.write(str);
-
-        let self_ptr: *$(T)@rax = box.ptr;
-        self.display(*self_ptr);
-        
+        {
+            let self_ptr: *$(T)@rax = box.ptr;
+            self.display(*self_ptr);
+        };
         str.from(")");
         self.write(str);
     };

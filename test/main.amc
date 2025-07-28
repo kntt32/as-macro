@@ -6,7 +6,9 @@ import std.box;
 impl Box(i64);
 impl Display_Box(Io, i64);
 
-pub as drop(inout self: i64@reg+mem) {
+pub as drop(inout self: i64@reg+mem) {};
+pub as clone(in self: i64@reg+mem, out buff: i64@reg+mem) {
+    buff = self;
 };
 
 fn main() {
@@ -15,6 +17,14 @@ fn main() {
 
     let box: defer Box_i64@stack;
     box.new(15);
+    {
+        let box2: defer Box_i64@stack;
+        box.clone(box2);
+        let box2_addr: *i64@rax;
+        box.addr(box2_addr);
+        *box2_addr = 32;
+        println(box2);
+    };
     println(box);
 };
 

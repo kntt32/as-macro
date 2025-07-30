@@ -10,38 +10,39 @@ pub template Display(Formatter) {
     };
 
     pub as display(inout self: $(Formatter)@mem, in object: i64@reg+mem+imm) {
-        let object_mem: i64@stack = object;
-        let object_rax: i64@rax = object_mem;
+        !DEBUG_OBJECT_AUTO;
+        let object_auto: i64@auto = object;
         let str: Str@stack;
-        let flag: bool@r8;
+        let flag: bool@auto;
 
-        if(flag.lt(object_rax, 0)) {
+        if(flag.lt(object_auto, 0)) {
             str.from("-");
             self.write(str);
-            object_rax.neg();
+            object_auto.neg();
         };
 
-        if(flag.eq(object_rax, 0)) {
+        if(flag.eq(object_auto, 0)) {
             str.from("0");
             self.write(str);
         }else {
             let buffer: [char; 32]@stack;
             buffer[31] = '\0';
-            let buffer_index: i64@r9 = 31;
-            let buffer_ptr: *char@r10;
+            let buffer_index: i64@auto = 31;
+            let buffer_ptr: *char@auto;
         
-            let remainder: i64@rdx;
-            let divisor: i64@r11 = 10;
+            let remainder: i64@auto;
+            let divisor: i64@auto = 10;
         
-            while(flag.neq(object_rax, 0)) {
+            while(flag.neq(object_auto, 0)) {
                 remainder = 0;
-                object_rax.div(remainder, divisor);
-                let remainder_i8: i8@r12 = remainder;
+                object_auto.idiv(remainder, 10);
+                let remainder_i8: i8@auto = remainder;
 
                 buffer_index -= 1;
                 buffer_ptr =& buffer;
                 buffer_ptr += buffer_index;
                 *buffer_ptr = '0';
+                !DEBUG;
                 *buffer_ptr += remainder_i8;
             };
 

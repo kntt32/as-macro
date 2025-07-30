@@ -1,24 +1,15 @@
 import x64_ins;
 
 template MovCast(D, S) {
-    pub as mov(dst: $(D)@reg+mem, src: $(S)@reg) {
-        let src_rax: $(S)@rax = src;
-        let src_rax: $(D)@rax;
-        dst = src_rax;
-    };
-};
-
-template MovMem(T) {
-    pub as mov(dst: $(T)@mem, src: $(T)@mem+imm) {
-        let src_r8: $(T)@r8 = src;
-        dst = src_r8;
-    };
-};
-
-template AddMem(T) {
-    pub as add(dst: $(T)@mem, src: $(T)@mem+imm) {
-        let src_r8: $(T)@r8 = src;
-        dst += src_r8;
+    pub as mov(dst: $(D)@reg+mem, src: $(S)@reg+mem) {
+        let src_auto_s: $(S)@auto = src;
+        let src_auto_d: $(D)@auto;
+        {
+            let src_r15_s: $(S)@r15 = src_auto_s;
+            let src_r15_d: $(D)@r15;
+            src_auto_d = src_r15_d;
+        };
+        dst = src_auto_d;
     };
 };
 
@@ -35,13 +26,90 @@ impl MovCast(b64, b8);
 impl MovCast(b64, b16);
 impl MovCast(b64, b32);
 
-impl MovMem(b8);
-impl MovMem(b16);
-impl MovMem(b32);
-impl MovMem(b64);
+template MovAddSubMem(T) {
+    pub as mov(out dst: $(T)@mem, in src: $(T)@mem+imm) {
+        let src_auto: $(T)@auto = src;
+        dst = src_auto;
+    };
 
-impl AddMem(b8);
-impl AddMem(b16);
-impl AddMem(b32);
-impl AddMem(b64);
+    pub as add(out dst: $(T)@mem, in src: $(T)@mem+imm) {
+        let src_auto: $(T)@auto = src;
+        dst += src_auto;
+    };
+
+    pub as sub(out dst: $(T)@mem, in src: $(T)@mem+imm) {
+        let src_auto: $(T)@auto = src;
+        dst -= src_auto;
+    };
+};
+
+impl MovAddSubMem(b8);
+impl MovAddSubMem(b16);
+impl MovAddSubMem(b32);
+impl MovAddSubMem(b64);
+
+template Imul(T) {
+    pub as imul(inout self: $(T)@reg+mem, in other: $(T)@reg+mem+imm) {
+        let self_auto: $(T)@auto = self;
+        let other_auto: $(T)@auto = other;
+        imul(self_auto, other_auto);
+    };
+};
+
+pub as imul(inout self: b8@reg+mem, in other: b8@reg+mem+imm) {
+    let self_auto: i16@auto = self;
+    let other_auto: i16@auto = other;
+    imul(self_auto, other_auto);
+};
+
+impl Imul(b16);
+impl Imul(b32);
+impl Imul(b64);
+
+template Idiv(T) {
+    pub as idiv(inout self: $(T)@reg+mem, out remain: $(T)@reg+mem, in other: $(T)@reg+mem+imm) {
+        let self_auto: $(T)@auto = self;
+        let other_auto: $(T)@auto = other;
+        let remain_auto: $(T)@auto = remain;
+        {
+            let self_r15: $(T)@r15 = self_auto;
+            let other_r14: $(T)@r14 = other_auto;
+            let remain_r13: $(T)@r13 = remain_auto;
+            {
+                let self_rax: $(T)@rax = self_r15;
+                let remain_rdi: $(T)@rdx = remain_r13;
+                idiv(self_rax, remain_rdi, other_r14);
+
+                self_r15 = self_rax;
+                remain_r13 = remain_rdi;
+            };
+            remain_auto = remain_r13;
+            self_auto = self_r15;
+        };
+        remain = remain_auto;
+        self = self_auto;
+    };
+
+    pub as idiv(inout self: $(T)@reg+mem, in other: $(T)@reg+mem+imm) {
+        let remain: $(T)@auto = 0;
+        idiv(self, remain, other);
+    };
+};
+
+pub as idiv(inout self: b8@reg+mem, in other: b8@reg+mem+imm) {
+    let self_auto: b8@auto = self;
+    let other_auto: b8@auto = other;
+    {
+        let self_r15: b8@r15 = self_auto;
+        let self_rax: b8@rax = self_r15;
+        idiv(self_rax, other_auto);
+        self_auto = self_rax;
+    };
+
+    self = self_auto;
+};
+
+impl Idiv(b16);
+impl Idiv(b32);
+impl Idiv(b64);
 

@@ -122,48 +122,48 @@ pub template CmpRM(T) {
 
 pub template CmpMiMi(T) {
     pub as eq(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
-        let left_reg: $(T)@r8 = left;
-        let right_reg: $(T)@r9 = right;
+        let left_reg: $(T)@auto = left;
+        let right_reg: $(T)@auto = right;
 
         cmp(left_reg, right_reg);
         sete(flag);
     };
 
     pub as neq(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
-        let left_reg: $(T)@r8 = left;
-        let right_reg: $(T)@r9 = right;
+        let left_reg: $(T)@auto = left;
+        let right_reg: $(T)@auto = right;
 
         cmp(left_reg, right_reg);
         setne(flag);
     };
 
     pub as lt(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
-        let left_reg: $(T)@r8 = left;
-        let right_reg: $(T)@r9 = right;
+        let left_reg: $(T)@auto = left;
+        let right_reg: $(T)@auto = right;
 
         cmp(left_reg, right_reg);
         setl(flag);
     };
 
     pub as le(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
-        let left_reg: $(T)@r8 = left;
-        let right_reg: $(T)@r9 = right;
+        let left_reg: $(T)@auto = left;
+        let right_reg: $(T)@auto = right;
 
         cmp(left_reg, right_reg);
         setle(flag);
     };
 
     pub as gt(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
-        let left_reg: $(T)@r8 = left;
-        let right_reg: $(T)@r9 = right;
+        let left_reg: $(T)@auto = left;
+        let right_reg: $(T)@auto = right;
 
         cmp(left_reg, right_reg);
         setg(flag);
     };
 
     pub as ge(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
-        let left_reg: $(T)@r8 = left;
-        let right_reg: $(T)@r9 = right;
+        let left_reg: $(T)@auto = left;
+        let right_reg: $(T)@auto = right;
 
         cmp(left_reg, right_reg);
         setge(flag);
@@ -178,32 +178,32 @@ pub template CmpMiMi(T) {
     };
 
     pub as ult(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
-        let left_reg: $(T)@r8 = left;
-        let right_reg: $(T)@r9 = right;
+        let left_reg: $(T)@auto = left;
+        let right_reg: $(T)@auto = right;
 
         cmp(left_reg, right_reg);
         setb(flag);
     };
 
     pub as ule(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
-        let left_reg: $(T)@r8 = left;
-        let right_reg: $(T)@r9 = right;
+        let left_reg: $(T)@auto = left;
+        let right_reg: $(T)@auto = right;
 
         cmp(left_reg, right_reg);
         setbe(flag);
     };
 
     pub as ugt(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
-        let left_reg: $(T)@r8 = left;
-        let right_reg: $(T)@r9 = right;
+        let left_reg: $(T)@auto = left;
+        let right_reg: $(T)@auto = right;
 
         cmp(left_reg, right_reg);
         seta(flag);
     };
 
     pub as ute(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
-        let left_reg: $(T)@r8 = left;
-        let right_reg: $(T)@r9 = right;
+        let left_reg: $(T)@auto = left;
+        let right_reg: $(T)@auto = right;
 
         cmp(left_reg, right_reg);
         setae(flag);
@@ -225,7 +225,7 @@ impl CmpMiMi(b64);
 
 pub template Max(T) {
     pub as max(inout self: $(T)@reg+mem+imm, in other: $(T)@reg+mem+imm) {
-        let flag: bool@stack;
+        let flag: bool@auto;
         if(flag.lt(self, other)) {
             self = other;
         };
@@ -234,7 +234,7 @@ pub template Max(T) {
 
 pub template Min(T) {
     pub as min(inout self: $(T)@reg+mem+imm, in other: $(T)@reg+mem+imm) {
-        let flag: bool@stack;
+        let flag: bool@auto;
         if(flag.gt(self, other)) {
             self = other;
         };

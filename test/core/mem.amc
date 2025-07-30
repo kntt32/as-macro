@@ -15,6 +15,18 @@ pub as memcpy(in dst: *i8@rdi, in src: *i8@rsi, in size: i64@rcx) {
     dst = dst_store;
 };
 
+pub as memcpy(in dst: *i8@reg+mem, in src: *i8@reg+mem, in size: i64@reg+mem) {
+    let dst_mem: *i8@stack = dst;
+    let src_mem: *i8@stack = src;
+    let size_mem: *i8@stack = size;
+
+    let dst_rdi: *i8@rdi = dst;
+    let src_rsi: *i8@rsi = src;
+    let size_rcx: i64@rcx = size;
+
+    memcpy(dst_rdi, src_rsi, size_rcx);
+};
+
 pub as memmove(in dst: *i8@rdi, in src: *i8@rsi, in size: i64@rcx) {
     let flag: bool@rax;
     let dst_store: i64@r8 = dst;
@@ -45,6 +57,18 @@ pub as memmove(in dst: *i8@rdi, in src: *i8@rsi, in size: i64@rcx) {
     dst = dst_store;
 };
 
+pub as memmove(in dst: *i8@reg+mem, in src: *i8@reg+mem, in size: i64@reg+mem+imm) {
+    let dst_mem: *i8@stack = dst;
+    let src_mem: *i8@stack = src;
+    let size_mem: *i8@stack = size;
+
+    let dst_rdi: *i8@rdi = dst;
+    let src_rsi: *i8@rsi = src;
+    let size_rcx: i64@rcx = size;
+
+    memcpy(dst_rdi, src_rsi, size_rcx);
+};
+
 pub as memset(in dst: *i8@rdi, in value: i8@rax, in size: i64@rcx) {
     let dst_store: i64@r8 = dst;
     let size_store: i64@r9 = size;
@@ -56,6 +80,18 @@ pub as memset(in dst: *i8@rdi, in value: i8@rax, in size: i64@rcx) {
 
     size = size_store;
     dst = dst_store;
+};
+
+pub as memset(in dst: *i8@reg+mem, in value: i8@reg+mem+imm, in size: i64@reg+mem+imm) {
+    let dst_mem: *i8@stack = dst;
+    let value_mem: i8@stack = value;
+    let size_mem: i64@stack = size;
+
+    let dst_rdi: *i8@rdi = dst_mem;
+    let value_rax: i8@rax = value_mem;
+    let size_rcx: i64@rcx = size_mem;
+
+    memset(dst_rdi, value_rax, size_rcx);
 };
 
 pub as strlen(in s: *char@rsi, out len: i64@rcx) {
@@ -73,5 +109,20 @@ pub as strlen(in s: *char@rsi, out len: i64@rcx) {
     len = seek_ptr;
     sub(len, s);
     dec(len);
+};
+
+pub as strlen(in s: *char@reg+mem, out len: i64@reg+mem) {
+    let s_mem: *char@stack = s;
+    let len_mem: i64@stack = len;
+    {
+        let s_rsi: *char@rsi = s_mem;
+        let len_rcx: i64@rcx = len_mem;
+
+        strlen(s_rsi, len_rcx);
+
+        len_mem = len_rcx;
+    };
+
+    len = len_mem;
 };
 

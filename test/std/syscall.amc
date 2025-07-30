@@ -32,6 +32,30 @@ pub as mmap(inout addr: *void@rdi, in len: i64@rsi, in prot: i64@rdx, in flags: 
     };
 };
 
+pub as mmap(inout addr: *void@reg+mem+imm, in len: i64@reg+mem+imm, in prot: i64@reg+mem+imm, in flags: i64@reg+mem+imm, in fd: i64@reg+mem+imm, in offset: i64@reg+mem+imm) {
+    let addr_mem: *void@stack = addr;
+    let len_mem: i64@stack = len;
+    let prot_mem: i64@stack = prot;
+    let flags_mem: i64@stack = flags;
+    let fd_mem: i64@stack = fd;
+    let offset_mem: i64@stack = offset;
+
+    {
+        let addr_rdi: *void@rdi = addr_mem;
+        let len_rsi: i64@rsi = len_mem;
+        let prot_rdx: i64@rdx = prot_mem;
+        let flags_r10: i64@r10 = flags_mem;
+        let fd_r8: i64@r8 = fd_mem;
+        let offset_r9: i64@r9 = offset_mem;
+
+        mmap(addr_rdi, len_rsi, prot_rdx, flags_r10, fd_r8, offset_r9);
+
+        addr_mem = addr_rdi;
+    };
+
+    addr = addr_mem;
+};
+
 pub as munmap(in addr: *void@rdi, in size: i64@rsi) {
     let flag: bool@r8;
     if(flag.neq(addr, null)) {
@@ -42,6 +66,19 @@ pub as munmap(in addr: *void@rdi, in size: i64@rsi) {
             panic("munmap error");
         };
     };
+    addr = null;
+};
+
+pub as munmap(in addr: *void@reg+mem+imm, in size: i64@reg+mem+imm) {
+    let addr_mem: *void@stack = addr;
+    let size_mem: i64@stack = size;
+
+    {
+        let addr_rdi: *void@rdi = addr_mem;
+        let size_rsi: i64@rsi = size_mem;
+        munmap(addr_rdi, size_rsi);
+    };
+    addr = null;
 };
 
 pub as exit(in status: i32@rdi) {

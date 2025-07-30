@@ -16,8 +16,8 @@ pub as len(in self: Str@mem, out len: i64@reg+mem) {
 };
 
 pub as from(out self: Str@mem, in cstr: *char@reg+mem) {
-    let len: i64@rcx;
-    let cstr_rsi: *char@rsi = cstr;
+    let len: i64@auto;
+    let cstr_rsi: *char@auto = cstr;
     cstr_rsi.strlen(len);
     self.from(cstr_rsi, len);
 };
@@ -32,10 +32,10 @@ pub as as_ptr(in self: Str@mem, out ptr: *char@reg+mem) {
 
 pub as from(out self: Str@mem, in cstr_array: bin@mem) {
     panic_neq(sizeof(cstr_array[0]), sizeof(char), "expected cstr array");
-    // cstr must be array of char
-    let cstr_array_ptr: *char@rsi;
+
+    let cstr_array_ptr: *char@auto;
     cstr_array_ptr =& cstr_array;
-    let cstr_len: i64@rcx;
+    let cstr_len: i64@auto;
     cstr_array_ptr.strlen(cstr_len);
     self.slice.from(cstr_array_ptr, cstr_len);
 };

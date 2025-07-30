@@ -4,49 +4,50 @@ import core.str;
 extern fn panic_handler(msg: *char@rdi);
 
 pub as panic(in msg: bin@mem) {
-    let msg_addr: *char@rdi;
-    msg_addr =& msg;
+    let msg_addr_auto: *char@auto;
+    msg_addr_auto =& msg;
+    let msg_addr: *char@rdi = msg_addr_auto;
     panic_handler(msg_addr);
     ud2();
 };
 
 pub as panic_eq(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
-    let flag: bool@rax;
+    let flag: bool@auto;
     if(flag.eq(left, right)) {
         panic(msg);
     };
 };
 
 pub as panic_neq(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
-    let flag: bool@rax;
+    let flag: bool@auto;
     if(flag.neq(left, right)) {
         panic(msg);
     };
 };
 
 pub as panic_le(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
-    let flag: bool@rax;
+    let flag: bool@auto;
     if(flag.le(left, right)) {
         panic(msg);
     };
 };
 
 pub as panic_lt(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
-    let flag: bool@rax;
+    let flag: bool@auto;
     if(flag.lt(left, right)) {
         panic(msg);
     };
 };
 
 pub as panic_ge(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
-    let flag: bool@rax;
+    let flag: bool@auto;
     if(flag.ge(left, right)) {
         panic(msg);
     };
 };
 
 pub as panic_gt(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
-    let flag: bool@rax;
+    let flag: bool@auto;
     if(flag.gt(left, right)) {
         panic(msg);
     };

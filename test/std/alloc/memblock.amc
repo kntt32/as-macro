@@ -10,21 +10,20 @@ pub struct MemBlock {
 };
 
 pub as new(out self: MemBlock@mem, in page_count: i64@reg+mem+imm) {
-    let page_count_r9: i64@r9 = page_count;
-    let addr: *void@rdi = null;
-    let flag: bool@r8;
+    let addr: *void@auto = null;
+    let flag: bool@auto;
 
-    if(flag.neq(page_count_r9, 0)) {
-        let size: i64@rsi = page_count_r9;
-        let prot: i64@rdx = 0x3;
-        let flags: i64@r10 = 0x22;
-        let fd: i64@r8 = -1;
-        let offset: i64@r9 = 0;
-        size.imul(size, 4096);
+    if(flag.neq(page_count, 0)) {
+        let size: i64@auto = page_count;
+        let prot: i64@auto = 0x3;
+        let flags: i64@auto = 0x22;
+        let fd: i64@auto = -1;
+        let offset: i64@auto = 0;
+        size.imul(4096);
         addr.mmap(size, prot, flags, fd, offset).panic_null();
     };
     self.page_ptr = addr;
-    self.page_count = page_count_r9;
+    self.page_count = page_count;
     self.alloc_line = 0;
     self.alloc_count = 0;
 };
@@ -34,21 +33,22 @@ pub as get_lower_bound(in self: MemBlock@mem, out lower_bound: i64@reg+mem) {
 };
 
 pub as get_upper_bound(in self: MemBlock@mem, out upper_bound: i64@reg+mem) {
-    upper_bound.imul(self.page_count, 4096);
+    upper_bound = self.page_count;
+    upper_bound.imul(4096);
     upper_bound += self.page_ptr;
 };
 
 pub as alloc(inout self: MemBlock@mem, in size: i64@reg+mem+imm, out ptr: *void@reg+mem) {
-    let flag: bool@r8;
-    let alloc_byte: i64@r9 = self.alloc_line;
+    let flag: bool@auto;
+    let alloc_byte: i64@auto = self.alloc_line;
     alloc_byte.shl(4);
     alloc_byte += size;
 
-    let alloc_pages: i64@r10 = alloc_byte;
+    let alloc_pages: i64@auto = alloc_byte;
     alloc_pages += 4095;
     alloc_pages.shr(12);
 
-    let alloc_line: i64@r11 = alloc_byte;
+    let alloc_line: i64@auto = alloc_byte;
     alloc_line += 15;
     alloc_line.shr(4);
 
@@ -64,14 +64,14 @@ pub as alloc(inout self: MemBlock@mem, in size: i64@reg+mem+imm, out ptr: *void@
 };
 
 pub as dealloc(inout self: MemBlock@mem, in ptr: *void@reg+mem) {
-    let flag: bool@r8;
+    let flag: bool@auto;
     if(flag.neq(ptr, null)) {
         self.alloc_count.panic_eq(0, "doubling free detected");
 
         self.page_ptr.panic_gt(ptr, "out of page");
         
-        let upper_bound: *void@r9;
-        upper_bound.imul(self.page_count, 4096);
+        let upper_bound: *void@auto = self.page_count;
+        upper_bound.imul(4096);
         upper_bound += self.page_ptr;
         upper_bound.panic_le(ptr, "out of page");
 
@@ -86,9 +86,9 @@ pub as dealloc(inout self: MemBlock@mem, in ptr: *void@reg+mem) {
 pub as drop(inout self: MemBlock@mem) {
     self.alloc_count.panic_neq(0, "memory leak detected");
     
-    let addr: *void@rdi = self.page_ptr;
-    let size: i64@rsi;
-    size.imul(self.page_count, 4096);
+    let addr: *void@auto = self.page_ptr;
+    let size: i64@auto = self.page_count;
+    size.imul(4096);
     munmap(addr, size);
 
     self.page_ptr = null;

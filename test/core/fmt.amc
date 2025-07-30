@@ -10,33 +10,33 @@ pub template Display(Formatter) {
     };
 
     pub as display(inout self: $(Formatter)@mem, in object: i64@reg+mem+imm) {
-        let object_r8: i64@r8 = object;
-        let object_copy: i64@rax = object_r8;
+        let object_mem: i64@stack = object;
+        let object_rax: i64@rax = object_mem;
         let str: Str@stack;
-        let flag: bool@r9;
+        let flag: bool@r8;
 
-        if(flag.lt(object_copy, 0)) {
+        if(flag.lt(object_rax, 0)) {
             str.from("-");
             self.write(str);
-            object_copy.neg();
+            object_rax.neg();
         };
 
-        if(flag.eq(object_copy, 0)) {
+        if(flag.eq(object_rax, 0)) {
             str.from("0");
             self.write(str);
         }else {
             let buffer: [char; 32]@stack;
             buffer[31] = '\0';
-            let buffer_index: i64@r10 = 31;
-            let buffer_ptr: *char@r11;
+            let buffer_index: i64@r9 = 31;
+            let buffer_ptr: *char@r10;
         
             let remainder: i64@rdx;
-            let divisor: i64@r12 = 10;
+            let divisor: i64@r11 = 10;
         
-            while(flag.neq(object_copy, 0)) {
+            while(flag.neq(object_rax, 0)) {
                 remainder = 0;
-                object_copy.div(remainder, divisor);
-                let remainder_i8: i8@r13 = remainder;
+                object_rax.div(remainder, divisor);
+                let remainder_i8: i8@r12 = remainder;
 
                 buffer_index -= 1;
                 buffer_ptr =& buffer;

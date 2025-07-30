@@ -1,11 +1,9 @@
 import core;
 
-pub as memcpy(in dst: *void@rdi, in src: *void@rsi, in size: i64@rcx) {
+pub as memcpy(in dst: *i8@rdi, in src: *i8@rsi, in size: i64@rcx) {
     let dst_store: i64@r13 = dst;
     let src_store: i64@r14 = src;
     let size_store: i64@r15 = size;
-    let dst: *i8@rdi;
-    let src: *i8@rsi;
 
     cld();
 
@@ -47,16 +45,20 @@ pub as memmove(in dst: *i8@rdi, in src: *i8@rsi, in size: i64@rcx) {
     dst = dst_store;
 };
 
-pub as memset(dst: *void@rdi, value: i8@rax, size: i64@rcx) {
-    let dst: *i8@rdi;
+pub as memset(in dst: *i8@rdi, in value: i8@rax, in size: i64@rcx) {
+    let dst_store: i64@r8 = dst;
+    let size_store: i64@r9 = size;
 
     cld();
 
     rep(size);
     stos(dst, value);
+
+    size = size_store;
+    dst = dst_store;
 };
 
-pub as strlen(s: *char@rsi, len: i64@rcx) {
+pub as strlen(in s: *char@rsi, out len: i64@rcx) {
     let seek_ptr: *i8@rdi;
     seek_ptr = s;
 
@@ -71,14 +73,5 @@ pub as strlen(s: *char@rsi, len: i64@rcx) {
     len = seek_ptr;
     sub(len, s);
     dec(len);
-};
-
-pub as strcpy(dst: *char@rdi, src: *char@rsi) {
-    let len: i64@rcx;
-    
-    src.strlen(len);
-    inc(len);
-
-    memcpy(dst, src, len);
 };
 

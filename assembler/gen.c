@@ -560,7 +560,7 @@ SResult Generator_binary_len(in Generator* self, in char* name, out u32* len) {
     return SResult_new(NULL);
 }
 
-SResult Generator_asmacro_expand_check(inout Generator* self, Asmacro asmacro) {
+SResult Generator_asmacro_expand_check(in Generator* self, Asmacro asmacro) {
     assert(self != NULL);
     
     for(u32 i=0; i<Vec_len(&self->expand_stack); i++) {

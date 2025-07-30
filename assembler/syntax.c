@@ -109,9 +109,22 @@ static SResult store_variable(inout VariableManager* self, in Variable* variable
 static bool is_stored(in VariableManager* self, in Variable* variable, u32 variable_index) {
     for(u32 i=variable_index+1; i<Vec_len(&self->variables); i++) {
         Variable* ptr = Vec_index(&self->variables, i);
-        if(Storage_cmp(&variable->data.storage, &ptr->data.storage)
+        if(Storage_doubling(&variable->data.storage, &ptr->data.storage)
             || Storage_is_depend_on(&variable->data.storage, &ptr->data.storage)) {
             return true;
+        }
+    }
+
+    for(i32 i=Vec_len(&self->blocks)-1; 0<=i; i--) {
+        VariableBlock* block = Vec_index(&self->blocks, i);
+        if(block->variables_base <= variable_index) {
+            break;
+        }
+        for(u32 k=0; k<Vec_len(&block->stored_regs); k++) {
+            StoredReg* stored_reg = Vec_index(&block->stored_regs, k);
+            if(Storage_is_depend_on_reg(&variable->data.storage, stored_reg->reg)) {
+                return true;
+            }
         }
     }
 
@@ -138,7 +151,7 @@ SResult VariableManager_push(inout VariableManager* self, Variable variable, ino
     for(i32 i=Vec_len(&self->variables)-1; 0<=i; i--) {
         Variable* ptr = Vec_index(&self->variables, i);
         
-        bool doubling_storage_flag = Storage_cmp(&ptr->data.storage, &variable.data.storage);
+        bool doubling_storage_flag = Storage_doubling(&ptr->data.storage, &variable.data.storage);
 
         if(doubling_storage_flag) {
             if((i32)variable_base <= i) {
@@ -198,6 +211,7 @@ SResult VariableManager_get(inout VariableManager* self, in char* name, out Vari
         if(strcmp(ptr->name, name) == 0) {
             if(is_stored(self, ptr, i)) {
                 char msg[256];
+                is_stored(self, ptr, i);
                 wrapped_strcpy(msg, "variable \"", sizeof(msg));
                 wrapped_strcat(msg, name, sizeof(msg));
                 wrapped_strcat(msg, "\" is shadowed", sizeof(msg));

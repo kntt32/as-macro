@@ -10,15 +10,15 @@ template MovCast(D, S) {
 
 template MovMem(T) {
     pub as mov(dst: $(T)@mem, src: $(T)@mem+imm) {
-        let src_rax: $(T)@r8 = src;
-        dst = src_rax;
+        let src_r8: $(T)@r8 = src;
+        dst = src_r8;
     };
 };
 
 template AddMem(T) {
     pub as add(dst: $(T)@mem, src: $(T)@mem+imm) {
-        let src_rax: $(T)@r8 = src;
-        dst += src_rax;
+        let src_r8: $(T)@r8 = src;
+        dst += src_r8;
     };
 };
 

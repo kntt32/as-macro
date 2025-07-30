@@ -24,9 +24,11 @@ pub template Slice(T) {
     
     pub as index(in self: Slice_$(T)@mem, in index: i64@reg+mem+imm, out ptr: *$(T)@reg+mem) {
         panic_ge(index, self.len, "Slice:index: out of range");
-        ptr = sizeof($(T));
-        ptr.imul(index);
-        ptr += self.ptr;
+        let index_mem: i64@stack = index;
+        let ptr_r8: *$(T)@r8 = sizeof($(T));
+        ptr_r8.imul(index_mem);
+        ptr_r8 += self.ptr;
+        ptr = ptr_r8;
     };
 
     pub as len(in self: Slice_$(T)@mem, out len: i64@reg+mem) {

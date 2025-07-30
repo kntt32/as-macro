@@ -26,10 +26,10 @@ pub fn _start() {
     exit(status);
 };
 
-pub fn panic_handler(msg: Str@stack) {
+pub fn panic_handler(msg: *char@rdi) {
     let str: Str@stack;
     eprint(str.from("paniced: "));
-    eprintln(msg);
+    eprintln(str.from(msg));
 
     let code: i32@rdi = -1;
     exit(code);

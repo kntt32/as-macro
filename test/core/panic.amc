@@ -1,50 +1,51 @@
 import core;
 import core.str;
 
-extern fn panic_handler(msg: Str@stack);
+extern fn panic_handler(msg: *char@rdi);
 
 pub as panic(in msg: bin@mem) {
-    let str: Str@stack;
-    panic_handler(str.from(msg));
+    let msg_addr: *char@rdi;
+    msg_addr =& msg;
+    panic_handler(msg_addr);
     ud2();
 };
 
-pub as panic_eq(in left: b64@reg+mem, in right: b64@reg+mem+imm, in msg: bin@mem) {
+pub as panic_eq(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@rax;
     if(flag.eq(left, right)) {
         panic(msg);
     };
 };
 
-pub as panic_neq(in left: b64@reg+mem, in right: b64@reg+mem+imm, in msg: bin@mem) {
+pub as panic_neq(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@rax;
     if(flag.neq(left, right)) {
         panic(msg);
     };
 };
 
-pub as panic_le(in left: b64@reg+mem, in right: b64@reg+mem+imm, in msg: bin@mem) {
+pub as panic_le(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@rax;
     if(flag.le(left, right)) {
         panic(msg);
     };
 };
 
-pub as panic_lt(in left: b64@reg+mem, in right: b64@reg+mem+imm, in msg: bin@mem) {
+pub as panic_lt(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@rax;
     if(flag.lt(left, right)) {
         panic(msg);
     };
 };
 
-pub as panic_ge(in left: b64@reg+mem, in right: b64@reg+mem+imm, in msg: bin@mem) {
+pub as panic_ge(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@rax;
     if(flag.ge(left, right)) {
         panic(msg);
     };
 };
 
-pub as panic_gt(in left: b64@reg+mem, in right: b64@reg+mem+imm, in msg: bin@mem) {
+pub as panic_gt(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@rax;
     if(flag.gt(left, right)) {
         panic(msg);

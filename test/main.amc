@@ -16,7 +16,8 @@ pub as clone(in self: i64@reg+mem, out buff: i64@reg+mem) {
 
 fn main() {
     let str: Str@stack;
-    println(str.from("Hello, Println!"));
+    str.from("Hello, Println!");
+    println(str);
 
     let box: defer Box_i64@stack;
     box.new(15);
@@ -30,9 +31,9 @@ fn main() {
     };
     println(box);
 
-    let vec: Vec_i64@stack;
+    let vec: defer Vec_i64@stack;
     vec.new();
     vec.push(5);
-    vec.drop();
+    // vec.drop();
 };
 

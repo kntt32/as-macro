@@ -31,6 +31,7 @@ pub as as_ptr(in self: Str@mem, out ptr: *char@reg+mem) {
 };
 
 pub as from(out self: Str@mem, in cstr_array: bin@mem) {
+    panic_neq(sizeof(cstr_array[0]), sizeof(char), "expected cstr array");
     // cstr must be array of char
     let cstr_array_ptr: *char@rsi;
     cstr_array_ptr =& cstr_array;

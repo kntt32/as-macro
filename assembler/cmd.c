@@ -144,7 +144,10 @@ u32 Cmd_build_file(AsmCmdArgs asm_cmd_args) {
 }
 
 void Cmd_print_errors(in Generator* generator) {
-    for(u32 i=0; i<Vec_len(&generator->errors); i++) {
+    static u32 MAX_ERRORS = 10;
+    u32 errors_len = Vec_len(&generator->errors);
+
+    for(u32 i=0; i<errors_len && i<MAX_ERRORS; i++) {
         Error* error = Vec_index(&generator->errors, i);
         Offset* offset = &error->offset;
         char* msg = error->msg;
@@ -153,6 +156,10 @@ void Cmd_print_errors(in Generator* generator) {
             offset->path, offset->line, offset->column,
             msg
         );
+    }
+
+    if(MAX_ERRORS <= errors_len) {
+        fprintf(stderr, "\x1b[36mnote:\x1b[0m too many errors emmited, stopping now\n");
     }
 }
 

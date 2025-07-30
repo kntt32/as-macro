@@ -83,10 +83,13 @@ bool Argument_cmp(in Argument* self, out Argument* other) {
     if(self->storage_type != other->storage_type) {
         return false;
     }
+    
     switch(self->storage_type) {
         case Argument_Trait:    
             if(self->storage.trait.reg_flag != other->storage.trait.reg_flag
-                || self->storage.trait.mem_flag != other->storage.trait.mem_flag) {
+                || self->storage.trait.mem_flag != other->storage.trait.mem_flag
+                || self->storage.trait.imm_flag != other->storage.trait.imm_flag
+                || self->storage.trait.xmm_flag != other->storage.trait.xmm_flag) {
                 return false;
             }
             break;
@@ -97,7 +100,7 @@ bool Argument_cmp(in Argument* self, out Argument* other) {
             break;
     }
 
-    return strcmp(self->name, other->name);
+    return strcmp(self->name, other->name) == 0;
 }
 
 bool Argument_cmp_for_vec(in void* self, in void* other) {

@@ -256,12 +256,34 @@ bool Storage_cmp(in Storage* self, in Storage* other) {
     return false;
 }
 
+bool Storage_doubling(in Storage* self, in Storage* other) {
+    if(self->type != other->type) {
+        return false;
+    }
+    switch(self->type) {
+        case StorageType_reg:
+            return self->body.reg == other->body.reg;
+        case StorageType_mem:
+            return false;
+        case StorageType_xmm:
+            return self->body.xmm == other->body.xmm;
+        case StorageType_imm:
+            return false;
+    }
+
+    PANIC("unreachable");
+}
+
 bool Storage_is_depend_on(in Storage* self, in Storage* other) {
     if(self->type != StorageType_mem || other->type != StorageType_reg) {
         return false;
     }
     
     return self->body.mem.base == other->body.reg;
+}
+
+bool Storage_is_depend_on_reg(in Storage* self, Register reg) {
+    return self->type == StorageType_mem && self->body.mem.base == reg;
 }
 
 void Storage_print(in Storage* self) {

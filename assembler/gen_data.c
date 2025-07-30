@@ -3,7 +3,7 @@
 #include "gen.h"
 #include "util.h"
 
-ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, out Data* data) {
+ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, optional in Register* auto_reg, out Data* data) {
     assert(parser != NULL && generator != NULL && stack_offset != NULL && data != NULL);
     // Data @ Storage
     Parser parser_copy = *parser;
@@ -20,7 +20,7 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* s
         Type_free(data->type)
     );
     PARSERMSG_UNWRAP(
-        Storage_parse(&parser_copy, stack_offset, &data->type, &data->storage),
+        Storage_parse(&parser_copy, stack_offset, auto_reg, &data->type, &data->storage),
         Type_free(data->type)
     );
 

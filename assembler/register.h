@@ -53,6 +53,8 @@ typedef enum {
     Xmm15,
 } Register;
 
+extern Register GENERAL_REGISTERS[14];
+
 SResult Register_get_addreg_code(Register self, out u8* value);
 
 SResult Register_get_reg_code(Register self, out u8* value);

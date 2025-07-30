@@ -14,7 +14,7 @@ Variable Variable_new(in char* name, in char* valid_path, Data data, bool defer_
     return variable;
 }
 
-ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, out Variable* variable) {
+ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, optional in Register* auto_reg, out Variable* variable) {
     // (defer) name: Data
     Parser parser_copy = *parser;
 
@@ -30,7 +30,7 @@ ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i3
     );
     variable->defer_flag = ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "defer"));
     PARSERMSG_UNWRAP(
-        Data_parse(&parser_copy, generator, stack_offset, &variable->data),
+        Data_parse(&parser_copy, generator, stack_offset, auto_reg, &variable->data),
         (void)NULL
     );
 

@@ -180,7 +180,7 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
         i32 dummy = 0;
         Variable variable;
         PARSERMSG_UNWRAP(
-            Variable_parse(&parser_copy, generator, &dummy, &variable),
+            Variable_parse(&parser_copy, generator, &dummy, NULL, &variable),
             (void)NULL
         );
         if(variable.data.storage.type == StorageType_mem) {
@@ -194,7 +194,7 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
 
         dummy = stack_offset;
         PARSERMSG_UNWRAP(
-            Variable_parse(&parser, generator, &dummy, &variable),
+            Variable_parse(&parser, generator, &dummy, NULL, &variable),
             (void)NULL
         );
 

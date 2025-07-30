@@ -294,7 +294,7 @@ static ParserMsg Type_parse_fn(inout Parser* parser, in Generator* generator, ou
         i32 dummy = 0;
         Data argument;
         PARSERMSG_UNWRAP(
-            Data_parse(&paren_parser, generator, &dummy, &argument), Vec_free_all(arguments, Data_free_for_vec)
+            Data_parse(&paren_parser, generator, &dummy, NULL, &argument), Vec_free_all(arguments, Data_free_for_vec)
         );
         Vec_push(&arguments, &argument);
 

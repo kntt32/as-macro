@@ -114,8 +114,10 @@ void Imm_free(Imm self) {
     }
 }
 
-ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, in Type* type, out Storage* storage) {
-    if(ParserMsg_is_success(Register_parse(parser, &storage->body.reg))) {
+ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, optional in Register* auto_reg, in Type* type, out Storage* storage) {
+    Parser parser_copy = *parser;
+
+    if(ParserMsg_is_success(Register_parse(&parser_copy, &storage->body.reg))) {
         if(type->type == Type_Array || type->type == Type_Struct) {
             return ParserMsg_new(parser->offset, "array of struct can't store on register or xmm'");
         }
@@ -125,11 +127,11 @@ ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, in Type* 
             storage->type = StorageType_xmm;
             storage->body.xmm = storage->body.reg;
         }
-    }else if(ParserMsg_is_success(Parser_parse_keyword(parser, "imm"))){
+    }else if(ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "imm"))){
         storage->type = StorageType_imm;
         storage->body.imm.type = Imm_Value;
         storage->body.imm.body.value = Vec_new(sizeof(u8));
-    }else if(ParserMsg_is_success(Parser_parse_keyword(parser, "stack"))) {
+    }else if(ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "stack"))) {
         if(stack_offset == NULL) {
             return ParserMsg_new(parser->offset, "storage \"stack\" can not be used here");
         }else {
@@ -141,9 +143,17 @@ ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, in Type* 
             mem->disp.label[0] = '\0';
             mem->disp.offset = *stack_offset;
         }
+    }else if(ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "auto"))) {
+        if(auto_reg == NULL) {
+            return ParserMsg_new(parser->offset, "auto register is not available");
+        }
+
+        storage->type = StorageType_reg;
+        storage->body.reg = *auto_reg;
     }else {
         return ParserMsg_new(parser->offset, "expected storage");
     }
+    *parser = parser_copy;
 
     return ParserMsg_new(parser->offset, NULL);
 }
@@ -256,6 +266,10 @@ bool Storage_cmp(in Storage* self, in Storage* other) {
     return false;
 }
 
+bool Storage_doubling_reg(in Storage* self, Register reg) {
+    return self->type == StorageType_reg && reg == self->body.reg;
+}
+
 bool Storage_doubling(in Storage* self, in Storage* other) {
     if(self->type != other->type) {
         return false;
@@ -275,11 +289,7 @@ bool Storage_doubling(in Storage* self, in Storage* other) {
 }
 
 bool Storage_is_depend_on(in Storage* self, in Storage* other) {
-    if(self->type != StorageType_mem || other->type != StorageType_reg) {
-        return false;
-    }
-    
-    return self->body.mem.base == other->body.reg;
+    return other->type == StorageType_reg && Storage_is_depend_on_reg(self, other->body.reg);
 }
 
 bool Storage_is_depend_on_reg(in Storage* self, Register reg) {

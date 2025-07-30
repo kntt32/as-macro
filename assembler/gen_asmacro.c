@@ -5,7 +5,7 @@
 static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argument* argument) {
     Parser parser_copy = *parser;
 
-    if(!Parser_start_with(parser, "imm") && ParserMsg_is_success(Storage_parse(&parser_copy, NULL, &argument->type, &argument->storage.storage))) {
+    if(!Parser_start_with(parser, "imm") && ParserMsg_is_success(Storage_parse(&parser_copy, NULL, NULL, &argument->type, &argument->storage.storage))) {
         argument->storage_type = Argument_Storage;
     }else {
         struct { char* keyword; bool* flag;} bounds[] = {

@@ -18,7 +18,7 @@ fn main() {
     let str: Str@stack;
     str.from("Hello, Println!");
     println(str);
-
+/*
     let box: defer Box_i64@stack;
     box.new(15);
     {
@@ -33,7 +33,15 @@ fn main() {
 
     let vec: defer Vec_i64@stack;
     vec.new();
-    vec.push(5);
-    // vec.drop();
+    vec.push(5);*/
+
+    let autovar: i64@auto = 1;
+    let autovar2: i64@auto = 2;
+    let autovar3: i64@auto = 3;
+    let autovar4: i64@auto = 4;
+    {
+        let autovar5: i64@auto = 5;
+    };
+    let autovar6: i64@auto = 6;
 };
 

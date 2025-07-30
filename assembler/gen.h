@@ -324,20 +324,21 @@ bool Imm_cmp(in Imm* self, in Imm* other);
 Imm Imm_clone(in Imm* self);
 void Imm_free(Imm self);
 
-ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, in Type* type, out Storage* storage);
+ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, optional in Register* auto_reg, in Type* type, out Storage* storage);
 SResult Storage_add_offset(inout Storage* self, i32 offset);
 SResult Storage_replace_label(inout Storage* self, in char* label);
 Storage Storage_refer_reg(Register reg);
 SResult Storage_subscript(in Storage* self, u32 index, u32 size, out Storage* storage);
 bool Storage_cmp(in Storage* self, in Storage* other);
 bool Storage_doubling(in Storage* self, in Storage* other);
+bool Storage_doubling_reg(in Storage* self, Register reg);
 bool Storage_is_depend_on(in Storage* self, in Storage* other);
 bool Storage_is_depend_on_reg(in Storage* self, Register reg);
 void Storage_print(in Storage* self);
 Storage Storage_clone(in Storage* self);
 void Storage_free(Storage self);
 
-ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, out Data* data);
+ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, optional in Register* auto_reg, out Data* data);
 bool Data_cmp(in Data* self, in Data* other);
 bool Data_cmp_for_vec(in void* left, in void* right);
 bool Data_cmp_signature(in Data* self, in Data* other);
@@ -364,7 +365,7 @@ void Data_free(Data self);
 void Data_free_for_vec(inout void* ptr);
 
 Variable Variable_new(in char* name, in char* valid_path, Data data, bool defer_flag);
-ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* rbp_offset, out Variable* variable);
+ParserMsg Variable_parse(inout Parser* parser, in Generator* generator, inout i32* stack_offset, optional Register* auto_reg, out Variable* variable);
 ParserMsg Variable_parse_static(inout Parser* parser, bool public_flag, inout Generator* generator, out Variable* variable);
 ParserMsg Variable_parse_static_init(inout Parser* parser, bool static_flag, in Variable* variable, in char* label, inout Generator* generator);
 ParserMsg Variable_parse_static_local(inout Parser* parser, in Generator* generator, out Variable* variable);

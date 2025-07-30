@@ -17,6 +17,7 @@ typedef struct {
     Vec variables;
     i32 stack_offset;
     Vec blocks;// Vec<VariableBlock>
+    u32 visible_block_base;
 } VariableManager;
 
 void StoredReg_print(in StoredReg* self);
@@ -32,6 +33,9 @@ i32* VariableManager_stack_offset(in VariableManager* self);
 SResult VariableManager_push(inout VariableManager* self, Variable variable, inout Generator* generator);
 void VariableManager_push_alias(inout VariableManager* self, Variable variable);
 SResult VariableManager_get(inout VariableManager* self, in char* name, out Variable* variable);
+u32 VariableManager_new_visible_block_base(inout VariableManager* self);
+void VariableManager_set_visible_block_base(inout VariableManager* self, u32 visiable_block_base);
+bool VariableManager_reg_is_available(inout VariableManager* self, Register reg);
 void VariableManager_new_block(inout VariableManager* self);
 SResult VariableManager_delete_block(inout VariableManager* self, inout Generator* generator);
 SResult VariableManager_delete_allblock(inout VariableManager* self, inout Generator* generator);

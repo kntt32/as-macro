@@ -42,7 +42,8 @@ VariableManager VariableManager_new(i32 stack_offset) {
     VariableManager variable_manager = {
         Vec_new(sizeof(Variable)),
         stack_offset,
-        Vec_new(sizeof(VariableBlock))
+        Vec_new(sizeof(VariableBlock)),
+        0
     };
     VariableBlock block = {
         stack_offset,
@@ -206,25 +207,59 @@ void VariableManager_push_alias(inout VariableManager* self, Variable variable) 
 }
 
 SResult VariableManager_get(inout VariableManager* self, in char* name, out Variable* variable) {
-    for(i32 i=Vec_len(&self->variables)-1; 0<=i; i--) {
-        Variable* ptr = Vec_index(&self->variables, i);
-        if(strcmp(ptr->name, name) == 0) {
-            if(is_stored(self, ptr, i)) {
-                char msg[256];
-                is_stored(self, ptr, i);
-                wrapped_strcpy(msg, "variable \"", sizeof(msg));
-                wrapped_strcat(msg, name, sizeof(msg));
-                wrapped_strcat(msg, "\" is shadowed", sizeof(msg));
-                return SResult_new(msg);
+    if(self->visible_block_base < Vec_len(&self->blocks)) {
+        VariableBlock* visible_block = Vec_index(&self->blocks, self->visible_block_base);
+        i32 visible_variable_base = visible_block->variables_base;
+
+        for(i32 i=Vec_len(&self->variables)-1; visible_variable_base<=i; i--) {
+            Variable* ptr = Vec_index(&self->variables, i);
+            if(strcmp(ptr->name, name) == 0) {
+                if(is_stored(self, ptr, i)) {
+                    char msg[256];
+                    is_stored(self, ptr, i);
+                    wrapped_strcpy(msg, "variable \"", sizeof(msg));
+                    wrapped_strcat(msg, name, sizeof(msg));
+                    wrapped_strcat(msg, "\" is shadowed", sizeof(msg));
+                    return SResult_new(msg);
+                }
+                *variable = Variable_clone(ptr);
+                return SResult_new(NULL);
             }
-            *variable = Variable_clone(ptr);
-            return SResult_new(NULL);
         }
     }
     
     char msg[256];
     snprintf(msg, 256, "variable \"%.10s\" is undefiend", name);
     return SResult_new(msg);
+}
+
+u32 VariableManager_new_visible_block_base(inout VariableManager* self) {
+    u32 old_visible_block_base = self->visible_block_base;
+    self->visible_block_base = Vec_len(&self->blocks);
+    return old_visible_block_base;
+}
+
+void VariableManager_set_visible_block_base(inout VariableManager* self, u32 visiable_block_base) {
+    self->visible_block_base = visiable_block_base;
+}
+
+bool VariableManager_reg_is_available(inout VariableManager* self, Register reg) {
+    if(Vec_len(&self->blocks) <= self->visible_block_base) {
+        return false;
+    }
+    
+    VariableBlock* visible_block_base = Vec_index(&self->blocks, self->visible_block_base);
+    u32 visible_variable_base = visible_block_base->variables_base;
+    for(u32 i=visible_variable_base; i<Vec_len(&self->variables); i++) {
+        Variable* variable = Vec_index(&self->variables, i);
+        if((Storage_is_depend_on_reg(&variable->data.storage, reg)
+            || Storage_doubling_reg(&variable->data.storage, reg))
+            && !is_stored(self, variable, i)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void VariableManager_new_block(inout VariableManager* self) {
@@ -358,7 +393,6 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_variable_declaration,
         Syntax_build_static_variable_declaration,
         Syntax_build_const_variable_declaration,
-        Syntax_build_return,
         Syntax_build_sizeof_operator,
         Syntax_build_alignof_operator,
         Syntax_build_if,
@@ -836,6 +870,7 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
         Asmacro_free(asmacro);
     );
 
+    u32 old_visible_block_base = VariableManager_new_visible_block_base(variable_manager);
     VariableManager_new_block(variable_manager);
 
     switch(asmacro.type) {
@@ -872,6 +907,7 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
         VariableManager_delete_block(variable_manager, generator),
         Data_free(*data)
     );
+    VariableManager_set_visible_block_base(variable_manager, old_visible_block_base);
     
     Generator_finish_asmacro_expand(generator);
 
@@ -1082,10 +1118,20 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
     }
     
     *data = Data_void();
+
+    Register auto_reg_;
+    Register* auto_reg = NULL;
+    for(u32 i=0; i<LEN(GENERAL_REGISTERS); i++) {
+       if(VariableManager_reg_is_available(variable_manager, GENERAL_REGISTERS[i])) {
+            auto_reg_ = GENERAL_REGISTERS[i];
+            auto_reg = &auto_reg_;
+            break;
+       } 
+    }
     
     Variable variable;
     i32 stack_offset = variable_manager->stack_offset;
-    if(resolve_parsermsg(Variable_parse(&parser, generator, &variable_manager->stack_offset, &variable), generator)) {
+    if(resolve_parsermsg(Variable_parse(&parser, generator, &variable_manager->stack_offset, auto_reg, &variable), generator)) {
         return true;
     }
 
@@ -2267,27 +2313,4 @@ bool Syntax_build_debug_label_syntax(Parser parser, inout Generator* generator, 
 
     return true;
 }
-
-bool Syntax_build_return(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "return"))) {
-        return false;
-    }
-
-    resolve_sresult(
-        VariableManager_delete_allblock(variable_manager, generator), parser.offset, generator
-    );
-
-    Vec ret_arg = Vec_new(sizeof(Data));
-    Data ret_rel = Data_from_label(".ret");
-    Vec_push(&ret_arg, &ret_rel);
-    if(!resolve_sresult(expand_asmacro("jmp", Parser_path(&parser), ret_arg, generator, variable_manager, data), parser.offset, generator)) {
-        Data_free(*data);
-    }
-    *data = Data_void();
-
-    check_parser(&parser, generator);
-    return true;
-}
-
-
 

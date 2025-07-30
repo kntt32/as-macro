@@ -19,45 +19,42 @@ pub as new(out self: Io@mem, in fd: i32@reg+imm) {
 };
 
 pub as flush(inout self: Io@mem) {
-    let selflen: i64@rax = self.len;
-    let flag: bool@rax;
+    let flag: bool@auto;
     if(neq(flag, self.len, 0)) {
-        let msg: *char@rsi;
+        let msg: *char@auto;
         msg =& self.buff;
-        let len: i64@rdx = self.len;
-        let fd: i32@rdi = self.fd;
+        let len: i64@auto = self.len;
+        let fd: i32@auto = self.fd;
         write(fd, msg, len);
         self.len = 0;
     };
 };
 
 pub as write(inout self: Io@mem, in str: Str@mem) {
-    let str_ptr: *char@rax;
+    let str_ptr: *char@auto;
     str.as_ptr(str_ptr);
-    let str_ptr_i8: *i8@rdx = str_ptr;
-    let len: i64@rcx;
+    let str_ptr_i8: *i8@auto = str_ptr;
+    let len: i64@auto;
     str.len(len);
     self.write(str_ptr_i8, len);
 };
 
-pub as write(inout self: Io@mem, in data: *i8@reg+mem, in len: i64@rcx) {
-    let buff_new_len: i64@r8 = self.len;
+pub as write(inout self: Io@mem, in data: *i8@reg+mem, in len: i64@reg+mem+imm) {
+    let buff_new_len: i64@auto = self.len;
     buff_new_len += len;
-    let flag: bool@rax;
+    let flag: bool@auto;
     if(ge(flag, buff_new_len, 1024)) {
         flush(self);
     };
 
-    let dst: *void@rdi;
+    let dst: *void@auto;
     dst =& self.buff;
     dst += self.len;
-    let src: *void@rsi;
+    let src: *void@auto;
     src = data;
 
     memcpy(dst, src, len);
     self.len += len;
-
-    data;len;
 };
 
 pub as drop(inout self: Io@mem) {

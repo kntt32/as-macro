@@ -20,9 +20,9 @@ pub as memcpy(in dst: *i8@reg+mem, in src: *i8@reg+mem, in size: i64@reg+mem) {
     let src_mem: *i8@stack = src;
     let size_mem: *i8@stack = size;
 
-    let dst_rdi: *i8@rdi = dst;
-    let src_rsi: *i8@rsi = src;
-    let size_rcx: i64@rcx = size;
+    let dst_rdi: *i8@rdi = dst_mem;
+    let src_rsi: *i8@rsi = src_mem;
+    let size_rcx: i64@rcx = size_mem;
 
     memcpy(dst_rdi, src_rsi, size_rcx);
 };

@@ -12,6 +12,18 @@ pub as write(in fd: i32@rdi, in msg: *char@rsi, in len: i64@rdx) {
     syscall(number);
 };
 
+pub as write(in fd: i32@reg+mem+imm, in msg: *char@reg+mem, in len: i64@reg+mem+imm) {
+    let fd_mem: i32@stack = fd;
+    let msg_mem: *char@stack = msg;
+    let len_mem: i64@stack = len;
+
+    let fd_rdi: i32@rdi = fd_mem;
+    let msg_rsi: *char@rsi = msg_mem;
+    let len_rdx: i64@rdx = len_mem;
+
+    write(fd_rdi, msg_rsi, len_rdx);
+};
+
 pub const MMAP_PROT_NONE: i64 = 0x0;
 pub const MMAP_PROT_READ: i64 = 0x1;
 pub const MMAP_PROT_WRITE: i64 = 0x2;

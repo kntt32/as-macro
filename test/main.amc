@@ -3,13 +3,44 @@ import std.io;
 import std.io.print;
 import std.vec;
 
+impl Vec(i32);
+impl Display_Vec(Io, i32);
 pub as drop(x: i32@reg+mem) {};
 
+const MAX: i64 = 100000;
+
 fn main() {
-    let value: i64@auto = 0;
-    for((let i: i64@auto = 0; let flag: bool@auto); flag.lt(i, 1000000); ++i) {
-        value += i;
+    let numbers: defer Vec_i32@stack;
+    numbers.new();
+    numbers.resize(MAX);
+    let numbers_len: i64@r8 = 0;
+    let flag: bool@r9;
+
+    for(let i: i64@r10 = 2; flag.lt(i, MAX); ++i) {
+        let prime_flag: bool@r11 = true;
+
+        for(let k: i64@r12 = 0; flag.lt(k, numbers_len); ++k) {
+            let prime: *i32@r13;
+            numbers.index(k, prime);
+            
+            let remaining: i32@rdx = 0;
+            let divided: i32@rax = i;
+            divided.idiv(remaining, *prime);
+            if(flag.eq(remaining, 0)) {
+                k = numbers_len;
+                prime_flag = false;
+            };
+        };
+
+        if(prime_flag) {
+            let prime: *i32@r12;
+            numbers.index(numbers_len, prime);
+            *prime = i;
+            ++ numbers_len;
+        };
     };
-    println(value);
+
+    numbers.resize(numbers_len);
+    println(numbers);
 };
 

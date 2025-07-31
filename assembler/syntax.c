@@ -1875,34 +1875,6 @@ bool Syntax_build_for(Parser parser, inout Generator* generator, inout VariableM
     return true;
 }
 
-static ParserMsg Syntax_build_forrange(Parser parser, out Parser* init_parser, out u64* init, out u64* max, out Parser* proc_parser) {
-    // forrange(let i: i64@auto; 0; 10) { }
-
-    Parser paren_parser;
-    PARSERMSG_UNWRAP(
-        Parser_parse_paren(&parser, &paren_parser), (void)NULL
-    );
-
-    *init_parser = Parser_split(&paren_parser, ";");
-    PARSERMSG_UNWRAP(
-        Parser_parse_number(&paren_parser, init), (void)NULL
-    );
-    PARSERMSG_UNWRAP(
-        Parser_parse_symbol(&paren_parser, ";"), (void)NULL
-    );
-    PARSERMSG_UNWRAP(
-        Parser_parse_number(&paren_parser, max), (void)NULL
-    );
-
-    return ParserMsg_new(NULL);
-}
-
-bool Syntax_build_forrange(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "forrange"))) {
-        return false;
-    }
-}
-
 static ParserMsg Syntax_build_while_parse(Parser parser, out Parser* cond_parser, out Parser* proc_parser) {
     PARSERMSG_UNWRAP(
         Parser_parse_paren(&parser, cond_parser), (void)NULL

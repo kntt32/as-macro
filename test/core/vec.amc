@@ -93,6 +93,14 @@ pub template RawVec(T, A) {
         capacity = self.capacity;
     };
 
+    pub as resize(inout self: Vec_$(T)@mem, in len: i64@reg+mem+imm) {
+        let addr: *$(T)@auto;
+
+        self.reserve(len);
+        self.as_addr(addr);
+        self.slice.from(addr, len);
+    };
+
     pub as reserve(inout self: Vec_$(T)@mem, in capacity: i64@reg+mem+imm) {
         let flag: bool@auto;
 

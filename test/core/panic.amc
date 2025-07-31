@@ -6,7 +6,8 @@ extern fn panic_handler(msg: *char@rdi);
 pub as panic(in msg: bin@mem) {
     let msg_addr_auto: *char@auto;
     msg_addr_auto =& msg;
-    let msg_addr: *char@rdi = msg_addr_auto;
+    let msg_addr_stack: *char@stack = msg_addr_auto;
+    let msg_addr: *char@rdi = msg_addr_stack;
     panic_handler(msg_addr);
     ud2();
 };

@@ -35,6 +35,7 @@ void VariableManager_push_alias(inout VariableManager* self, Variable variable);
 SResult VariableManager_get(inout VariableManager* self, in char* name, out Variable* variable);
 u32 VariableManager_new_visible_block_base(inout VariableManager* self);
 void VariableManager_set_visible_block_base(inout VariableManager* self, u32 visiable_block_base);
+bool VariableManager_reg_is_prior_available(inout VariableManager* self, Register reg);
 bool VariableManager_reg_is_available(inout VariableManager* self, Register reg);
 void VariableManager_new_block(inout VariableManager* self);
 SResult VariableManager_delete_block(inout VariableManager* self, inout Generator* generator);

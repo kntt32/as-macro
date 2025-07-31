@@ -7,29 +7,29 @@ import std.vec;
 impl Box(i64);
 impl Display_Box(Io, i64);
 
-impl Vec(i64);
-impl Display_Vec(Io, i64);
+impl Vec(i32);
+impl Display_Vec(Io, i32);
 
-pub as drop(inout self: i64@reg+mem) {};
-pub as clone(in self: i64@reg+mem, out buff: i64@reg+mem) {
+pub as drop(inout self: i32@reg+mem) {};
+pub as clone(in self: i32@reg+mem, out buff: i32@reg+mem) {
     buff = self;
 };
 
-fn find_prime_number(max: i64@rdi) {
-    let numbers: defer Vec_i64@stack;
+fn find_prime_number(max: i32@rdi) {
+    let numbers: defer Vec_i32@stack;
     numbers.new();
 
-    let remain: i64@auto;
-    let prime: *i64@auto;
-    let numbers_len: i64@auto;
-    let flag: bool@auto;
+    let remain: i32@rdx;
+    let prime: *i32@r8;
+    let numbers_len: i64@r9;
+    let flag: bool@r10;
 
-    for(let i: i64@auto = 2; flag.lt(i, max); ++i) {
-        let prime_flag: bool@auto = true;
+    for(let i: i32@r11 = 2; flag.lt(i, max); ++i) {
+        let prime_flag: bool@r12 = true;
 
         numbers.len(numbers_len);
-        for(let k: i64@auto = 0; flag.lt(k, numbers_len); ++k) {
-            let i_copy: i64@auto = i;
+        for(let k: i64@r13 = 0; flag.lt(k, numbers_len); ++k) {
+            let i_copy: i32@rax = i;
             remain = 0;
             numbers.index(k, prime);
             i_copy.idiv(remain, *prime);
@@ -49,9 +49,7 @@ fn find_prime_number(max: i64@rdi) {
 };
 
 fn main() {
-    let str: Str@stack;
-    str.from("Hello, Println!");
-    let max: i64@rdi = 100000;
+    let max: i32@rdi = 100000;
     find_prime_number(max);
 };
 

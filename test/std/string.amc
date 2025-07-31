@@ -1,0 +1,8 @@
+import core;
+import core.string;
+import std;
+import std.alloc;
+
+impl String(STD_ALLOC);
+impl Display_String(Io);
+

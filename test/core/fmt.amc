@@ -55,8 +55,34 @@ pub template Display(Formatter) {
     };
 
     pub as display(inout self: $(Formatter)@mem, in object: i32@reg+mem+imm) {
-        let i64_object: i64@auto = object;
+        let i64_object: i64@auto;
+        i64_object.movsxd(object);
         self.display(i64_object);
+    };
+
+    pub as display(inout self: $(Formatter)@mem, in object: i16@reg+mem+imm) {
+        let i64_object: i64@auto;
+        i64_object.movsx(object);
+        self.display(i64_object);
+    };
+
+    pub as display(inout self: $(Formatter)@mem, in object: i8@reg+mem+imm) {
+        let i64_object: i64@auto;
+        i64_object.movsx(object);
+        self.display(i64_object);
+    };
+
+    pub as display(inout self: $(Formatter)@mem, in object: char@reg+mem+imm) {
+        let buff: [char; 1]@stack;
+        buff[0] = object;
+
+        let buff_ptr: *char@auto;
+        buff_ptr =& buff;
+
+        let str: Str@stack;
+        str.from(buff_ptr, 1);
+
+        self.write(str);
     };
 };
 

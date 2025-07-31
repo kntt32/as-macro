@@ -2,6 +2,7 @@ import std;
 import std.io;
 import std.io.print;
 import std.vec;
+import std.string;
 
 impl Vec(i32);
 impl Display_Vec(Io, i32);
@@ -9,7 +10,7 @@ pub as drop(x: i32@reg+mem) {};
 
 const MAX: i64 = 100000;
 
-fn main() {
+fn main() {/*
     let numbers: defer Vec_i32@stack;
     numbers.new();
     numbers.resize(MAX);
@@ -41,6 +42,12 @@ fn main() {
     };
 
     numbers.resize(numbers_len);
-    println(numbers);
+    println(numbers);*/
+
+    let str: Str@stack;
+    str.from("Hello");
+    let string: defer String@stack;
+    string.from("Hello, String!");
+    println(string);
 };
 

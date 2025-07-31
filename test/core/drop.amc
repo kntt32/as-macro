@@ -1,0 +1,13 @@
+import core;
+
+pub template DropNothing(T) {
+    pub as drop(in self: $(T)@reg+mem+imm) {};
+};
+
+impl DropNothing(i8);
+impl DropNothing(i16);
+impl DropNothing(i32);
+impl DropNothing(i64);
+impl DropNothing(bool);
+impl DropNothing(char);
+

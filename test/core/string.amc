@@ -1,0 +1,66 @@
+import core;
+import core.fmt;
+import core.drop;
+import core.vec;
+
+pub template String(A) {
+    impl RawVec(char, $(A));
+
+    pub struct String {
+        vec: Vec_char
+    };
+
+    pub as new(out self: String@mem) {
+        self.vec.new();
+    };
+
+    pub as from(out self: String@mem, in str: Str@mem) {
+        let len: i64@auto;
+        str.len(len);
+
+        self.vec.new();
+        self.vec.resize(len);
+
+        for((let i: i64@auto = 0; let flag: bool@auto); flag.lt(i, len); ++i) {
+            let str_addr: *char@auto;
+            let vec_addr: *char@auto;
+            str.index(i, str_addr);
+            self.vec.index(i, vec_addr);
+            *vec_addr = *str_addr;
+        };
+    };
+
+    pub as from(in self: String@mem, in c_str: bin@mem) {
+        let str: Str@stack;
+        self.from(str.from(c_str));
+    };
+
+    pub as mov(out dst: String@mem, in src: String@mem) {
+        dst.vec = src.vec;
+    };
+
+    pub as as_str(in self: String@mem, out str: Str@mem) {
+        let len: i64@auto;
+        let addr: *char@auto;
+
+        self.vec.len(len);
+        self.vec.as_addr(addr);
+
+        str.from(addr, len);
+    };
+
+    pub as drop(inout self: String@mem) {
+        self.vec.drop();
+    };
+};
+
+pub template Display_String(Formatter) {
+    pub as display(inout self: $(Formatter)@mem, in object: String@mem) {
+        let str: Str@stack;
+        object.as_str(str);
+
+        self.write(str);
+    };
+};
+
+

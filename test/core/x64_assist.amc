@@ -53,6 +53,7 @@ template Imul(T) {
         let self_auto: $(T)@auto = self;
         let other_auto: $(T)@auto = other;
         imul(self_auto, other_auto);
+        self = self_auto;
     };
 };
 
@@ -60,6 +61,7 @@ pub as imul(inout self: b8@reg+mem, in other: b8@reg+mem+imm) {
     let self_auto: i16@auto = self;
     let other_auto: i16@auto = other;
     imul(self_auto, other_auto);
+    self = self_auto;
 };
 
 impl Imul(b16);

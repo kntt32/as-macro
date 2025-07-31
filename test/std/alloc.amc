@@ -39,6 +39,7 @@ pub as alloc(inout self: Self@mem, in size: i64@reg+mem+imm, out ptr: *void@reg+
     };
 
     ptr.panic_null();
+    !ALLOC_DEBUG;
 };
 
 as alloc_from_last(inout self: Self@mem, in size: i64@reg+mem+imm, out ptr: *void@reg+mem) {
@@ -100,13 +101,14 @@ pub as dealloc(inout self: Self@mem, in ptr: *void@reg+mem) {
             mem_block.imul(i, sizeof(MemBlock));
             mem_block += self.table;
 
-            let lower_bound: i64@auto;
-            let upper_bound: i64@auto;
+            let lower_bound: *void@auto;
+            let upper_bound: *void@auto;
             (*mem_block).get_lower_bound(lower_bound);
             (*mem_block).get_upper_bound(upper_bound);
 
             if(flag.ge(ptr, lower_bound)) {
                 if(flag.lt(ptr, upper_bound)) {
+                    !DEALLOC_DEBUG;
                     (*mem_block).dealloc(ptr);
                 };
             };

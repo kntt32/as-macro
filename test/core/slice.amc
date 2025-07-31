@@ -26,7 +26,7 @@ pub template Slice(T) {
         panic_ge(index, self.len, "Slice:index: out of range");
         let index_auto: i64@auto = index;
         let ptr_auto: *$(T)@auto = sizeof($(T));
-        ptr_auto.imul(index_mem);
+        ptr_auto.imul(index_auto);
         ptr_auto += self.ptr;
         ptr = ptr_auto;
     };

@@ -53,5 +53,10 @@ pub template Display(Formatter) {
             self.write(str);
         }
     };
+
+    pub as display(inout self: $(Formatter)@mem, in object: i32@reg+mem+imm) {
+        let i64_object: i64@auto = object;
+        self.display(i64_object);
+    };
 };
 

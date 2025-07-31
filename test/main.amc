@@ -8,21 +8,50 @@ impl Box(i64);
 impl Display_Box(Io, i64);
 
 impl Vec(i64);
+impl Display_Vec(Io, i64);
 
 pub as drop(inout self: i64@reg+mem) {};
 pub as clone(in self: i64@reg+mem, out buff: i64@reg+mem) {
     buff = self;
 };
 
+fn find_prime_number(max: i64@rdi) {
+    let numbers: defer Vec_i64@stack;
+    numbers.new();
+
+    let remain: i64@auto;
+    let prime: *i64@auto;
+    let numbers_len: i64@auto;
+    let flag: bool@auto;
+
+    for(let i: i64@auto = 2; flag.lt(i, max); ++i) {
+        let prime_flag: bool@auto = true;
+
+        numbers.len(numbers_len);
+        for(let k: i64@auto = 0; flag.lt(k, numbers_len); ++k) {
+            let i_copy: i64@auto = i;
+            remain = 0;
+            numbers.index(k, prime);
+            i_copy.idiv(remain, *prime);
+
+            if(flag.eq(remain, 0)) {
+                k = numbers_len;
+                prime_flag = false;
+            };
+        };
+
+        if(prime_flag) {
+            numbers.push(i);
+        };
+    };
+
+    println(numbers);
+};
+
 fn main() {
     let str: Str@stack;
     str.from("Hello, Println!");
-    !DEBUG_LABEL;
-    let a: i64@rax = str.slice.len;
-    println(str);
-
-    let box: defer Box_i64@stack;
-    box.new(12345);
-    println(box);
+    let max: i64@rdi = 100000;
+    find_prime_number(max);
 };
 

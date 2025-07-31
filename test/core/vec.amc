@@ -13,6 +13,13 @@ pub template RawVec(T, A) {
         self.capacity = 0;
     };
 
+    pub as mov(out dst: Vec_$(T)@mem, inout src: Vec_$(T)@mem) {
+        dst.slice = src.slice;
+        dst.capacity = src.capacity;
+        src.slice.empty();
+        src.capacity = 0;
+    };
+
     pub as push(inout self: Vec_$(T)@mem, in value: $(T)@reg+mem+imm) {
         let self_len: i64@auto;
         self.slice.len(self_len);
@@ -31,6 +38,51 @@ pub template RawVec(T, A) {
         let ptr: *$(T)@auto;
         self.slice.index(value_index, ptr);
         *ptr = value;
+    };
+
+    pub as pop(inout self: Vec_$(T)@mem, out value: $(T)@reg+mem) {
+        let self_len: i64@auto;
+        self.slice.len(self_len);
+
+        let last_index: i64@auto = self_len;
+        last_index -= 1;
+
+        let value_addr: *$(T)@auto;
+        self.slice.index(last_index, value_addr);
+        value = *value_addr;
+
+        let addr: *$(T)@auto;
+        self.slice.as_ptr(addr);
+
+        self_len -= 1;
+
+        self.slice.from(addr, self_len);
+    };
+
+    pub as index(in self: Vec_$(T)@mem, in index: i64@reg+mem+imm, out addr: *$(T)@reg+mem) {
+        self.slice.index(index, addr);
+    };
+
+    pub as clone(in self: Vec_$(T)@mem, out buff: Vec_$(T)@mem) {
+        let self_len: i64@auto;
+        self.slice.len(self_len);
+
+        buff.new();
+        buff.reserve(self_len);
+
+        let memcpy_dst: *void@auto;
+        buff.as_addr(memcpy_dst);
+        let memcpy_src: *void@auto;
+        self.as_addr(memcpy_src);
+        let memcpy_size: i64@auto = self_len;
+        memcpy_size.imul(sizeof($(T)));
+        memcpy(memcpy_dst, memcpy_src, memcpy_size);
+
+        buff.slice.from(memcpy_dst, self_len);
+    };
+
+    pub as as_addr(in self: Vec_$(T)@mem, out addr: *$(T)@reg+mem) {
+        self.slice.as_ptr(addr);
     };
 
     pub as len(in self: Vec_$(T)@mem, out len: i64@reg+mem) {
@@ -60,8 +112,8 @@ pub template RawVec(T, A) {
             let new_memsize: i64@auto = new_capacity;
             new_memsize.imul(sizeof($(T)));
 
-            let new_ptr: *i8@auto;
-            $(A).alloc(new_memsize, new_ptr_mem);
+            let new_ptr_i8: *i8@auto;
+            $(A).alloc(new_memsize, new_ptr_i8);
 
             let old_memsize: i64@auto;
             self.slice.len(old_memsize);
@@ -70,29 +122,57 @@ pub template RawVec(T, A) {
             let old_ptr: *void@auto;
             self.slice.as_ptr(old_ptr);
             
-            memcpy(new_ptr, old_ptr, old_memsize);
+            memcpy(new_ptr_i8, old_ptr, old_memsize);
 
             $(A).dealloc(old_ptr);
 
+            let new_ptr: *$(T)@auto = new_ptr_i8;
             self.slice.from(new_ptr, self_len);
             self.capacity = new_capacity;
         }
     };
 
     pub as drop(inout self: Vec_$(T)@mem) {
+        let debug_str: Str@stack;
         let self_len: i64@auto;
         self.slice.len(self_len);
 
         let object_ptr: *$(T)@auto;
         
         for((let i: i64@auto = 0; let flag: bool@auto); flag.lt(i, self_len); ++i) {
-           self.slice.index(i, object_ptr_rax);
-           (*object_ptr_rax).drop();
+           self.slice.index(i, object_ptr);
+           (*object_ptr).drop();
         };
 
         let slice_ptr: *$(T)@auto;
         self.slice.as_ptr(slice_ptr);
         $(A).dealloc(slice_ptr);
+    };
+};
+
+pub template Display_Vec(Formatter, T) {
+    pub as display(inout self: $(Formatter)@mem, in vec: Vec_$(T)@mem) {
+        let str: Str@stack;
+        str.from("Vec[");
+        self.write(str);
+        str.from(", ");
+
+        let len: i64@auto;
+        vec.slice.len(len);
+
+        let flag: bool@auto;
+        for(let i: i64@auto = 0; flag.lt(i, len); ++i) {
+            if(flag.neq(i, 0)) {
+                self.write(str);
+            };
+
+            let object: *$(T)@auto;
+            vec.index(i, object);
+            self.display(*object);
+        };
+
+        str.from("]");
+        self.write(str);
     };
 };
 

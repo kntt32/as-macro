@@ -93,7 +93,7 @@ pub template RawVec(T, A) {
         capacity = self.capacity;
     };
 
-    as reserve(inout self: Vec_$(T)@mem, in capacity: i64@reg+mem+imm) {
+    pub as reserve(inout self: Vec_$(T)@mem, in capacity: i64@reg+mem+imm) {
         let flag: bool@auto;
 
         if(flag.gt(capacity, self.capacity)) {

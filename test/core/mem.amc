@@ -66,7 +66,7 @@ pub as memmove(in dst: *i8@reg+mem, in src: *i8@reg+mem, in size: i64@reg+mem+im
     let src_rsi: *i8@rsi = src;
     let size_rcx: i64@rcx = size;
 
-    memcpy(dst_rdi, src_rsi, size_rcx);
+    memmove(dst_rdi, src_rsi, size_rcx);
 };
 
 pub as memset(in dst: *i8@rdi, in value: i8@rax, in size: i64@rcx) {

@@ -7,6 +7,26 @@ pub template Slice(T) {
         len: u64,
     };
 
+    pub as eq(out flag: bool@reg+mem, in left: Slice_$(T)@mem, in right: Slice_$(T)@mem) {
+        if(flag.eq(left.len, right.len)) {
+            let break_flag: bool@auto = true;
+
+            for(let i: u64@auto = 0; flag.lt(i, left.len).and(break_flag); ++i) {
+                let left_addr: *$(T)@auto;
+                let right_addr: *$(T)@auto;
+                left.index(i, left_addr);
+                right.index(i, right_addr);
+
+                if(flag.eq(*left_addr, *right_addr).not()) {
+                    break_flag = false;
+                };
+                flag.not();
+            };
+
+            flag = break_flag;
+        };
+    };
+
     pub as mov(out dst: Slice_$(T)@mem, out src: Slice_$(T)@mem) {
         dst.ptr = src.ptr;
         dst.len = src.len;

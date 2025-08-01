@@ -15,6 +15,10 @@ pub as len(in self: Str@mem, out len: u64@reg+mem) {
     (self.slice).len(len);
 };
 
+pub as eq(out flag: bool@reg+mem, in left: Str@mem, in right: Str@mem) {
+    flag.eq(left.slice, right.slice);
+};
+
 pub as from(out self: Str@mem, in cstr: *char@reg+mem) {
     let len: u64@auto;
     let cstr_rsi: *char@auto = cstr;

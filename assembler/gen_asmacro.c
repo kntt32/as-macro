@@ -142,7 +142,10 @@ bool Argument_match_with(in Argument* self, in Data* data) {
                 || (self->storage.trait.xmm_flag && storage->type == StorageType_xmm))) {
                 return false;
             }
-            if(data->storage.type == StorageType_imm && self->type.type == Type_Integer && (data->type.type == Type_Integer || data->type.type == Type_Ptr)) {
+            if(data->storage.type == StorageType_imm
+                && self->type.type == Type_Integer
+                && (data->type.type == Type_Integer || data->type.type == Type_Ptr)
+                && (strcmp(data->type.name, "char") != 0 && strcmp(data->type.name, "bool") != 0)) {
                 if(data->storage.body.imm.type == Imm_Value) {
                     Vec* imm_value = &storage->body.imm.body.value;
                     u32 imm_size = Vec_len(imm_value);

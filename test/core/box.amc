@@ -35,6 +35,13 @@ pub template RawBox(T, A) {
         buff = (*self_ptr);
         $(A).dealloc(self.ptr);
     };
+
+    pub as eq(out flag: bool@reg+mem, in left: Box_$(T)@mem, in right: Box_$(T)@mem) {
+        let left_ptr: *$(T)@auto = left.ptr;
+        let right_ptr: *$(T)@auto = right.ptr;
+
+        flag.eq(*left_ptr, *right_ptr);
+    };
 };
 
 pub template Display_Box(Formatter, T) {

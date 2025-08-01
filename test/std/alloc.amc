@@ -39,7 +39,6 @@ pub as alloc(inout self: Self@mem, in size: u64@reg+mem+imm, out ptr: *void@reg+
     };
 
     ptr.panic_null();
-    !ALLOC_DEBUG;
 };
 
 as alloc_from_last(inout self: Self@mem, in size: u64@reg+mem+imm, out ptr: *void@reg+mem) {
@@ -108,7 +107,6 @@ pub as dealloc(inout self: Self@mem, in ptr: *void@reg+mem) {
 
             if(flag.ge(ptr, lower_bound)) {
                 if(flag.lt(ptr, upper_bound)) {
-                    !DEALLOC_DEBUG;
                     (*mem_block).dealloc(ptr);
                 };
             };

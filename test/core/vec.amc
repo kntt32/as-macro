@@ -140,6 +140,10 @@ pub template RawVec(T, A) {
         }
     };
 
+    pub as eq(out flag: bool@reg+mem, in left: Vec_$(T)@mem, in right: Vec_$(T)@mem) {
+        flag.eq(left.slice, right.slice);
+    };
+
     pub as drop(inout self: Vec_$(T)@mem) {
         let debug_str: Str@stack;
         let self_len: u64@auto;

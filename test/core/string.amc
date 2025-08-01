@@ -14,6 +14,10 @@ pub template String(A) {
         self.vec.new();
     };
 
+    pub as eq(out flag: bool@reg+mem, in left: String@mem, in right: String@mem) {
+        flag.eq(left.vec, right.vec);
+    };
+
     pub as from(out self: String@mem, in str: Str@mem) {
         let len: u64@auto;
         str.len(len);

@@ -1,54 +1,73 @@
 import std;
+import core.cmp;
 import std.io;
 import std.io.print;
 import std.vec;
-import std.string;
 
 impl Vec(u32);
 impl Display_Vec(Io, u32);
-pub as drop(x: u32@reg+mem) {};
-
-const MAX: i64 = 10000;
 
 fn main() {
-    let numbers: defer Vec_u32@stack;
-    numbers.new();
-    numbers.resize(MAX);
-    let numbers_len: u64@auto = 0;
+    let flag: bool@auto = false;
+    flag = flag.not();
+    printfln(flag);
+
+    let vec1: defer Vec_u32@stack;
+    let vec2: defer Vec_u32@stack;
+    vec1.new();
+    vec1.push(1);
+    vec1.push(2);
+    vec1.push(3);
+
+    vec2.new();
+    vec2.push(1);
+    vec2.push(2);
+    vec2.push(3);
+
+    printfln(flag.eq(vec1, vec2));
+};
+/*
+fn get_prime_numbers() {
+    const MAX: u64 = 36000000;
+    const MAX_SQRT: u64 = 6000;
+    static FLAGS: [bool; 36000000];
+
     let flag: bool@auto;
+    let flags: *bool@auto;
+    flags =& FLAGS;
+    flags += 2;
 
     for(let i: u64@auto = 2; flag.lt(i, MAX); ++i) {
-        let prime_flag: bool@auto = true;
+        *flags = true;
+        ++ flags;
+    };
+    flags =& FLAGS;
+    flags += 2;
 
-        for(let k: u64@auto = 0; flag.lt(k, numbers_len); ++k) {
-            let prime: *u32@auto;
-            numbers.index(k, prime);
-            
-            let remaining: u32@auto = 0;
-            let divided: u32@auto = i;
-            divided.div(remaining, *prime);
-            if(flag.eq(remaining, 0)) {
-                k = numbers_len;
-                prime_flag = false;
+    for(let i: u64@auto = 2; flag.lt(i, MAX_SQRT); ++i) {
+        if(*flags) {
+            let local_flags: *bool@auto = flags;
+            let k: u64@auto = i;
+            for(k += i; flag.lt(k, MAX); k += i) {
+                local_flags += i;
+                *local_flags = false;
             };
         };
-
-        if(prime_flag) {
-            let prime: *u32@auto;
-            numbers.index(numbers_len, prime);
-            *prime = i;
-            ++ numbers_len;
-        };
+        flags += 1;
     };
 
-    numbers.resize(numbers_len);
-    printfln(numbers);
-
-    println("Hello, World!");
-
-    let string: defer String@stack;
-    string.from("Hello!");
-    string.display(12345);
-    printfln(string);
+    flags =& FLAGS;
+    flags += 2;
+    let str: Str@stack;
+    str.from(", ");
+    for(let i: u64@auto = 2; flag.lt(i, MAX); ++i) {
+        if(*flags) {
+            printf(i);
+            printf(str);
+        };
+        ++ flags;
+    };
+    print("\n");
 };
 
+*/

@@ -1,18 +1,27 @@
-var numbers = [];
+const MAX = 9000000;
+const MAX_SQRT = 3000;
+let FLAGS = [];
 
-for(let i=2; i<100000; i++) {
-    let prime_flag = true;
-    for(let k=0; k<numbers.length; k++) {
-        if(i % numbers[k] == 0) {
-            prime_flag = false;
-            break;
+for(let i=0; i<MAX; i++) {
+    FLAGS.push(true);
+}
+
+for(let i=2; i<MAX_SQRT; i++) {
+    if(FLAGS[i]) {
+        for(let k=i*2; k<MAX; k += i) {
+            FLAGS[k] = false;
         }
-    }
-    if(prime_flag) {
-        numbers.push(i);
     }
 }
 
-console.log(numbers);
+let msg = "";
 
+for(let i=2; i<MAX; i++) {
+    if(FLAGS[i]) {
+        msg += String(i);
+        msg += ", ";
+    }
+}
+
+console.log(msg);
 

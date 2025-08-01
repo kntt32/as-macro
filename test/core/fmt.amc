@@ -9,6 +9,31 @@ pub template Display(Formatter) {
         self.write(object);
     };
 
+    pub as display(inout self: $(Formatter)@mem, in object: char@reg+mem+imm) {
+        let buff: [char; 1]@stack;
+        buff[0] = object;
+
+        let buff_ptr: *char@auto;
+        buff_ptr =& buff;
+
+        let str: Str@stack;
+        str.from(buff_ptr, 1);
+
+        self.write(str);
+    };
+
+    pub as display(inout self: $(Formatter)@mem, in object: bool@reg+mem+imm) {
+        let str: Str@stack;
+
+        if(object) {
+            str.from("true");
+        }else {
+            str.from("false");
+        };
+
+        self.write(str);
+    };
+
     pub as display(inout self: $(Formatter)@mem, in object: i64@reg+mem+imm) {
         !DEBUG_OBJECT_AUTO;
         let object_auto: i64@auto = object;
@@ -121,31 +146,6 @@ pub template Display(Formatter) {
     pub as display(inout self: $(Formatter)@mem, in object: b8@reg+mem+imm) {
         let u64_object: u64@auto = object;
         self.display(u64_object);
-    };
-
-    pub as display(inout self: $(Formatter)@mem, in object: char@reg+mem+imm) {
-        let buff: [char; 1]@stack;
-        buff[0] = object;
-
-        let buff_ptr: *char@auto;
-        buff_ptr =& buff;
-
-        let str: Str@stack;
-        str.from(buff_ptr, 1);
-
-        self.write(str);
-    };
-
-    pub as display(inout self: $(Formatter)@mem, in object: bool@reg+mem+imm) {
-        let str: Str@stack;
-
-        if(object) {
-            str.from("true");
-        }else {
-            str.from("false");
-        };
-
-        self.write(str);
     };
 };
 

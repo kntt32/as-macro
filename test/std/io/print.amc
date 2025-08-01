@@ -1,24 +1,43 @@
 import std;
 import std.io;
 
-pub as print(in msg: bin@reg+mem+imm) {
+pub as print(in c_str_array: bin@mem) {
+    let str: Str@stack;
+    str.from(c_str_array);
+    printf(str);
+};
+
+pub as println(in c_str_array: bin@mem) {
+    print(c_str_array);
+    print("\n");
+};
+
+pub as printf(in msg: bin@reg+mem+imm) {
     STD_STDOUT.display(msg);
 };
 
-pub as println(in msg: bin@reg+mem+imm) {
-    print(msg);
-
-    let str: Str@stack;
-    str.from("\n");
-    print(str);
+pub as printfln(in msg: bin@reg+mem+imm) {
+    printf(msg);
+    print("\n");
 };
 
-pub as eprint(in msg: bin@reg+mem+imm) {
+pub as eprint(in c_str_array: bin@mem) {
+    let str: Str@stack;
+    str.from(c_str_array);
+    eprintf(str);
+};
+
+pub as eprintln(in c_str_array: bin@mem) {
+    print(c_str_array);
+    eprint("\n");
+};
+
+pub as eprintf(in msg: bin@reg+mem+imm) {
     STD_STDERR.display(msg);
     STD_STDERR.flush();
 };
 
-pub as eprintln(in msg: bin@reg+mem+imm) {
+pub as eprintfln(in msg: bin@reg+mem+imm) {
     STD_STDERR.display(msg);
 
     let str: Str@stack;

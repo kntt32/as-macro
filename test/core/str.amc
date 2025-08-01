@@ -35,8 +35,10 @@ pub as from(out self: Str@mem, in cstr_array: bin@mem) {
 
     let cstr_array_ptr: *char@auto;
     cstr_array_ptr =& cstr_array;
+
     let cstr_len: u64@auto;
-    cstr_array_ptr.strlen(cstr_len);
+    strlen(cstr_array_ptr, cstr_len);
+
     self.slice.from(cstr_array_ptr, cstr_len);
 };
 

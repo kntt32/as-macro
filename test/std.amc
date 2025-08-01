@@ -28,8 +28,8 @@ pub fn _start() {
 
 pub fn panic_handler(msg: *char@rdi) {
     let str: Str@stack;
-    eprint(str.from("paniced: "));
-    eprintln(str.from(msg));
+    eprintf(str.from("paniced: "));
+    eprintfln(str.from(msg));
 
     let code: i32@rdi = -1;
     exit(code);

@@ -1,14 +1,17 @@
 import core;
 
-pub template DropNothing(T) {
+pub template DefaultDrop(T) {
     pub as drop(in self: $(T)@reg+mem+imm) {};
 };
 
-impl DropNothing(i8);
-impl DropNothing(u8);
-impl DropNothing(i16);
-impl DropNothing(i32);
-impl DropNothing(i64);
-impl DropNothing(bool);
-impl DropNothing(char);
+impl DefaultDrop(i8);
+impl DefaultDrop(u8);
+impl DefaultDrop(i16);
+impl DefaultDrop(u16);
+impl DefaultDrop(i32);
+impl DefaultDrop(u32);
+impl DefaultDrop(i64);
+impl DefaultDrop(u64);
+impl DefaultDrop(bool);
+impl DefaultDrop(char);
 

@@ -42,6 +42,8 @@ fn main() {
     };
 
     numbers.resize(numbers_len);
-    println(numbers);
+    printfln(numbers);
+
+    println("Hello, World!");
 };
 

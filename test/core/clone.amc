@@ -1,0 +1,19 @@
+import core;
+
+pub template DefaultClone(T) {
+    pub as clone(in self: $(T)@reg+mem+imm, out buff: $(T)@reg+mem+imm) {
+        buff = self;
+    };
+};
+
+impl DefaultClone(i8);
+impl DefaultClone(u8);
+impl DefaultClone(i16);
+impl DefaultClone(u16);
+impl DefaultClone(i32);
+impl DefaultClone(u32);
+impl DefaultClone(i64);
+impl DefaultClone(u64);
+impl DefaultClone(bool);
+impl DefaultClone(char);
+

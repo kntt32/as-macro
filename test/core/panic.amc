@@ -12,6 +12,11 @@ pub as panic(in msg: bin@mem) {
     ud2();
 };
 
+pub as todo(in msg: bin@mem) {
+    eprint("todo: ");
+    panic(msg);
+};
+
 pub as panic_eq(in left: bin@reg+mem+imm, in right: bin@reg+mem+imm, in msg: bin@mem) {
     let flag: bool@auto;
     if(flag.eq(left, right)) {

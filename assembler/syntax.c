@@ -290,9 +290,7 @@ static SResult restore_variable(in StoredReg* stored_reg, inout Generator* gener
     return SResult_new(NULL);
 }
 
-SResult VariableManager_delete_block(inout VariableManager* self, inout Generator* generator) {
-    assert(self != NULL && generator != NULL);
-
+SResult VariableManager_escape_block(inout VariableManager* self, inout Generator* generator) {
     VariableBlock* block_ptr = get_last_block(self);
     u32 variables_base = block_ptr->variables_base;
     for(i32 i=Vec_len(&self->variables)-1; (i32)(variables_base)<=i; i--) {
@@ -303,6 +301,16 @@ SResult VariableManager_delete_block(inout VariableManager* self, inout Generato
             );
         }
     }
+
+    return SResult_new(NULL);
+}
+
+SResult VariableManager_delete_block(inout VariableManager* self, inout Generator* generator) {
+    assert(self != NULL && generator != NULL);
+
+    SRESULT_UNWRAP(
+        VariableManager_escape_block(self, generator), (void)NULL
+    );
 
     VariableBlock block;
     Vec_pop(&self->blocks, &block);
@@ -396,6 +404,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_sizeof_operator,
         Syntax_build_alignof_operator,
         Syntax_build_if,
+        Syntax_build_do_try_catch,
         Syntax_build_for,
         Syntax_build_while,
         Syntax_build_assignadd,
@@ -1725,6 +1734,149 @@ bool Syntax_build_if(Parser parser, inout Generator* generator, inout VariableMa
     }
 
     Syntax_build_if_build(condition_parser, if_branch_parser, else_branch_parser, generator, variable_manager);
+
+    return true;
+}
+
+static ParserMsg Syntax_build_do_try_catch_parse(inout Parser* parser, out Parser* cond_parser, out Parser* proc_parser, out Parser* catch_parser) {
+    PARSERMSG_UNWRAP(
+        Parser_parse_paren(parser, cond_parser), (void)NULL
+    );
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_block(parser, proc_parser), (void)NULL
+    );
+
+    if(ParserMsg_is_success(Parser_parse_keyword(parser, "catch"))) {
+        PARSERMSG_UNWRAP(
+            Parser_parse_block(parser, catch_parser), (void)NULL
+        );
+    }else {
+        *catch_parser = Parser_empty(parser->offset);
+    }
+
+    return ParserMsg_new(parser->offset, NULL);
+}
+
+static SResult Syntax_build_do_try_catch_build_proc_try(u32 id, u32 try_id, in char* catch_label, Parser cond_parser, inout Generator* generator, inout VariableManager* variable_manager) {
+    Data cond_data;
+    SRESULT_UNWRAP(
+        Syntax_build(cond_parser, generator, variable_manager, &cond_data), (void)NULL
+    );
+            
+    if(strcmp(cond_data.type.name, "bool") != 0) {
+        Data_free(cond_data);
+        Error error = Error_new(cond_parser.offset, "expected type bool");
+        Generator_add_error(generator, error);
+        return SResult_new(NULL);
+    }
+
+    SRESULT_UNWRAP(
+        build_cmpzero(cond_data, generator, variable_manager), (void)NULL
+    );
+
+    char try_skip_label[256];
+    snprintf(try_skip_label, 256, ".%u.do.%u", id, try_id);
+    SRESULT_UNWRAP(
+        build_jne(try_skip_label, generator, variable_manager), (void)NULL
+    );
+    SRESULT_UNWRAP(
+        VariableManager_escape_block(variable_manager, generator), (void)NULL
+    );
+    SRESULT_UNWRAP(
+        build_jmp(catch_label, generator, variable_manager), (void)NULL
+    );
+
+    SRESULT_UNWRAP(
+        Generator_append_label(generator, ".text", try_skip_label, false, Label_Notype), (void)NULL
+    );
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_do_try_catch_build_proc(u32 id, in char* catch_label, Parser cond_parser, Parser proc_parser, inout Generator* generator, inout VariableManager* variable_manager) {
+    u32 try_id = 0;
+    VariableManager_new_block(variable_manager);
+
+    while(!Parser_is_empty(&proc_parser)) {
+        Parser syntax_parser = Parser_split(&proc_parser, ";");
+        bool try_flag = ParserMsg_is_success(Parser_parse_keyword(&syntax_parser, "try"));
+        Data syntax_data;
+        SRESULT_UNWRAP(
+            Syntax_build(syntax_parser, generator, variable_manager, &syntax_data), (void)NULL
+        );
+        Data_free(syntax_data);
+
+        if(try_flag) {
+            SRESULT_UNWRAP(
+                Syntax_build_do_try_catch_build_proc_try(id, try_id, catch_label, cond_parser, generator, variable_manager),
+                (void)NULL
+            );
+            try_id += 1;
+        }
+    }
+    
+    SRESULT_UNWRAP(
+        VariableManager_delete_block(variable_manager, generator),
+        (void)NULL
+    );
+    
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_do_try_catch_build(Parser cond_parser, Parser proc_parser, Parser catch_parser, inout Generator* generator, inout VariableManager* variable_manager) {
+    u32 id = get_id();
+    char catch_label[256];
+    snprintf(catch_label, 256, ".%u.do.catch", id);
+    
+    SRESULT_UNWRAP(
+        Syntax_build_do_try_catch_build_proc(id, catch_label, cond_parser, proc_parser, generator, variable_manager),
+        (void)NULL
+    );
+
+    char end_label[256];
+    snprintf(end_label, 256, ".%u.do.end", id);
+
+    SRESULT_UNWRAP(
+        build_jmp(end_label, generator, variable_manager), (void)NULL
+    );
+
+    SRESULT_UNWRAP(
+        Generator_append_label(generator, ".text", catch_label, false, Label_Notype), (void)NULL
+    );
+
+    SyntaxTree_build(catch_parser, generator, variable_manager);
+
+    SRESULT_UNWRAP(
+        Generator_append_label(generator, ".text", end_label, false, Label_Notype), (void)NULL
+    );
+
+    return SResult_new(NULL);
+}
+
+bool Syntax_build_do_try_catch(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "do"))) {
+        return false;
+    }
+
+    *data = Data_void();
+
+    Parser cond_parser;
+    Parser proc_parser;
+    Parser catch_parser;
+    if(resolve_parsermsg(
+        Syntax_build_do_try_catch_parse(&parser, &cond_parser, &proc_parser, &catch_parser), generator
+    )) {
+        return true;
+    }
+
+    if(resolve_sresult(
+        Syntax_build_do_try_catch_build(cond_parser, proc_parser, catch_parser, generator, variable_manager),
+        parser.offset, generator
+    )) {
+        return true;
+    }
+    check_parser(&parser, generator);
 
     return true;
 }

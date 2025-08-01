@@ -38,6 +38,7 @@ void VariableManager_set_visible_block_base(inout VariableManager* self, u32 vis
 bool VariableManager_reg_is_prior_available(inout VariableManager* self, Register reg);
 bool VariableManager_reg_is_available(inout VariableManager* self, Register reg);
 void VariableManager_new_block(inout VariableManager* self);
+SResult VariableManager_escape_block(inout VariableManager* self, inout Generator* generator);
 SResult VariableManager_delete_block(inout VariableManager* self, inout Generator* generator);
 SResult VariableManager_delete_allblock(inout VariableManager* self, inout Generator* generator);
 void VariableManager_print(in VariableManager* self);
@@ -70,6 +71,7 @@ bool Syntax_build_sizeof_operator(Parser parser, inout Generator* generator, ino
 bool Syntax_build_alignof_operator(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_variable_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_if(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
+bool Syntax_build_do_try_catch(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_for(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_while(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);
 bool Syntax_build_block(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data);

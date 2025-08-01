@@ -1,7 +1,6 @@
 import std;
 import core.cmp;
 import std.io;
-import std.io.print;
 import std.vec;
 
 impl Vec(u32);
@@ -9,22 +8,15 @@ impl Display_Vec(Io, u32);
 
 fn main() {
     let flag: bool@auto = false;
-    flag = flag.not();
-    printfln(flag);
-
-    let vec1: defer Vec_u32@stack;
-    let vec2: defer Vec_u32@stack;
-    vec1.new();
-    vec1.push(1);
-    vec1.push(2);
-    vec1.push(3);
-
-    vec2.new();
-    vec2.push(1);
-    vec2.push(2);
-    vec2.push(3);
-
-    printfln(flag.eq(vec1, vec2));
+    do(flag) {
+        println("log: A");
+        try flag = true;
+        println("log: B");
+        try flag = true;
+        println("log: C");
+    }catch {
+        println("catch");
+    };
 };
 /*
 fn get_prime_numbers() {

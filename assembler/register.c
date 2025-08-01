@@ -4,7 +4,7 @@
 #include "register.h"
 
 Register GENERAL_REGISTERS[14] = {
-    Rax, Rcx, Rdx, Rbx, Rsi, Rdi, R8, R9, R10, R11, R12, R13, R14, R15
+    R8, R9, R10, R11, R12, R13, R14, R15, Rax, Rcx, Rdx, Rbx, Rsi, Rdi
 };
 
 static struct {

@@ -1,6 +1,6 @@
 import core;
 
-template CmpRmRi(T) {
+template CmpSignedRmRi(T) {
     pub as eq(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
         cmp(left, right);
         sete(flag);
@@ -30,37 +30,51 @@ template CmpRmRi(T) {
         cmp(left, right);
         setge(flag);
     };
+};
 
-    pub as ueq(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
-        eq(flag, left, right);
+impl CmpSignedRmRi(i8);
+impl CmpSignedRmRi(i16);
+impl CmpSignedRmRi(i32);
+impl CmpSignedRmRi(i64);
+
+template CmpUnsignedRmRi(T) {
+    pub as eq(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
+        cmp(left, right);
+        sete(flag);
     };
 
-    pub as uneq(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
-        neq(flag, left, right);
+    pub as neq(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
+        cmp(left, right);
+        setne(flag);
     };
 
-    pub as ult(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
+    pub as lt(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
         cmp(left, right);
         setb(flag);
     };
 
-    pub as ule(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
+    pub as le(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
         cmp(left, right);
         setbe(flag);
     };
 
-    pub as ugt(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
+    pub as gt(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
         cmp(left, right);
         seta(flag);
     };
 
-    pub as ute(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
+    pub as ge(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
         cmp(left, right);
         setae(flag);
     };
 };
 
-pub template CmpRM(T) {
+impl CmpUnsignedRmRi(b8);
+impl CmpUnsignedRmRi(b16);
+impl CmpUnsignedRmRi(b32);
+impl CmpUnsignedRmRi(b64);
+
+pub template CmpSignedRM(T) {
     pub as eq(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
         cmp(left, right);
         sete(flag);
@@ -90,37 +104,51 @@ pub template CmpRM(T) {
         cmp(left, right);
         setge(flag);
     };
+};
 
-    pub as ueq(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
-        eq(flag, left, right);
+impl CmpSignedRM(i8);
+impl CmpSignedRM(i16);
+impl CmpSignedRM(i32);
+impl CmpSignedRM(i64);
+
+pub template CmpUnsigneRM(T) {
+    pub as eq(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
+        cmp(left, right);
+        sete(flag);
     };
 
-    pub as uneq(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
-        neq(flag, left, right);
+    pub as neq(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
+        cmp(left, right);
+        setne(flag);
     };
 
-    pub as ult(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
+    pub as lt(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
         cmp(left, right);
         setb(flag);
     };
 
-    pub as ule(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
+    pub as le(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
         cmp(left, right);
         setbe(flag);
     };
 
-    pub as ugt(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
+    pub as gt(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
         cmp(left, right);
         seta(flag);
     };
 
-    pub as ute(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
+    pub as ge(flag: bool@reg+mem, left: $(T)@reg, right: $(T)@mem) {
         cmp(left, right);
         setae(flag);
     };
 };
 
-pub template CmpMiMi(T) {
+impl CmpUnsigneRM(b8);
+impl CmpUnsigneRM(b16);
+impl CmpUnsigneRM(b32);
+impl CmpUnsigneRM(b64);
+
+pub template CmpSignedMiMi(T) {
     pub as eq(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
         let left_reg: $(T)@auto = left;
         let right_reg: $(T)@auto = right;
@@ -168,16 +196,31 @@ pub template CmpMiMi(T) {
         cmp(left_reg, right_reg);
         setge(flag);
     };
+};
 
-    pub as ueq(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
-        eq(flag, left, right);
+impl CmpSignedMiMi(i8);
+impl CmpSignedMiMi(i16);
+impl CmpSignedMiMi(i32);
+impl CmpSignedMiMi(i64);
+
+pub template CmpUnsignedMiMi(T) {
+    pub as eq(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
+        let left_reg: $(T)@auto = left;
+        let right_reg: $(T)@auto = right;
+
+        cmp(left_reg, right_reg);
+        sete(flag);
     };
 
-    pub as uneq(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
-        neq(flag, left, right);
-    };
+    pub as neq(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
+        let left_reg: $(T)@auto = left;
+        let right_reg: $(T)@auto = right;
 
-    pub as ult(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
+        cmp(left_reg, right_reg);
+        setne(flag);
+    };
+    
+    pub as lt(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
         let left_reg: $(T)@auto = left;
         let right_reg: $(T)@auto = right;
 
@@ -185,7 +228,7 @@ pub template CmpMiMi(T) {
         setb(flag);
     };
 
-    pub as ule(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
+    pub as le(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
         let left_reg: $(T)@auto = left;
         let right_reg: $(T)@auto = right;
 
@@ -193,7 +236,7 @@ pub template CmpMiMi(T) {
         setbe(flag);
     };
 
-    pub as ugt(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
+    pub as gt(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
         let left_reg: $(T)@auto = left;
         let right_reg: $(T)@auto = right;
 
@@ -201,7 +244,7 @@ pub template CmpMiMi(T) {
         seta(flag);
     };
 
-    pub as ute(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
+    pub as ge(flag: bool@reg+mem, left: $(T)@mem+imm, right: $(T)@mem+imm) {
         let left_reg: $(T)@auto = left;
         let right_reg: $(T)@auto = right;
 
@@ -210,18 +253,10 @@ pub template CmpMiMi(T) {
     };
 };
 
-impl CmpRmRi(b8);
-impl CmpRM(b8);
-impl CmpMiMi(b8);
-impl CmpRmRi(b16);
-impl CmpRM(b16);
-impl CmpMiMi(b16);
-impl CmpRmRi(b32);
-impl CmpRM(b32);
-impl CmpMiMi(b32);
-impl CmpRmRi(b64);
-impl CmpRM(b64);
-impl CmpMiMi(b64);
+impl CmpUnsignedMiMi(b8);
+impl CmpUnsignedMiMi(b16);
+impl CmpUnsignedMiMi(b32);
+impl CmpUnsignedMiMi(b64);
 
 pub template Max(T) {
     pub as max(inout self: $(T)@reg+mem+imm, in other: $(T)@reg+mem+imm) {
@@ -232,6 +267,11 @@ pub template Max(T) {
     };
 };
 
+impl Max(b8);
+impl Max(b16);
+impl Max(b32);
+impl Max(b64);
+
 pub template Min(T) {
     pub as min(inout self: $(T)@reg+mem+imm, in other: $(T)@reg+mem+imm) {
         let flag: bool@auto;
@@ -241,12 +281,8 @@ pub template Min(T) {
     };
 };
 
-impl Max(b8);
 impl Min(b8);
-impl Max(b16);
 impl Min(b16);
-impl Max(b32);
 impl Min(b32);
-impl Max(b64);
 impl Min(b64);
 

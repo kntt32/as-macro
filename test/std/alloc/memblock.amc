@@ -4,17 +4,17 @@ import core.panic;
 
 pub struct MemBlock {
     page_ptr: *void,
-    page_count: i64,
-    alloc_line: i64,// line: 16byte
-    alloc_count: i64,
+    page_count: u64,
+    alloc_line: u64,// line: 16byte
+    alloc_count: u64,
 };
 
-pub as new(out self: MemBlock@mem, in page_count: i64@reg+mem+imm) {
+pub as new(out self: MemBlock@mem, in page_count: u64@reg+mem+imm) {
     let addr: *void@auto = null;
     let flag: bool@auto;
 
     if(flag.neq(page_count, 0)) {
-        let size: i64@auto = page_count;
+        let size: u64@auto = page_count;
         size.imul(4096);
         addr.mmap(size, 0x3, 0x22, -1, 0)
             .panic_null();
@@ -36,17 +36,17 @@ pub as get_upper_bound(in self: MemBlock@mem, out upper_bound: *void@reg+mem) {
     upper_bound += self.page_ptr;
 };
 
-pub as alloc(inout self: MemBlock@mem, in size: i64@reg+mem+imm, out ptr: *void@reg+mem) {
+pub as alloc(inout self: MemBlock@mem, in size: u64@reg+mem+imm, out ptr: *void@reg+mem) {
     let flag: bool@auto;
 
-    let need_line: i64@auto = size;
+    let need_line: u64@auto = size;
     need_line += 15;
     need_line.shr(4);
 
-    let alloc_line: i64@auto = self.alloc_line;
+    let alloc_line: u64@auto = self.alloc_line;
     alloc_line += need_line;
 
-    let max_alloc_line: i64@auto = self.page_count;
+    let max_alloc_line: u64@auto = self.page_count;
     max_alloc_line.shl(8);
 
     if(flag.gt(alloc_line, max_alloc_line)) {
@@ -86,7 +86,7 @@ pub as drop(inout self: MemBlock@mem) {
     self.alloc_count.panic_neq(0, "memory leak detected");
     
     let addr: *void@auto = self.page_ptr;
-    let size: i64@auto = self.page_count;
+    let size: u64@auto = self.page_count;
     size.imul(4096);
     munmap(addr, size);
 

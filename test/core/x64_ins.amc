@@ -160,10 +160,10 @@ as cmpsb() : (double: 0xa6);
 as cmpsw() : (double: 0x66, 0xa7);
 as cmpsd() : (double: 0xa7);
 as cmpsq() : (double: 0x48, 0xa7);
-pub as cmps(_: b8@rdi, _: b8@rsi) { cmpsb(); };
-pub as cmps(_: b16@rdi, _: b16@rsi) { cmpsw(); };
-pub as cmps(_: b32@rdi, _: b32@rsi) { cmpsd(); };
-pub as cmps(_: b64@rdi, _: b64@rsi) { cmpsq(); };
+pub as cmps(_: *u8@rdi, _: *u8@rsi) { cmpsb(); };
+pub as cmps(_: *u16@rdi, _: *u16@rsi) { cmpsw(); };
+pub as cmps(_: *u32@rdi, _: *u32@rsi) { cmpsd(); };
+pub as cmps(_: *u64@rdi, _: *u64@rsi) { cmpsq(); };
 
 pub as cpuid() : (double: 0x0f, 0xa2);
 
@@ -227,9 +227,9 @@ pub as inc(_: b32@reg) : (double: 0x40, rd);
 as insb() : (double: 0x6c);
 as insw() : (double: 0x66, 0x6d);
 as insd() : (double: 0x6d);
-pub as ins(_: *i8@rdi, _: i16@rdx) { insb(); };
-pub as ins(_: *i16@rdi, _: i16@rdx) { insw(); };
-pub as ins(_: *i32@rdi, _: i16@rdx) { insq(); };
+pub as ins(_: *u8@rdi, _: u16@rdx) { insb(); };
+pub as ins(_: *u16@rdi, _: u16@rdx) { insw(); };
+pub as ins(_: *u32@rdi, _: u16@rdx) { insq(); };
 
 pub as int(_: b8@imm) : (double: 0xcd, ib);
 
@@ -368,10 +368,10 @@ as lodsb() : (double: 0xac);
 as lodsw() : (double: 0x66, 0xad);
 as lodsd() : (double: 0xad);
 as lodsq() : (double: 0x48, 0xad);
-pub as lods(_: *i8@rsi, _: i8@rax) { lodsb(); };
-pub as lods(_: *i16@rsi, _: i16@rax) { lodsw(); };
-pub as lods(_: *i32@rsi, _: i32@rax) { lodsb(); };
-pub as lods(_: *i64@rsi, _: i64@rax) { lodsq(); };
+pub as lods(_: *u8@rsi, _: u8@rax) { lodsb(); };
+pub as lods(_: *u16@rsi, _: u16@rax) { lodsw(); };
+pub as lods(_: *u32@rsi, _: u32@rax) { lodsb(); };
+pub as lods(_: *u64@rsi, _: u64@rax) { lodsq(); };
 
 pub as loop(_: b8@imm) : (quad: 0xe2, 0xcb);
 pub as loopne(_: b8@imm) : (quad: 0xe0, 0xcb);
@@ -419,10 +419,10 @@ as movsb() : (double: 0xa4);
 as movsw() : (double: 0x66, 0xa5);
 as movsd() : (double: 0xa5);
 as movsq() : (double: 0x48, 0xa5);
-pub as movs(_: *i8@rdi, _: *i8@rsi) { movsb(); };
-pub as movs(_: *i16@rdi, _: *i16@rsi) { movsw(); };
-pub as movs(_: *i32@rdi, _: *i32@rsi) { movsd(); };
-pub as movs(_: *i64@rdi, _: *i64@rsi) { movsq(); };
+pub as movs(_: *u8@rdi, _: *u8@rsi) { movsb(); };
+pub as movs(_: *u16@rdi, _: *u16@rsi) { movsw(); };
+pub as movs(_: *u32@rdi, _: *u32@rsi) { movsd(); };
+pub as movs(_: *u64@rdi, _: *u64@rsi) { movsq(); };
 
 pub as movsx(_: b16@reg, _: b8@reg+mem) : (double: 0x0f, 0xbe, /r);
 pub as movsx(_: b32@reg, _: b8@reg+mem) : (double: 0x0f, 0xbe, /r);
@@ -611,10 +611,10 @@ as scasb() : (double: 0xae);
 as scasw() : (double: 0x66, 0xaf);
 as scasd() : (double: 0xaf);
 as scasq() : (double: 0x48, 0xaf);
-pub as scas(_: *i8@rdi, _: i8@rax) { scasb(); };
-pub as scas(_: *i16@rdi, _: i16@rax) { scasw(); };
-pub as scas(_: *i32@rdi, _: i32@rax) { scasd(); };
-pub as scas(_: *i64@rdi, _: i64@rax) { scasq(); };
+pub as scas(_: *u8@rdi, _: u8@rax) { scasb(); };
+pub as scas(_: *u16@rdi, _: u16@rax) { scasw(); };
+pub as scas(_: *u32@rdi, _: u32@rax) { scasd(); };
+pub as scas(_: *u64@rdi, _: u64@rax) { scasq(); };
 
 pub as seto(_: b8@reg+mem) : (double: 0x0f, 0x90, /0);
 pub as setno(_: b8@reg+mem) : (double: 0x0f, 0x91, /0);
@@ -673,10 +673,10 @@ as stosb() : (double: 0xaa);
 as stosw() : (double: 0x66, 0xab);
 as stosd() : (double: 0xab);
 as stosq() : (double: 0x48, 0xab);
-pub as stos(_: *i8@rdi, _: i8@rax) { stosb(); };
-pub as stos(_: *i16@rdi, _: i16@rax) { stosw(); };
-pub as stos(_: *i32@rdi, _: i32@rax) { stosd(); };
-pub as stos(_: *i64@rdi, _: i64@rax) { stosq(); };
+pub as stos(_: *u8@rdi, _: u8@rax) { stosb(); };
+pub as stos(_: *u16@rdi, _: u16@rax) { stosw(); };
+pub as stos(_: *u32@rdi, _: u32@rax) { stosd(); };
+pub as stos(_: *u64@rdi, _: u64@rax) { stosq(); };
 
 pub as sub(_: b8@rax, _: b8@imm) : (double: 0x2c, ib);
 pub as sub(_: b16@rax, _: b16@imm) : (double: 0x2d, iw);
@@ -765,11 +765,11 @@ pub as endbr64() : (double: 0xf3, 0x0f, 0x1e, 0xfa);
 pub as syscall() : (double: 0x0f, 0x05);
 
 as rep() : (double: 0xf3);
-pub as rep(_: i64@rcx) {
+pub as rep(_: u64@rcx) {
     rep();
 };
 as repne() : (double: 0xf2);
-pub as repne(_: i64@rcx) {
+pub as repne(_: u64@rcx) {
     repne();
 };
 

@@ -6,20 +6,20 @@ pub const STDIN: i32 = 0;
 pub const STDOUT: i32 = 1;
 pub const STDERR: i32 = 2;
 
-pub as write(in fd: i32@rdi, in msg: *char@rsi, in len: i64@rdx) {
+pub as write(in fd: i32@rdi, in msg: *char@rsi, in len: u64@rdx) {
     let number: i64@rax;
     number = 1;
     syscall(number);
 };
 
-pub as write(in fd: i32@reg+mem+imm, in msg: *char@reg+mem, in len: i64@reg+mem+imm) {
+pub as write(in fd: i32@reg+mem+imm, in msg: *char@reg+mem, in len: u64@reg+mem+imm) {
     let fd_mem: i32@stack = fd;
     let msg_mem: *char@stack = msg;
-    let len_mem: i64@stack = len;
+    let len_mem: u64@stack = len;
 
     let fd_rdi: i32@rdi = fd_mem;
     let msg_rsi: *char@rsi = msg_mem;
-    let len_rdx: i64@rdx = len_mem;
+    let len_rdx: u64@rdx = len_mem;
 
     write(fd_rdi, msg_rsi, len_rdx);
 };
@@ -33,7 +33,7 @@ pub const MMAP_MAP_PRIVATE: i64 = 0x02;
 pub const MMAP_MAP_FIXED: i64 = 0x10;
 pub const MMAP_MAP_ANONYMOUS: i64 = 0x20;
 
-pub as mmap(inout addr: *void@rdi, in len: i64@rsi, in prot: i64@rdx, in flags: i64@r10, in fd: i64@r8, in offset: i64@r9) {
+pub as mmap(inout addr: *void@rdi, in len: u64@rsi, in prot: i64@rdx, in flags: i64@r10, in fd: i32@r8, in offset: i64@r9) {
     let number: i64@rax = 9;
     syscall(number);
     let flag: bool@r11;
@@ -44,20 +44,20 @@ pub as mmap(inout addr: *void@rdi, in len: i64@rsi, in prot: i64@rdx, in flags: 
     };
 };
 
-pub as mmap(inout addr: *void@reg+mem+imm, in len: i64@reg+mem+imm, in prot: i64@reg+mem+imm, in flags: i64@reg+mem+imm, in fd: i64@reg+mem+imm, in offset: i64@reg+mem+imm) {
+pub as mmap(inout addr: *void@reg+mem+imm, in len: u64@reg+mem+imm, in prot: i64@reg+mem+imm, in flags: i64@reg+mem+imm, in fd: i32@reg+mem+imm, in offset: i64@reg+mem+imm) {
     let addr_mem: *void@stack = addr;
-    let len_mem: i64@stack = len;
+    let len_mem: u64@stack = len;
     let prot_mem: i64@stack = prot;
     let flags_mem: i64@stack = flags;
-    let fd_mem: i64@stack = fd;
+    let fd_mem: i32@stack = fd;
     let offset_mem: i64@stack = offset;
 
     {
         let addr_rdi: *void@rdi = addr_mem;
-        let len_rsi: i64@rsi = len_mem;
+        let len_rsi: u64@rsi = len_mem;
         let prot_rdx: i64@rdx = prot_mem;
         let flags_r10: i64@r10 = flags_mem;
-        let fd_r8: i64@r8 = fd_mem;
+        let fd_r8: i32@r8 = fd_mem;
         let offset_r9: i64@r9 = offset_mem;
 
         mmap(addr_rdi, len_rsi, prot_rdx, flags_r10, fd_r8, offset_r9);
@@ -68,7 +68,7 @@ pub as mmap(inout addr: *void@reg+mem+imm, in len: i64@reg+mem+imm, in prot: i64
     addr = addr_mem;
 };
 
-pub as munmap(in addr: *void@rdi, in size: i64@rsi) {
+pub as munmap(in addr: *void@rdi, in size: u64@rsi) {
     let flag: bool@r8;
     if(flag.neq(addr, null)) {
         let number: i64@rax = 11;
@@ -81,13 +81,13 @@ pub as munmap(in addr: *void@rdi, in size: i64@rsi) {
     addr = null;
 };
 
-pub as munmap(in addr: *void@reg+mem+imm, in size: i64@reg+mem+imm) {
+pub as munmap(in addr: *void@reg+mem+imm, in size: u64@reg+mem+imm) {
     let addr_mem: *void@stack = addr;
-    let size_mem: i64@stack = size;
+    let size_mem: u64@stack = size;
 
     {
         let addr_rdi: *void@rdi = addr_mem;
-        let size_rsi: i64@rsi = size_mem;
+        let size_rsi: u64@rsi = size_mem;
         munmap(addr_rdi, size_rsi);
     };
     addr = null;

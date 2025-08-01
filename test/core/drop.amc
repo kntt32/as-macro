@@ -5,6 +5,7 @@ pub template DropNothing(T) {
 };
 
 impl DropNothing(i8);
+impl DropNothing(u8);
 impl DropNothing(i16);
 impl DropNothing(i32);
 impl DropNothing(i64);

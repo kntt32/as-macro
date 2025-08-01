@@ -1,109 +1,81 @@
 import core;
 
-pub as memcpy(in dst: *i8@rdi, in src: *i8@rsi, in size: i64@rcx) {
-    let dst_store: i64@r13 = dst;
-    let src_store: i64@r14 = src;
-    let size_store: i64@r15 = size;
+pub as memcpy(in dst: *void@reg+mem, in src: *void@reg+mem, in size: u64@reg+mem+imm) {
+    let dst_auto: *u8@auto = dst;
+    let src_auto: *u8@auto = src;
+    let size_auto: *u8@auto = size;
 
-    cld();
-
-    rep(size);
-    movs(dst, src);
-
-    size = size_store;
-    src = src_store;
-    dst = dst_store;
-};
-
-pub as memcpy(in dst: *i8@reg+mem, in src: *i8@reg+mem, in size: i64@reg+mem) {
-    let dst_mem: *i8@stack = dst;
-    let src_mem: *i8@stack = src;
-    let size_mem: *i8@stack = size;
-
-    let dst_rdi: *i8@rdi = dst_mem;
-    let src_rsi: *i8@rsi = src_mem;
-    let size_rcx: i64@rcx = size_mem;
-
-    memcpy(dst_rdi, src_rsi, size_rcx);
-};
-
-pub as memmove(in dst: *i8@rdi, in src: *i8@rsi, in size: i64@rcx) {
-    let flag: bool@rax;
-    let dst_store: i64@r8 = dst;
-    let src_store: i64@r9 = src;
-    let size_store: i64@r10 = size;
-
-    if(flag.lt(dst, src)) {
-        std();
-
-        dst += size;
-        dst -= 1;
-        src += size;
-        src -= 1;
-
-        rep(size);
-        movs(dst, src);
-
-        cld();
-    }else {
+    {
+        let dst_rdi: *u8@rdi = dst_auto;
+        let src_rsi: *u8@rsi = src_auto;
+        let size_rcx: u64@rcx = size_auto;
+        
         cld();
 
-        rep(size);
-        movs(dst, src);
+        rep(size_rcx);
+        movs(dst_rdi, src_rsi);
     };
-
-    size = size_store;
-    src = src_store;
-    dst = dst_store;
 };
 
-pub as memmove(in dst: *i8@reg+mem, in src: *i8@reg+mem, in size: i64@reg+mem+imm) {
-    let dst_mem: *i8@stack = dst;
-    let src_mem: *i8@stack = src;
-    let size_mem: *i8@stack = size;
+pub as memmove(in dst: *void@reg+mem, in src: *void@reg+mem, in size: u64@reg+mem+imm) {
+    let dst_auto: *u8@auto = dst;
+    let src_auto: *u8@auto = src;
+    let size_auto: *u8@auto = size;
+    
+    {
+        let flag: bool@auto;
+        let dst_rdi: *u8@rdi = dst_auto;
+        let src_rsi: *u8@rsi = src_auto;
+        let size_rcx: u64@rcx = size_auto;
 
-    let dst_rdi: *i8@rdi = dst;
-    let src_rsi: *i8@rsi = src;
-    let size_rcx: i64@rcx = size;
+        if(flag.lt(dst, src)) {
+            std();
 
-    memmove(dst_rdi, src_rsi, size_rcx);
+            dst += size;
+            dst -= 1;
+            src += size;
+            src -= 1;
+
+            rep(size_rcx);
+            movs(dst_rdi, src_rsi);
+
+            cld();
+        }else {
+            cld();
+
+            rep(size_rcx);
+            movs(dst_rdi, src_rsi);
+        };
+    };
 };
 
-pub as memset(in dst: *i8@rdi, in value: i8@rax, in size: i64@rcx) {
-    let dst_store: i64@r8 = dst;
-    let size_store: i64@r9 = size;
+pub as memset(in dst: *void@reg+mem, in value: u8@reg+mem+imm, in size: u64@reg+mem+imm) {
+    let dst_auto: *u8@auto = dst;
+    let value_auto: u8@auto = value;
+    let size_auto: u64@auto = size;
 
-    cld();
+    {
+        let dst_rdi: *u8@rdi = dst_auto;
+        let value_rax: u8@rax = value_auto;
+        let size_rcx: u64@rcx = size_auto;
+        
+        cld();
 
-    rep(size);
-    stos(dst, value);
-
-    size = size_store;
-    dst = dst_store;
+        rep(size_rcx);
+        stos(dst_rdi, value_rax);
+    };
 };
 
-pub as memset(in dst: *i8@reg+mem, in value: i8@reg+mem+imm, in size: i64@reg+mem+imm) {
-    let dst_mem: *i8@stack = dst;
-    let value_mem: i8@stack = value;
-    let size_mem: i64@stack = size;
-
-    let dst_rdi: *i8@rdi = dst_mem;
-    let value_rax: i8@rax = value_mem;
-    let size_rcx: i64@rcx = size_mem;
-
-    memset(dst_rdi, value_rax, size_rcx);
-};
-
-pub as strlen(in s: *char@rsi, out len: i64@rcx) {
-    let seek_ptr: *i8@rdi;
+pub as strlen(in s: *char@rsi, out len: u64@rcx) {
+    let seek_ptr: *u8@rdi;
     seek_ptr = s;
 
-    let null_code: i8@rax;
+    let null_code: u8@rax;
     null_code = '\0';
     len = -1;
 
     cld();
-    repne(rcx);
+    repne(len);
     scas(seek_ptr, null_code);
     
     len = seek_ptr;
@@ -111,18 +83,18 @@ pub as strlen(in s: *char@rsi, out len: i64@rcx) {
     dec(len);
 };
 
-pub as strlen(in s: *char@reg+mem, out len: i64@reg+mem) {
-    let s_mem: *char@stack = s;
-    let len_mem: i64@stack = len;
+pub as strlen(in s: *char@reg+mem, out len: u64@reg+mem) {
+    let s_auto: *char@auto = s;
+    let len_auto: u64@auto;
     {
-        let s_rsi: *char@rsi = s_mem;
-        let len_rcx: i64@rcx = len_mem;
+        let s_rsi: *char@rsi = s_auto;
+        let len_rcx: u64@rcx;
 
         strlen(s_rsi, len_rcx);
 
-        len_mem = len_rcx;
+        len_auto = len_rcx;
     };
 
-    len = len_mem;
+    len = len_auto;
 };
 

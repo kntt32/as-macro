@@ -5,8 +5,8 @@ import alloc.memblock;
 
 pub struct Alloc {
     table: *MemBlock,
-    len: i64,
-    pages: i64,
+    len: u64,
+    pages: u64,
 };
 
 type Self = Alloc;
@@ -17,12 +17,12 @@ pub as new(out self: Self@mem) {
     self.pages = 0;
 };
 
-pub as alloc(inout self: Self@mem, in size: i64@reg+mem+imm, out ptr: *void@reg+mem) {
+pub as alloc(inout self: Self@mem, in size: u64@reg+mem+imm, out ptr: *void@reg+mem) {
     let flag: bool@auto;
 
     ptr = null;
     let memblock: *MemBlock@auto = self.table;
-    for((let i: i64@auto = 0); flag.lt(i, self.len); ++i) {
+    for((let i: u64@auto = 0); flag.lt(i, self.len); ++i) {
         (*memblock).alloc(size, ptr);
         if(flag.neq(ptr, null)) {
             i = self.len;
@@ -31,7 +31,7 @@ pub as alloc(inout self: Self@mem, in size: i64@reg+mem+imm, out ptr: *void@reg+
     };
 
     if(flag.eq(ptr, null)) {
-        let alloc_pages: i64@auto = size;
+        let alloc_pages: u64@auto = size;
         alloc_pages += 4096;
         alloc_pages.shr(12);
         self.push_memblock(alloc_pages);
@@ -42,7 +42,7 @@ pub as alloc(inout self: Self@mem, in size: i64@reg+mem+imm, out ptr: *void@reg+
     !ALLOC_DEBUG;
 };
 
-as alloc_from_last(inout self: Self@mem, in size: i64@reg+mem+imm, out ptr: *void@reg+mem) {
+as alloc_from_last(inout self: Self@mem, in size: u64@reg+mem+imm, out ptr: *void@reg+mem) {
     let last_memblock: *MemBlock@auto = self.len;
     last_memblock -= 1;
     last_memblock.imul(last_memblock, sizeof(MemBlock));
@@ -51,18 +51,18 @@ as alloc_from_last(inout self: Self@mem, in size: i64@reg+mem+imm, out ptr: *voi
     (*last_memblock).alloc(size, ptr);
 };
 
-as push_memblock(inout self: Self@mem, in pages: i64@reg+mem) {
+as push_memblock(inout self: Self@mem, in pages: u64@reg+mem) {
     let flag: bool@auto;
     
     ++ self.len;
-    let new_pages: i64@auto = self.len;
+    let new_pages: u64@auto = self.len;
     new_pages.imul(new_pages, sizeof(MemBlock));
     new_pages += 4095;
     new_pages.shr(12);
     
     if(flag.neq(new_pages, self.pages)) {
         let new_table: *MemBlock@auto = null;
-        let new_size: i64@auto = new_pages;
+        let new_size: u64@auto = new_pages;
         new_size.shl(12);
         new_table
             .mmap(new_size, 0x03, 0x22, -1, 0)
@@ -70,12 +70,12 @@ as push_memblock(inout self: Self@mem, in pages: i64@reg+mem) {
 
         let memcpy_dst: *void@auto = new_table;
         let memcpy_src: *void@auto = self.table;
-        let memcpy_size: i64@auto = self.pages;
+        let memcpy_size: u64@auto = self.pages;
         memcpy_size.shl(12);
         memcpy(memcpy_dst, memcpy_src, memcpy_size);
 
         let munmap_addr: *void@rdi = self.table;
-        let munmap_size: i64@rsi = self.pages;
+        let munmap_size: u64@rsi = self.pages;
         if(flag.neq(munmap_addr, null)) {
             munmap_size.shl(12);
             munmap(munmap_addr, munmap_size);
@@ -96,7 +96,7 @@ as push_memblock(inout self: Self@mem, in pages: i64@reg+mem) {
 pub as dealloc(inout self: Self@mem, in ptr: *void@reg+mem) {
     let flag: bool@auto;
     if(flag.neq(ptr, null)) {
-        for((let i: i64@auto = 0;); flag.lt(i, self.len); ++i) {
+        for((let i: u64@auto = 0;); flag.lt(i, self.len); ++i) {
             let mem_block: *MemBlock@auto;
             mem_block.imul(i, sizeof(MemBlock));
             mem_block += self.table;
@@ -119,7 +119,7 @@ pub as dealloc(inout self: Self@mem, in ptr: *void@reg+mem) {
 pub as drop(inout self: Alloc@mem) {
     let flag: bool@auto;
 
-    for(let i: i64@auto = 0; flag.lt(i, self.len); ++i) {
+    for(let i: u64@auto = 0; flag.lt(i, self.len); ++i) {
         let mem_block: *MemBlock@auto;
         mem_block.imul(i, sizeof(MemBlock));
         mem_block += self.table;
@@ -127,7 +127,7 @@ pub as drop(inout self: Alloc@mem) {
         (*mem_block).drop();
     };
 
-    let size: i64@auto = self.pages;
+    let size: u64@auto = self.pages;
     size.shl(12);
     munmap(self.table, size);
 

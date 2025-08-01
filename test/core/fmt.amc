@@ -27,7 +27,7 @@ pub template Display(Formatter) {
         }else {
             let buffer: [char; 32]@stack;
             buffer[31] = '\0';
-            let buffer_index: i64@auto = 31;
+            let buffer_index: u64@auto = 31;
             let buffer_ptr: *char@auto;
         
             let remainder: i64@auto;
@@ -54,22 +54,73 @@ pub template Display(Formatter) {
         }
     };
 
+    pub as display(inout self: $(Formatter)@mem, in object: u64@reg+mem+imm) {
+        !DEBUG_OBJECT_AUTO;
+        let object_auto: u64@auto = object;
+        let str: Str@stack;
+        let flag: bool@auto;
+
+        if(flag.eq(object_auto, 0)) {
+            str.from("0");
+            self.write(str);
+        }else {
+            let buffer: [char; 32]@stack;
+            buffer[31] = '\0';
+            let buffer_index: u64@auto = 31;
+            let buffer_ptr: *char@auto;
+        
+            let remainder: u64@auto;
+            let divisor: u64@auto = 10;
+        
+            while(flag.neq(object_auto, 0)) {
+                remainder = 0;
+                object_auto.div(remainder, 10);
+                let remainder_i8: u8@auto = remainder;
+
+                buffer_index -= 1;
+                buffer_ptr =& buffer;
+                buffer_ptr += buffer_index;
+                *buffer_ptr = '0';
+                !DEBUG;
+                *buffer_ptr += remainder_i8;
+            };
+
+            buffer_ptr =& buffer;
+            buffer_ptr += buffer_index;
+            
+            str.from(buffer_ptr);
+            self.write(str);
+        }
+    };
+
     pub as display(inout self: $(Formatter)@mem, in object: i32@reg+mem+imm) {
-        let i64_object: i64@auto;
-        i64_object.movsxd(object);
+        let i64_object: i64@auto = object;
         self.display(i64_object);
+    };
+
+    pub as display(inout self: $(Formatter)@mem, in object: b32@reg+mem+imm) {
+        let u64_object: u64@auto = object;
+        self.display(u64_object);
     };
 
     pub as display(inout self: $(Formatter)@mem, in object: i16@reg+mem+imm) {
-        let i64_object: i64@auto;
-        i64_object.movsx(object);
+        let i64_object: i64@auto = object;
         self.display(i64_object);
     };
 
+    pub as display(inout self: $(Formatter)@mem, in object: b16@reg+mem+imm) {
+        let u64_object: u64@auto = object;
+        self.display(u64_object);
+    };
+
     pub as display(inout self: $(Formatter)@mem, in object: i8@reg+mem+imm) {
-        let i64_object: i64@auto;
-        i64_object.movsx(object);
+        let i64_object: i64@auto = object;
         self.display(i64_object);
+    };
+
+    pub as display(inout self: $(Formatter)@mem, in object: b8@reg+mem+imm) {
+        let u64_object: u64@auto = object;
+        self.display(u64_object);
     };
 
     pub as display(inout self: $(Formatter)@mem, in object: char@reg+mem+imm) {
@@ -81,6 +132,18 @@ pub template Display(Formatter) {
 
         let str: Str@stack;
         str.from(buff_ptr, 1);
+
+        self.write(str);
+    };
+
+    pub as display(inout self: $(Formatter)@mem, in object: bool@reg+mem+imm) {
+        let str: Str@stack;
+
+        if(object) {
+            str.from("true");
+        }else {
+            str.from("false");
+        };
 
         self.write(str);
     };

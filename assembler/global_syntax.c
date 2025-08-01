@@ -176,6 +176,11 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
     i32 stack_offset = 16;
     
     while(!Parser_is_empty(&parser)) {
+        Parser_parse_keyword(&parser, "optional");
+        Parser_parse_keyword(&parser, "inout");
+        Parser_parse_keyword(&parser, "in");
+        Parser_parse_keyword(&parser, "out");
+
         Parser parser_copy = parser;
         i32 dummy = 0;
         Variable variable;

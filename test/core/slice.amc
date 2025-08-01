@@ -4,7 +4,7 @@ import panic;
 pub template Slice(T) {
     pub struct Slice_$(T) {
         ptr: *$(T),
-        len: i64,
+        len: u64,
     };
 
     pub as mov(out dst: Slice_$(T)@mem, out src: Slice_$(T)@mem) {
@@ -12,7 +12,7 @@ pub template Slice(T) {
         dst.len = src.len;
     };
 
-    pub as from(out self: Slice_$(T)@mem, in ptr: *$(T)@reg+mem, in len: i64@reg+mem+imm) {
+    pub as from(out self: Slice_$(T)@mem, in ptr: *$(T)@reg+mem, in len: u64@reg+mem+imm) {
         self.ptr = ptr;
         self.len = len;
     };
@@ -22,16 +22,15 @@ pub template Slice(T) {
         self.len = 0;
     };
     
-    pub as index(in self: Slice_$(T)@mem, in index: i64@reg+mem+imm, out ptr: *$(T)@reg+mem) {
+    pub as index(in self: Slice_$(T)@mem, in index: u64@reg+mem+imm, out ptr: *$(T)@reg+mem) {
         panic_ge(index, self.len, "Slice:index: out of range");
-        let index_auto: i64@auto = index;
         let ptr_auto: *$(T)@auto = sizeof($(T));
-        ptr_auto.imul(index_auto);
+        ptr_auto.imul(index);
         ptr_auto += self.ptr;
         ptr = ptr_auto;
     };
 
-    pub as len(in self: Slice_$(T)@mem, out len: i64@reg+mem) {
+    pub as len(in self: Slice_$(T)@mem, out len: u64@reg+mem) {
         len = self.len;
     };
 
@@ -39,7 +38,7 @@ pub template Slice(T) {
         ptr = self.ptr;
     };
 
-    pub as slice(in self: Slice_$(T)@mem, in start: i64@reg+mem+imm, in len: i64@reg+mem+imm, out buff: Slice_$(T)@mem) {
+    pub as slice(in self: Slice_$(T)@mem, in start: u64@reg+mem+imm, in len: u64@reg+mem+imm, out buff: Slice_$(T)@mem) {
         panic_le(self.len, start, "Slice:slice: out of range");
         panic_lt(len, 0, "Slice:slice: out of range");
 

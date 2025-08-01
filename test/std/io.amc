@@ -8,7 +8,7 @@ import std.syscall;
 pub struct Io {
     fd: i32,
     buff: [char; 1024],
-    len: i64,
+    len: u64,
 };
 
 impl Display(Io);
@@ -20,10 +20,10 @@ pub as new(out self: Io@mem, in fd: i32@reg+imm) {
 
 pub as flush(inout self: Io@mem) {
     let flag: bool@auto;
-    if(neq(flag, self.len, 0)) {
+    if(flag.neq(self.len, 0)) {
         let msg: *char@auto;
         msg =& self.buff;
-        let len: i64@auto = self.len;
+        let len: u64@auto = self.len;
         let fd: i32@auto = self.fd;
         write(fd, msg, len);
         self.len = 0;
@@ -33,14 +33,14 @@ pub as flush(inout self: Io@mem) {
 pub as write(inout self: Io@mem, in str: Str@mem) {
     let str_ptr: *char@auto;
     str.as_ptr(str_ptr);
-    let str_ptr_i8: *i8@auto = str_ptr;
-    let len: i64@auto;
+    let str_ptr_u8: *u8@auto = str_ptr;
+    let len: u64@auto;
     str.len(len);
-    self.write(str_ptr_i8, len);
+    self.write(str_ptr_u8, len);
 };
 
-pub as write(inout self: Io@mem, in data: *i8@reg+mem, in len: i64@reg+mem+imm) {
-    let buff_new_len: i64@auto = self.len;
+pub as write(inout self: Io@mem, in data: *void@reg+mem, in len: u64@reg+mem+imm) {
+    let buff_new_len: u64@auto = self.len;
     buff_new_len += len;
     let flag: bool@auto;
     if(ge(flag, buff_new_len, 1024)) {

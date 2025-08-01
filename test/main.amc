@@ -4,29 +4,29 @@ import std.io.print;
 import std.vec;
 import std.string;
 
-impl Vec(i32);
-impl Display_Vec(Io, i32);
-pub as drop(x: i32@reg+mem) {};
+impl Vec(u32);
+impl Display_Vec(Io, u32);
+pub as drop(x: u32@reg+mem) {};
 
-const MAX: i64 = 100000;
+const MAX: i64 = 10000;
 
-fn main() {/*
-    let numbers: defer Vec_i32@stack;
+fn main() {
+    let numbers: defer Vec_u32@stack;
     numbers.new();
     numbers.resize(MAX);
-    let numbers_len: i64@r8 = 0;
-    let flag: bool@r9;
+    let numbers_len: u64@auto = 0;
+    let flag: bool@auto;
 
-    for(let i: i64@r10 = 2; flag.lt(i, MAX); ++i) {
-        let prime_flag: bool@r11 = true;
+    for(let i: u64@auto = 2; flag.lt(i, MAX); ++i) {
+        let prime_flag: bool@auto = true;
 
-        for(let k: i64@r12 = 0; flag.lt(k, numbers_len); ++k) {
-            let prime: *i32@r13;
+        for(let k: u64@auto = 0; flag.lt(k, numbers_len); ++k) {
+            let prime: *u32@auto;
             numbers.index(k, prime);
             
-            let remaining: i32@rdx = 0;
-            let divided: i32@rax = i;
-            divided.idiv(remaining, *prime);
+            let remaining: u32@auto = 0;
+            let divided: u32@auto = i;
+            divided.div(remaining, *prime);
             if(flag.eq(remaining, 0)) {
                 k = numbers_len;
                 prime_flag = false;
@@ -34,7 +34,7 @@ fn main() {/*
         };
 
         if(prime_flag) {
-            let prime: *i32@r12;
+            let prime: *u32@auto;
             numbers.index(numbers_len, prime);
             *prime = i;
             ++ numbers_len;
@@ -42,12 +42,6 @@ fn main() {/*
     };
 
     numbers.resize(numbers_len);
-    println(numbers);*/
-
-    let str: Str@stack;
-    str.from("Hello");
-    let string: defer String@stack;
-    string.from("Hello, String!");
-    println(string);
+    println(numbers);
 };
 

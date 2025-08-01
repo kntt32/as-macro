@@ -15,13 +15,13 @@ pub template String(A) {
     };
 
     pub as from(out self: String@mem, in str: Str@mem) {
-        let len: i64@auto;
+        let len: u64@auto;
         str.len(len);
 
         self.vec.new();
         self.vec.resize(len);
 
-        for((let i: i64@auto = 0; let flag: bool@auto); flag.lt(i, len); ++i) {
+        for((let i: u64@auto = 0; let flag: bool@auto); flag.lt(i, len); ++i) {
             let str_addr: *char@auto;
             let vec_addr: *char@auto;
             str.index(i, str_addr);
@@ -40,7 +40,7 @@ pub template String(A) {
     };
 
     pub as as_str(in self: String@mem, out str: Str@mem) {
-        let len: i64@auto;
+        let len: u64@auto;
         let addr: *char@auto;
 
         self.vec.len(len);

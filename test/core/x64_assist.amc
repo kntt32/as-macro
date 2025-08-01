@@ -1,30 +1,81 @@
 import x64_ins;
 
-template MovCast(D, S) {
-    pub as mov(dst: $(D)@reg+mem, src: $(S)@reg+mem) {
-        let src_auto_s: $(S)@auto = src;
-        let src_auto_d: $(D)@auto;
-        {
-            let src_r15_s: $(S)@r15 = src_auto_s;
-            let src_r15_d: $(D)@r15;
-            src_auto_d = src_r15_d;
-        };
-        dst = src_auto_d;
+template MovSignedExpandCast(D, S) {
+    pub as mov(dst: $(D)@reg, src: $(S)@reg+mem) {
+        movsx(dst, src);
+    };
+
+    pub as mov(dst: $(D)@mem, src: $(S)@reg+mem) {
+        let dst_auto: $(D)@auto = src;
+        dst = dst_auto;
     };
 };
 
-impl MovCast(b8, b16);
-impl MovCast(b8, b32);
-impl MovCast(b8, b64);
-impl MovCast(b16, b8);
-impl MovCast(b16, b32);
-impl MovCast(b16, b64);
-impl MovCast(b32, b8);
-impl MovCast(b32, b16);
-impl MovCast(b32, b64);
-impl MovCast(b64, b8);
-impl MovCast(b64, b16);
-impl MovCast(b64, b32);
+pub as mov(dst: i64@reg, src: i32@reg+mem) {
+    movsxd(dst, src);
+};
+
+pub as mov(dst: i64@mem, src: i32@reg+mem) {
+    let dst_auto: i64@auto = src;
+    dst = dst_auto;
+};
+
+impl MovSignedExpandCast(i16, i8);
+impl MovSignedExpandCast(i32, i8);
+impl MovSignedExpandCast(i64, i8);
+impl MovSignedExpandCast(i32, i16);
+impl MovSignedExpandCast(i64, i16);
+
+template MovUnsignedExpandCast(D, T) {
+    pub as mov(dst: $(D)@reg, src: $(T)@reg+mem) {
+        movzx(dst, src);
+    };
+
+    pub as mov(dst: $(D)@mem, src: $(T)@reg+mem) {
+        let dst_auto: $(D)@auto = src;
+        dst = dst_auto;
+    };
+};
+
+pub as mov(dst: u64@reg+mem, src: u32@reg+mem) {
+    let dst_auto: u64@auto;
+
+    {
+        let src_rax_s: u32@rax = src;
+        let src_rax_d: u64@rax;
+        dst_auto = src_rax_d;
+    };
+
+    dst = dst_auto;
+};
+
+impl MovUnsignedExpandCast(u16, u8);
+impl MovUnsignedExpandCast(u32, u8);
+impl MovUnsignedExpandCast(u64, u8);
+impl MovUnsignedExpandCast(u32, u16);
+impl MovUnsignedExpandCast(u64, u16);
+
+template MovShrinkCast(D, S) {
+    pub as mov(dst: $(D)@reg+mem, src: $(S)@reg+mem) {
+        let src_auto_s: $(S)@auto = src;
+        let dst_auto_d: $(D)@auto;
+
+        {
+            let src_rax_s: $(S)@rax = src_auto_s;
+            let src_rax_d: $(D)@rax;
+            dst_auto_d = src_rax_d;
+        };
+
+        dst = dst_auto_d;
+    };
+};
+
+impl MovShrinkCast(b8, b16);
+impl MovShrinkCast(b8, b32);
+impl MovShrinkCast(b8, b64);
+impl MovShrinkCast(b16, b32);
+impl MovShrinkCast(b16, b64);
+impl MovShrinkCast(b32, b64);
 
 template MovAddSubMem(T) {
     pub as mov(out dst: $(T)@mem, in src: $(T)@mem+imm) {
@@ -74,19 +125,12 @@ template Idiv(T) {
         let other_auto: $(T)@auto = other;
         let remain_auto: $(T)@auto = remain;
         {
-            let self_r15: $(T)@r15 = self_auto;
-            let other_r14: $(T)@r14 = other_auto;
-            let remain_r13: $(T)@r13 = remain_auto;
-            {
-                let self_rax: $(T)@rax = self_r15;
-                let remain_rdi: $(T)@rdx = remain_r13;
-                idiv(self_rax, remain_rdi, other_r14);
+            let self_rax: $(T)@rax = self_auto;
+            let remain_rdi: $(T)@rdx = remain_auto;
+            idiv(self_rax, remain_rdi, other_auto);
 
-                self_r15 = self_rax;
-                remain_r13 = remain_rdi;
-            };
-            remain_auto = remain_r13;
-            self_auto = self_r15;
+            remain_auto = remain_rdi;
+            self_auto = self_rax;
         };
         remain = remain_auto;
         self = self_auto;
@@ -98,12 +142,11 @@ template Idiv(T) {
     };
 };
 
-pub as idiv(inout self: b8@reg+mem, in other: b8@reg+mem+imm) {
-    let self_auto: b8@auto = self;
-    let other_auto: b8@auto = other;
+pub as idiv(inout self: i8@reg+mem, in other: i8@reg+mem+imm) {
+    let self_auto: i8@auto = self;
+    let other_auto: i8@auto = other;
     {
-        let self_r15: b8@r15 = self_auto;
-        let self_rax: b8@rax = self_r15;
+        let self_rax: i8@rax = self_auto;
         idiv(self_rax, other_auto);
         self_auto = self_rax;
     };
@@ -111,7 +154,47 @@ pub as idiv(inout self: b8@reg+mem, in other: b8@reg+mem+imm) {
     self = self_auto;
 };
 
-impl Idiv(b16);
-impl Idiv(b32);
-impl Idiv(b64);
+impl Idiv(i16);
+impl Idiv(i32);
+impl Idiv(i64);
+
+template Div(T) {
+    pub as div(inout self: $(T)@reg+mem, out remain: $(T)@reg+mem, in other: $(T)@reg+mem+imm) {
+        let self_auto: $(T)@auto = self;
+        let other_auto: $(T)@auto = other;
+        let remain_auto: $(T)@auto = remain;
+        {
+            let self_rax: $(T)@rax = self_auto;
+            let remain_rdi: $(T)@rdx = remain_auto;
+            div(self_rax, remain_rdi, other_auto);
+
+            remain_auto = remain_rdi;
+            self_auto = self_rax;
+        };
+        remain = remain_auto;
+        self = self_auto;
+    };
+
+    pub as div(inout self: $(T)@reg+mem, in other: $(T)@reg+mem+imm) {
+        let remain: $(T)@auto = 0;
+        div(self, remain, other);
+    };
+};
+
+pub as div(inout self: b8@reg+mem, in other: b8@reg+mem+imm) {
+    let self_auto: b8@auto = self;
+    let other_auto: b8@auto = other;
+    {
+        let self_rax: b8@rax = self_auto;
+        div(self_rax, other_auto);
+        self_auto = self_rax;
+    };
+
+    self = self_auto;
+};
+
+impl Div(b16);
+impl Div(b32);
+impl Div(b64);
+
 

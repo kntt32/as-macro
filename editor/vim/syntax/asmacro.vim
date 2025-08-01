@@ -13,7 +13,7 @@ syntax keyword asmacroStorage stack imm mem reg xmm
 syntax match asmacroOperator "[\.@:]"
 syntax match asmacroDivider "[,;]"
 syntax keyword asmacroUserType struct enum union type
-syntax keyword asmacroPrimitiveType bool char i8 i16 i32 i64 b8 b16 b32 b64 bin fn
+syntax keyword asmacroPrimitiveType bool char i8 u8 i16 u16 i32 u32 i64 u64 b8 b16 b32 b64 bin fn
 
 highlight link asmacroComment Comment
 highlight link asmacroString String

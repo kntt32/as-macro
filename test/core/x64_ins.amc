@@ -455,6 +455,14 @@ pub as nop(_: b16@reg+mem) : (double: 0x0f, 0x1f, /0);
 pub as nop(_: b32@reg+mem) : (double: 0x0f, 0x1f, /0);
 pub as nop(_: b64@reg+mem) : (double: 0x0f, 0x1f, /0);
 
+pub as not(flag: bool@reg+mem) {
+    if(flag) {
+        flag = false;
+    }else {
+        flag = true;
+    };
+};
+
 pub as not(_: b8@reg+mem) : (double: 0xf6, /2);
 pub as not(_: b16@reg+mem) : (double: 0xf7, /2);
 pub as not(_: b32@reg+mem) : (double: 0xf7, /2);

@@ -412,6 +412,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_debug_label_syntax,
         Syntax_build_assignadd,
         Syntax_build_assignsub,
+        Syntax_build_assignmul,
         Syntax_build_assignand,
         Syntax_build_assignor,
         Syntax_build_assignxor,
@@ -2065,6 +2066,33 @@ bool Syntax_build_assignsub(Parser parser, inout Generator* generator, inout Var
     }
 
     resolve_sresult(build_assignops("sub", left_parser, right_parser, generator, variable_manager), parser.offset, generator);
+    *data = Data_void();
+
+    return true;
+}
+
+static ParserMsg Syntax_build_assignmul_parse(Parser parser, out Parser* left_parser, out Parser* right_parser) {
+    *left_parser = Parser_split(&parser, "*=");
+    *right_parser = parser;
+
+    if(Parser_is_empty(left_parser)) {
+        return ParserMsg_new(left_parser->offset, "expected left expression");
+    }
+    if(Parser_is_empty(right_parser)) {
+        return ParserMsg_new(right_parser->offset, "expected right expression");
+    }
+
+    return ParserMsg_new(parser.offset, NULL);
+}
+
+bool Syntax_build_assignmul(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    Parser left_parser;
+    Parser right_parser;
+    if(!ParserMsg_is_success(Syntax_build_assignmul_parse(parser, &left_parser, &right_parser))) {
+        return false;
+    }
+
+    resolve_sresult(build_assignops("imul", left_parser, right_parser, generator, variable_manager), parser.offset, generator);
     *data = Data_void();
 
     return true;

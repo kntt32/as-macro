@@ -5,10 +5,15 @@ import core.fmt;
 import std;
 import std.syscall;
 
+pub enum InOut {
+    In, Out
+};
+
 pub struct Io {
     fd: i32,
     buff: [char; 1024],
     len: u64,
+    io: InOut,
 };
 
 impl Display(Io);

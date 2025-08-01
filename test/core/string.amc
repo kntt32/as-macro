@@ -49,6 +49,22 @@ pub template String(A) {
         str.from(addr, len);
     };
 
+    pub as clone(in self: String@mem, out buff: String@mem) {
+        self.vec.clone(buff.vec);
+    };
+
+    pub as write(inout self: String@mem, in str: Str@mem) {
+        let str_len: u64@auto;
+        str.len(str_len);
+        let flag: bool@auto;
+        let c: *char@auto;
+
+        for(let i: u64@auto=0; flag.lt(i, str_len); ++i) {
+            str.index(i, c);
+            self.vec.push(*c);
+        };
+    };
+
     pub as drop(inout self: String@mem) {
         self.vec.drop();
     };

@@ -1,8 +1,10 @@
 import core;
 import core.string;
+import core.fmt;
 import std;
 import std.alloc;
 
 impl String(STD_ALLOC);
 impl Display_String(Io);
+impl Display(String);
 

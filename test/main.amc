@@ -45,5 +45,10 @@ fn main() {
     printfln(numbers);
 
     println("Hello, World!");
+
+    let string: defer String@stack;
+    string.from("Hello!");
+    string.display(12345);
+    printfln(string);
 };
 

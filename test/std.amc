@@ -9,16 +9,19 @@ pub extern fn main();
 pub static STD_ALLOC: Alloc;
 pub static __STDOUT: Out;
 pub static __STDERR: Out;
+pub static __STDIN: In;
 
 pub fn _start() {
     STD_ALLOC.new();
     __STDOUT.stdout();
     __STDERR.stderr();
+    __STDIN.stdin();
 
     main();
 
-    __STDERR.flush();
-    __STDOUT.flush();
+    __STDIN.drop();
+    __STDERR.drop();
+    __STDOUT.drop();
     STD_ALLOC.drop();
     let status: i32@rdi;
     status = 0;

@@ -1,0 +1,116 @@
+import core;
+import std;
+import std.syscall;
+import std.vec;
+import std.string;
+
+pub struct In {
+    fd: i32,
+    primitive_flag: bool,
+};
+
+impl Option(In);
+impl Vec(u8);
+
+pub as stdin(out self: In@mem) {
+    self.fd = STDIN;
+    self.primitive_flag = true;
+};
+
+pub as mov(out dst: In@mem, in src: In@mem) {
+    dst.fd = src.fd;
+    dst.primitive_flag = src.primitive_flag;
+
+    src.fd = -1;
+};
+
+pub as open(out self: Option_In@mem, in name: Str@mem) {
+    let stream: In@stack;
+
+    let name_addr: *char@auto;
+    name.as_ptr(name_addr);
+
+    openat(stream.fd, AT_FDCWD, name_addr, O_RDONLY, 0);
+    stream.primitive_flag = false;
+
+    let flag: bool@auto;
+
+    if(flag.ge(stream.fd, 0)) {
+        self.some(stream);
+    }else {
+        self.none();
+    };
+};
+
+pub as read_line(inout self: In@mem, out buff: String@mem) {
+    buff.new();
+
+    let flag: bool@auto;
+    let loop_flag: bool@auto = true;
+    
+    let raw_buff: u8@stack;
+    let raw_buff_addr: *u8@auto;
+    raw_buff_addr =& raw_buff;
+
+    let readcount: u64@auto = 1;
+    while(flag.eq(readcount, 1).and(loop_flag)) {
+        read(readcount, self.fd, raw_buff_addr, 1);
+        if(flag.eq(raw_buff, '\n')) {
+            loop_flag = false;
+        }else {
+            let raw_buff_char: char@auto = raw_buff;
+            buff.push(raw_buff_char);
+        };
+    };
+};
+
+pub as read(inout self: In@mem, out buff: String@mem) {
+    let flag: bool@auto;
+
+    buff.new();
+
+    let raw_buff: [u8; 1024]@stack;
+    let raw_buff_addr: *u8@auto;
+
+    let readcount: u64@auto = 1024;
+    while(flag.eq(readcount, 1024)) {
+        raw_buff_addr =& raw_buff;
+        read(readcount, self.fd, raw_buff_addr, 1024);
+        
+        for(let i: u64@auto = 0; flag.lt(i, readcount); ++i) {
+            let raw_buff_char: char@auto = *raw_buff_addr;
+            buff.push(raw_buff_char);
+            raw_buff_addr += sizeof(u8);
+        };
+    };
+};
+
+pub as read(inout self: In@mem, out buff: Vec_u8@mem) {
+    let flag: bool@auto;
+
+    buff.new();
+
+    let raw_buff: [u8; 1024]@stack;
+    let raw_buff_addr: *u8@auto;
+
+    let readcount: u64@auto = 1024;
+    while(flag.eq(readcount, 1024)) {
+        raw_buff_addr =& raw_buff;
+        read(readcount, self.fd, raw_buff_addr, 1024);
+        
+        for(let i: u64@auto = 0; flag.lt(i, readcount); ++i) {
+            buff.push(*raw_buff_addr);
+            raw_buff_addr += sizeof(u8);
+        };
+    };
+};
+
+pub as drop(out self: In@mem) {
+    let flag: bool@auto = self.primitive_flag;
+
+    if(flag.not()) {
+        close(self.fd);
+        self.fd = -1;
+    };
+};
+

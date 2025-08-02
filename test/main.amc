@@ -1,83 +1,17 @@
 import std;
-import core.cmp;
 import std.io;
-import std.vec;
-
-impl Vec(u32);
-impl Display_Vec(Out, u32);
-
-enum MyEnum {
-    A, B, C, D, E
-};
+import std.string;
 
 fn main() {
-
+    let optional_stream: Option_In@stack;
+    let stream: defer In@stack;
     let str: Str@stack;
-    let optional_file: Option_Out@stack;
-    optional_file.create(str.from("Hello_File.txt"));
-    let file: defer Out@stack;
-    optional_file.take(file);
-    file.write(str.from("Hello, World!"));
+    optional_stream.open(str.from("main.amc"));
+    optional_stream.take(stream);
 
-/*
-    let my_enum: MyEnum@auto = MyEnum.B;
+    let buff: defer String@stack;
+    stream.read(buff);
 
-    switch(my_enum) {
-        MyEnum.A {
-            println("A!");
-        };
-        MyEnum.B, MyEnum.C {
-            println("B/C");
-        };
-        default {
-            println("default");
-        };
-    };
-
-    get_prime_numbers();*/
-};
-/*
-fn get_prime_numbers() {
-    const MAX: u64 = 10000;
-    const MAX_SQRT: u64 = 100;
-    static FLAGS: [bool; 10000];
-
-    let flag: bool@auto;
-    let flags: *bool@auto;
-    flags =& FLAGS;
-    flags += 2;
-
-    for(let i: u64@auto = 2; flag.lt(i, MAX); ++i) {
-        *flags = true;
-        ++ flags;
-    };
-    flags =& FLAGS;
-    flags += 2;
-
-    for(let i: u64@auto = 2; flag.lt(i, MAX_SQRT); ++i) {
-        if(*flags) {
-            let local_flags: *bool@auto = flags;
-            let k: u64@auto = i;
-            for(k += i; flag.lt(k, MAX); k += i) {
-                local_flags += i;
-                *local_flags = false;
-            };
-        };
-        flags += 1;
-    };
-
-    flags =& FLAGS;
-    flags += 2;
-    let str: Str@stack;
-    str.from(", ");
-    for(let i: u64@auto = 2; flag.lt(i, MAX); ++i) {
-        if(*flags) {
-            printf(i);
-            printf(str);
-        };
-        ++ flags;
-    };
-    print("\n");
+    printfln(buff);
 };
 
-*/

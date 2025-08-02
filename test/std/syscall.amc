@@ -2,6 +2,38 @@ import core;
 import core.cmp;
 import core.syscall;
 
+pub as read(out readcount: u64@rax, in fd: i32@rdi, inout buff: *u8@rsi, in count: u64@rdx) {
+    let readcount_mem: u64@stack;
+    {
+        let number: i64@rax = 0;
+        syscall(number);
+
+        panic_lt(number, 0, "syscall.amc:read: error occured");
+        readcount_mem = number;
+    };
+    readcount = readcount_mem;
+};
+
+pub as read(out readcount: u64@reg+mem, in fd: i32@reg+mem+imm, inout buff: *u8@reg+mem, in count: u64@reg+mem+imm) {
+    let readcount_mem: u64@stack;
+    let fd_mem: i32@stack = fd;
+    let buff_mem: *u8@stack = buff;
+    let count_mem: u64@stack = count;
+    
+    {
+        let readcount_rax: u64@rax;
+        let fd_rdi: i32@rdi = fd_mem;
+        let buff_rsi: *u8@rsi = buff_mem;
+        let count_rdx: u64@rdx = count_mem;
+
+        read(readcount_rax, fd_rdi, buff_rsi, count_rdx);
+
+        readcount_mem = readcount_rax;
+    };
+    
+    readcount = readcount_mem;
+};
+
 pub const STDIN: i32 = 0;
 pub const STDOUT: i32 = 1;
 pub const STDERR: i32 = 2;

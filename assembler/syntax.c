@@ -1563,9 +1563,14 @@ static ParserMsg Syntax_build_if_parse(Parser parser, inout Generator* generator
         Parser_parse_block(&parser, then_branch), (void)NULL
     );
     if(Parser_skip_keyword(&parser, "else")) {
-        PARSERMSG_UNWRAP(
-            Parser_parse_block(&parser, else_branch), (void)NULL
-        );
+        if(Parser_start_with(&parser, "if")) {
+            *else_branch = parser;
+            parser = Parser_empty(parser.offset);
+        }else {
+            PARSERMSG_UNWRAP(
+                Parser_parse_block(&parser, else_branch), (void)NULL
+            );
+        }
     }else {
         *else_branch = Parser_empty(parser.offset);
     }

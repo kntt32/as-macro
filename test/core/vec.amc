@@ -162,6 +162,24 @@ pub template RawVec(T, A) {
     };
 };
 
+pub template Vec_transmute(D, S) {
+    pub as transmute(in src: Vec_$(S)@mem, out dst: Vec_$(D)@mem) {
+        panic_neq(sizeof($(D)), sizeof($(S)), "cannot transmute between different size type");
+
+        let slice_addr_s: *$(S)@auto;
+        src.slice.as_ptr(slice_addr_s);
+        let slice_addr_d: *$(D)@auto = slice_addr_s;
+        let slice_len: u64@auto;
+        src.slice.len(slice_len);
+
+        dst.slice.from(slice_addr_d, slice_len);
+        dst.capacity = src.capacity;
+
+        src.slice.empty();
+        src.capacity = 0;
+    };
+};
+
 pub template Display_Vec(Formatter, T) {
     pub as display(inout self: $(Formatter)@mem, in vec: Vec_$(T)@mem) {
         let str: Str@stack;

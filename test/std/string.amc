@@ -5,6 +5,6 @@ import std;
 import std.alloc;
 
 impl String(STD_ALLOC);
-impl Display_String(Io);
+impl Display_String(Out);
 impl Display(String);
 

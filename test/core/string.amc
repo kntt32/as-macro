@@ -34,13 +34,21 @@ pub template String(A) {
         };
     };
 
-    pub as from(in self: String@mem, in c_str: bin@mem) {
+    pub as from(out self: String@mem, char_vec: Vec_char@mem) {
+        self.vec = char_vec;
+    };
+
+    pub as from(out self: String@mem, in c_str: bin@mem) {
         let str: Str@stack;
         self.from(str.from(c_str));
     };
 
     pub as mov(out dst: String@mem, in src: String@mem) {
         dst.vec = src.vec;
+    };
+
+    pub as push(inout self: String@mem, in c: char@reg+mem+imm) {
+        self.vec.push(c);
     };
 
     pub as as_str(in self: String@mem, out str: Str@mem) {

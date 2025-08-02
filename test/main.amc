@@ -11,6 +11,15 @@ enum MyEnum {
 };
 
 fn main() {
+
+    let str: Str@stack;
+    let optional_file: Option_Out@stack;
+    optional_file.create(str.from("Hello_File.txt"));
+    let file: defer Out@stack;
+    optional_file.take(file);
+    file.write(str.from("Hello, World!"));
+
+/*
     let my_enum: MyEnum@auto = MyEnum.B;
 
     switch(my_enum) {
@@ -25,9 +34,9 @@ fn main() {
         };
     };
 
-    get_prime_numbers();
+    get_prime_numbers();*/
 };
-
+/*
 fn get_prime_numbers() {
     const MAX: u64 = 10000;
     const MAX_SQRT: u64 = 100;
@@ -71,4 +80,4 @@ fn get_prime_numbers() {
     print("\n");
 };
 
-
+*/

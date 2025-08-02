@@ -7,8 +7,7 @@ pub const STDOUT: i32 = 1;
 pub const STDERR: i32 = 2;
 
 pub as write(in fd: i32@rdi, in msg: *u8@rsi, in len: u64@rdx) {
-    let number: i64@rax;
-    number = 1;
+    let number: i64@rax = 1;
     syscall(number);
 };
 
@@ -22,6 +21,18 @@ pub as write(in fd: i32@reg+mem+imm, in msg: *u8@reg+mem, in len: u64@reg+mem+im
     let len_rdx: u64@rdx = len_mem;
 
     write(fd_rdi, msg_rsi, len_rdx);
+};
+
+pub as close(in fd: i32@rdi) {
+    let number: i64@rax = 3;
+    syscall(number);
+};
+
+pub as close(in fd: i32@reg+mem+imm) {
+    let fd_mem: i32@stack = fd;
+    let fd_rdi: i32@rdi = fd_mem;
+
+    close(fd_rdi);
 };
 
 pub const MMAP_PROT_NONE: i64 = 0x0;

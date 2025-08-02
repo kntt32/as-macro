@@ -1,5 +1,6 @@
 import core;
 import core.fmt;
+import core.option;
 import std;
 import std.syscall;
 
@@ -10,6 +11,7 @@ pub struct Out {
     primitive_flag: bool,
 };
 
+impl Option(Out);
 impl Display(Out);
 
 pub as stdout(out self: Out@mem) {
@@ -24,8 +26,27 @@ pub as stderr(out self: Out@mem) {
     self.primitive_flag = true;
 };
 
-pub as create(out self: Out@mem, in name: Str@mem) {
-    todo();
+pub as create(out self: Option_Out@mem, in name: Str@mem) {
+    let stream: Out@stack;
+
+    let create_flags: u64@auto = O_WRONLY;
+    create_flags.or(O_CREAT);
+    create_flags.or(O_TRUNC);
+    
+    let name_addr: *char@auto;
+    name.as_ptr(name_addr);
+
+    openat(stream.fd, AT_FDCWD, name_addr, create_flags, 0644);
+    stream.len = 0;
+    stream.primitive_flag = false;
+
+    let flag: bool@auto;
+
+    if(flag.ge(stream.fd, 0)) {
+        self.some(stream);
+    }else {
+        self.none();
+    };
 };
 
 pub as write(inout self: Out@mem, in str: Str@mem) {
@@ -37,6 +58,12 @@ pub as write(inout self: Out@mem, in str: Str@mem) {
     str.len(str_len);
 
     self.write(data_addr, str_len);
+};
+
+pub as mov(out dst: Out@mem, in src: Out@mem) {
+    dst.fd = src.fd;
+    dst.len = src.len;
+    dst.primitive_flag = src.primitive_flag;
 };
 
 pub as write(inout self: Out@mem, in data: *u8@reg+mem, in len: u64@reg+mem+imm) {
@@ -76,7 +103,8 @@ pub as drop(inout self: Out@mem) {
     let flag: bool@auto = self.primitive_flag;
 
     if(flag.not()) {
-        todo();
+        close(self.fd);
+        self.fd = -1;
     };
 };
 

@@ -12,13 +12,15 @@ fn main() {
         println("log: A");
         try flag = true;
         println("log: B");
-        try flag = true;
+        try flag = false;
         println("log: C");
     }catch {
         println("catch");
     };
+
+    get_prime_numbers();
 };
-/*
+
 fn get_prime_numbers() {
     const MAX: u64 = 36000000;
     const MAX_SQRT: u64 = 6000;
@@ -62,4 +64,4 @@ fn get_prime_numbers() {
     print("\n");
 };
 
-*/
+

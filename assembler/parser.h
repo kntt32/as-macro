@@ -46,14 +46,21 @@ bool Parser_start_with_symbol(in Parser* self, in char* symbol);
 Parser Parser_split(inout Parser* self, in char* symbol);
 Parser Parser_rsplit(inout Parser* self, in char* symbol);
 ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]);
+bool Parser_skip_ident(inout Parser* self, out char token[256]);
 ParserMsg Parser_parse_keyword(inout Parser* self, in char* keyword);
+bool Parser_skip_keyword(inout Parser* self, in char* keyword);
 ParserMsg Parser_parse_symbol(inout Parser* self, in char* symbol);
+bool Parser_skip_symbol(inout Parser* self, in char* symbol);
 ParserMsg Parser_parse_number(inout Parser* self, out u64* value);
+bool Parser_skip_number(inout Parser* self, out u64* value);
 ParserMsg Parser_parse_string(inout Parser* self, out Vec* string);
 ParserMsg Parser_parse_char(inout Parser* self, out char* code);
 ParserMsg Parser_parse_block(inout Parser* self, out Parser* parser);
+bool Parser_skip_block(inout Parser* self, out Parser* parser);
 ParserMsg Parser_parse_paren(inout Parser* self, out Parser* parser);
+bool Parser_skip_paren(inout Parser* self, out Parser* parser);
 ParserMsg Parser_parse_index(inout Parser* self, out Parser* parser);
+bool Parser_skip_index(inout Parser* self, out Parser* parser);
 void Parser_set_parser_vars(inout Parser* self, in Vec* parser_vars);
 
 #define PARSERMSG_UNWRAP(parser_msg, catch_proc) {\

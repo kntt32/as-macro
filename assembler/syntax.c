@@ -960,11 +960,11 @@ bool Syntax_build_asmacro_expansion(Parser parser, inout Generator* generator, i
     }
 
     char name[256];
-    if(!ParserMsg_is_success(Parser_parse_ident(&parser, name))) {
+    if(!Parser_skip_ident(&parser, name)) {
         return false;
     }
     Parser args_parser;
-    if(!ParserMsg_is_success(Parser_parse_paren(&parser, &args_parser))) {
+    if(!Parser_skip_paren(&parser, &args_parser)) {
         return false;
     }
 
@@ -1123,7 +1123,7 @@ static SResult build_assignops(in char* opname, Parser left_parser, Parser right
 }
 
 bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "let"))) {
+    if(!Parser_skip_keyword(&parser, "let")) {
         return false;
     }
     
@@ -1155,7 +1155,7 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
         generator
     );
 
-    if(ParserMsg_is_success(Parser_parse_symbol(&parser, "="))) {
+    if(Parser_skip_symbol(&parser, "=")) {
         Data init_data;
         if(!resolve_sresult(Syntax_build(parser, generator, variable_manager, &init_data), parser.offset, generator)) {
             resolve_sresult(
@@ -1170,7 +1170,7 @@ bool Syntax_build_variable_declaration(Parser parser, inout Generator* generator
 }
 
 bool Syntax_build_static_variable_declaration(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "static"))) {
+    if(!Parser_skip_keyword(&parser, "static")) {
         return false;
     }
 
@@ -1191,7 +1191,7 @@ bool Syntax_build_static_variable_declaration(Parser parser, inout Generator* ge
 }
 
 bool Syntax_build_const_variable_declaration(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "const"))) {
+    if(!Parser_skip_keyword(&parser, "const")) {
         return false;
     }
 
@@ -1228,7 +1228,7 @@ bool Syntax_build_register_expression(Parser parser, inout Generator* generator,
 bool Syntax_build_imm_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     (void)variable_manager;
     u64 imm;
-    if(!ParserMsg_is_success(Parser_parse_number(&parser, &imm))) {
+    if(!Parser_skip_number(&parser, &imm)) {
         return false;
     }
     
@@ -1241,7 +1241,7 @@ bool Syntax_build_imm_expression(Parser parser, inout Generator* generator, inou
 bool Syntax_build_true_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     assert(generator != NULL && variable_manager != NULL && data != NULL);
 
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "true"))) {
+    if(!Parser_skip_keyword(&parser, "true")) {
         return false;
     }
 
@@ -1254,7 +1254,7 @@ bool Syntax_build_true_expression(Parser parser, inout Generator* generator, ino
 bool Syntax_build_false_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     assert(generator != NULL && variable_manager != NULL && data != NULL);
 
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "false"))) {
+    if(!Parser_skip_keyword(&parser, "false")) {
         return false;
     }
 
@@ -1267,7 +1267,7 @@ bool Syntax_build_false_expression(Parser parser, inout Generator* generator, in
 bool Syntax_build_null_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     assert(generator != NULL && variable_manager != NULL && data != NULL);
 
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "null"))) {
+    if(!Parser_skip_keyword(&parser, "null")) {
         return false;
     }
 
@@ -1353,7 +1353,7 @@ bool Syntax_build_dot_operator(Parser parser, inout Generator* generator, inout 
 
 bool Syntax_build_refer_operator(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     assert(generator != NULL && variable_manager != NULL && data != NULL);
-    if(!ParserMsg_is_success(Parser_parse_symbol(&parser, "*"))) {
+    if(!Parser_skip_symbol(&parser, "*")) {
         return false;
     }
 
@@ -1453,7 +1453,7 @@ bool Syntax_build_enum_expr(Parser parser, inout Generator* generator, inout Var
 
 bool Syntax_build_variable_expression(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     char name[256];
-    if(!ParserMsg_is_success(Parser_parse_ident(&parser, name))) {
+    if(!Parser_skip_ident(&parser, name)) {
         return false;
     }
     
@@ -1474,7 +1474,7 @@ bool Syntax_build_variable_expression(Parser parser, inout Generator* generator,
 bool Syntax_build_sizeof_operator(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     assert(generator != NULL && variable_manager != NULL && data != NULL);
 
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "sizeof"))) {
+    if(!Parser_skip_keyword(&parser, "sizeof")) {
         return false;
     }
 
@@ -1513,7 +1513,7 @@ bool Syntax_build_sizeof_operator(Parser parser, inout Generator* generator, ino
 bool Syntax_build_alignof_operator(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     assert(generator != NULL && variable_manager != NULL && data != NULL);
 
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "alignof"))) {
+    if(!Parser_skip_keyword(&parser, "alignof")) {
         return false;
     }
 
@@ -1556,7 +1556,7 @@ static ParserMsg Syntax_build_if_parse(Parser parser, inout Generator* generator
     PARSERMSG_UNWRAP(
         Parser_parse_block(&parser, then_branch), (void)NULL
     );
-    if(ParserMsg_is_success(Parser_parse_keyword(&parser, "else"))) {
+    if(Parser_skip_keyword(&parser, "else")) {
         PARSERMSG_UNWRAP(
             Parser_parse_block(&parser, else_branch), (void)NULL
         );
@@ -1718,7 +1718,7 @@ static void Syntax_build_if_build(Parser condition_parser, Parser then_branch, P
 }
 
 bool Syntax_build_if(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "if"))) {
+    if(!Parser_skip_keyword(&parser, "if")) {
         return false;
     }
 
@@ -1747,7 +1747,7 @@ static ParserMsg Syntax_build_do_try_catch_parse(inout Parser* parser, out Parse
         Parser_parse_block(parser, proc_parser), (void)NULL
     );
 
-    if(ParserMsg_is_success(Parser_parse_keyword(parser, "catch"))) {
+    if(Parser_skip_keyword(parser, "catch")) {
         PARSERMSG_UNWRAP(
             Parser_parse_block(parser, catch_parser), (void)NULL
         );
@@ -1800,7 +1800,7 @@ static SResult Syntax_build_do_try_catch_build_proc(u32 id, in char* catch_label
 
     while(!Parser_is_empty(&proc_parser)) {
         Parser syntax_parser = Parser_split(&proc_parser, ";");
-        bool try_flag = ParserMsg_is_success(Parser_parse_keyword(&syntax_parser, "try"));
+        bool try_flag = Parser_skip_keyword(&syntax_parser, "try");
         Data syntax_data;
         SRESULT_UNWRAP(
             Syntax_build(syntax_parser, generator, variable_manager, &syntax_data), (void)NULL
@@ -1855,7 +1855,7 @@ static SResult Syntax_build_do_try_catch_build(Parser cond_parser, Parser proc_p
 }
 
 bool Syntax_build_do_try_catch(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "do"))) {
+    if(!Parser_skip_keyword(&parser, "do")) {
         return false;
     }
 
@@ -2011,7 +2011,7 @@ static void Syntax_build_for_build(
 bool Syntax_build_for(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     *data = Data_void();
 
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "for"))) {
+    if(!Parser_skip_keyword(&parser, "for")) {
         return false;
     }
 
@@ -2109,7 +2109,7 @@ static void Syntax_build_while_build(Parser cond_parser, Parser proc_parser, ino
 bool Syntax_build_while(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     *data = Data_void();
 
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "while"))) {
+    if(!Parser_skip_keyword(&parser, "while")) {
         return false;
     }
 
@@ -2127,7 +2127,7 @@ bool Syntax_build_block(Parser parser, inout Generator* generator, inout Variabl
     *data = Data_void();
 
     Parser proc_parser;
-    if(!ParserMsg_is_success(Parser_parse_block(&parser, &proc_parser))) {
+    if(!Parser_skip_block(&parser, &proc_parser)) {
         return false;
     }
 
@@ -2156,7 +2156,7 @@ static SResult Syntax_build_paren_helper(Parser paren_parser, inout Generator* g
 
 bool Syntax_build_paren(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     Parser paren_parser;
-    if(!ParserMsg_is_success(Parser_parse_paren(&parser, &paren_parser))) {
+    if(!Parser_skip_paren(&parser, &paren_parser)) {
         return false;
     }
 
@@ -2421,7 +2421,7 @@ static SResult Syntax_build_unary_ops_helper(
 }
 
 bool Syntax_build_inc(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-    if(!ParserMsg_is_success(Parser_parse_symbol(&parser, "++"))) {
+    if(!Parser_skip_symbol(&parser, "++")) {
         return false;
     }
 
@@ -2443,7 +2443,7 @@ bool Syntax_build_inc(Parser parser, inout Generator* generator, inout VariableM
 }
 
 bool Syntax_build_dec(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
-    if(!ParserMsg_is_success(Parser_parse_symbol(&parser, "--"))) {
+    if(!Parser_skip_symbol(&parser, "--")) {
         return false;
     }
 
@@ -2466,7 +2466,7 @@ bool Syntax_build_dec(Parser parser, inout Generator* generator, inout VariableM
 
 bool Syntax_build_debug_label_syntax(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
     (void)variable_manager;
-    if(!ParserMsg_is_success(Parser_parse_symbol(&parser, "!"))) {
+    if(!Parser_skip_symbol(&parser, "!")) {
         return false;
     }
     

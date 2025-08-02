@@ -155,15 +155,26 @@ static ParserMsg Parser_parse_parens_helper(inout Parser* self, out Parser* pars
     return ParserMsg_new(self->offset, NULL);
 }
 
+static bool Parser_skip_parens_helper(inout Parser* self, out Parser* parser, in char* start, in char* end) {
+    assert(self != NULL && parser != NULL && start != NULL && end != NULL);
+
+    if(!Parser_skip_symbol(self, start)) {
+        return false;
+    }
+
+    *parser = Parser_split(self, end);
+
+    return true;
+}
+
+
 static bool Parser_skip_long_comment(inout Parser* self) {
-    if(!ParserMsg_is_success(
-        Parser_parse_symbol(self, "/*")
-    )) {
+    if(!Parser_skip_symbol(self, "/*")) {
         return false;
     }
 
     loop {
-        if(ParserMsg_is_success(Parser_parse_symbol(self, "*/"))
+        if(Parser_skip_symbol(self, "*/")
             || Parser_is_empty(self)) {
             return true;
         }
@@ -173,9 +184,7 @@ static bool Parser_skip_long_comment(inout Parser* self) {
 }
 
 static bool Parser_skip_comment(inout Parser* self) {
-    if(!ParserMsg_is_success(
-        Parser_parse_symbol(self, "//")
-    )) {
+    if(!Parser_skip_symbol(self, "//")) {
         return false;
     }
 
@@ -215,14 +224,14 @@ bool Parser_start_with(in Parser* self, in char* keyword) {
     assert(self != NULL && keyword != NULL);
     
     Parser self_copy = *self;
-    return ParserMsg_is_success(Parser_parse_keyword(&self_copy, keyword));
+    return Parser_skip_keyword(&self_copy, keyword);
 }
 
 bool Parser_start_with_symbol(in Parser* self, in char* symbol) {
     assert(self != NULL && symbol != NULL);
     
     Parser self_copy = *self;
-    return ParserMsg_is_success(Parser_parse_symbol(&self_copy, symbol));
+    return Parser_skip_symbol(&self_copy, symbol);
 }
 
 Parser Parser_split(inout Parser* self, in char* symbol) {
@@ -232,7 +241,7 @@ Parser Parser_split(inout Parser* self, in char* symbol) {
     u32 len = parser.len;
     parser.len = 0;
 
-    while(!Parser_is_empty(self) && !ParserMsg_is_success(Parser_parse_symbol(self, symbol))) {
+    while(!Parser_is_empty(self) && !Parser_skip_symbol(self, symbol)) {
         Parser_skip(self);
         parser.len = len - self->len;
     }
@@ -249,7 +258,7 @@ Parser Parser_rsplit(inout Parser* self, in char* symbol) {
     left.len = 0;
     Parser self_copy = *self;
     while(!Parser_is_empty(&self_copy)) {
-        if(ParserMsg_is_success(Parser_parse_symbol(&self_copy, symbol))) {
+        if(Parser_skip_symbol(&self_copy, symbol)) {
             *self = self_copy;
             left.len = len - self->len - strlen(symbol);
         }else {
@@ -267,11 +276,11 @@ void Parser_skip(inout Parser* self) {
     u64 value;
     Parser parser;
 
-    if(ParserMsg_is_success(Parser_parse_ident(self, token))
-        || ParserMsg_is_success(Parser_parse_number(self, &value))
-        || ParserMsg_is_success(Parser_parse_block(self, &parser))
-        || ParserMsg_is_success(Parser_parse_paren(self, &parser))
-        || ParserMsg_is_success(Parser_parse_index(self, &parser))) {
+    if(Parser_skip_ident(self, token)
+        || Parser_skip_number(self, &value)
+        || Parser_skip_block(self, &parser)
+        || Parser_skip_paren(self, &parser)
+        || Parser_skip_index(self, &parser)) {
         return;
     }
 
@@ -387,6 +396,99 @@ ParserMsg Parser_parse_ident(inout Parser* self, out char token[256]) {
     return ParserMsg_new(self->offset, NULL);
 }
 
+static bool Parser_skip_ident_without_skipspace(inout Parser* self, out char token[256]) {
+    assert(self != NULL && token != NULL);
+    
+    u32 len = 0;
+    while(true) {
+        char c = Parser_look(self);
+        unsigned char u_c = (unsigned char)c;
+        
+        if(!isascii(u_c)) {
+            break;
+        }
+        if(!(isalpha(u_c) || isdigit(u_c) || u_c == '_')) {
+            break;
+        }
+
+        if(len < 256) token[len] = Parser_read(self);
+        len ++;
+    }
+
+    if(len < 256) {
+        token[len] = '\0';
+    }else {
+        token[255] = '\0';
+    }
+    if(len == 0) {
+        return false;
+    }
+
+    return true;
+}
+
+static bool Parser_skip_ident_parse_var(Parser parser, out char token[256]) {
+    assert(parser.parser_vars != NULL);
+
+    char ident[256];
+    if(!Parser_skip_ident(&parser, ident)) {
+        return false;
+    }
+
+    if(!Parser_is_empty(&parser)) {
+        return false;
+    }
+    for(u32 i=0; i<Vec_len(parser.parser_vars); i++) {
+        ParserVar* parser_var = Vec_index(parser.parser_vars, i);
+        if(strcmp(parser_var->name, ident) == 0) {
+            strcpy(token, parser_var->value);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Parser_skip_ident(inout Parser* self, out char token[256]) {
+    if(self->parser_vars == NULL) {
+        if(!Parser_skip_ident_without_skipspace(self, token)) {
+            return false;
+        }
+    }else {
+        Parser self_copy = *self;
+        token[0] = '\0';
+        char internal_token[256];
+
+        loop {
+            char c = Parser_look(&self_copy);
+            if(c == '\0') {
+                break;
+            }else if(c == '$') {
+                Parser_read(&self_copy);
+                Parser paren_parser;
+                if(!Parser_skip_paren(&self_copy, &paren_parser)
+                    || !Parser_skip_ident_parse_var(paren_parser, internal_token)) {
+                    return false;
+                }
+            }else if(!Parser_skip_ident_without_skipspace(&self_copy, internal_token)) {
+                break;
+            }
+
+            u32 token_len = strlen(token);
+            strncat(token, internal_token, 256 - token_len - 1);
+        }
+
+        if(token[0] == '\0') {
+            return false;
+        }
+
+        *self = self_copy;
+    }
+
+    Parser_skip_space(self);
+    return true;
+}
+
 ParserMsg Parser_parse_keyword(inout Parser* self, in char* keyword) {
     assert(self != NULL && keyword != NULL);
 
@@ -400,6 +502,21 @@ ParserMsg Parser_parse_keyword(inout Parser* self, in char* keyword) {
     *self = self_copy;
     Parser_skip_space(self);
     return ParserMsg_new(self->offset, NULL);
+}
+
+bool Parser_skip_keyword(inout Parser* self, in char* keyword) {
+    assert(self != NULL && keyword != NULL);
+
+    Parser self_copy = *self;
+
+    char token[256];
+    if(!Parser_skip_ident(&self_copy, token) || strcmp(token, keyword) != 0) {
+        return false;
+    }
+
+    *self = self_copy;
+    Parser_skip_space(self);
+    return true;
 }
 
 ParserMsg Parser_parse_symbol(inout Parser* self, in char* symbol) {
@@ -420,6 +537,21 @@ ParserMsg Parser_parse_symbol(inout Parser* self, in char* symbol) {
     return ParserMsg_new(self->offset, NULL);
 }
 
+bool Parser_skip_symbol(inout Parser* self, in char* symbol) {
+    assert(self != NULL && symbol != NULL);
+    
+    if(self->len < strlen(symbol) || strncmp(self->src, symbol, strlen(symbol)) != 0) {
+        return false;
+    }
+    
+    for(u32 i=0; i<strlen(symbol); i++) {
+        Parser_read(self);
+    }
+
+    Parser_skip_space(self);
+    return true;
+}
+
 ParserMsg Parser_parse_number(inout Parser* self, out u64* value) {
     assert(self != NULL && value != NULL);
     
@@ -437,6 +569,25 @@ ParserMsg Parser_parse_number(inout Parser* self, out u64* value) {
 
     Parser_skip_space(self);
     return ParserMsg_new(self->offset, NULL);
+}
+
+bool Parser_skip_number(inout Parser* self, out u64* value) {
+    assert(self != NULL && value != NULL);
+    
+    char* end = NULL;
+
+    errno = 0;
+    *value = strtoll(self->src, &end, 0);
+    if(errno == ERANGE || end == self->src) {
+        return false;
+    }
+    
+    while(self->src != end) {
+        Parser_read(self);
+    }
+
+    Parser_skip_space(self);
+    return true;
 }
 
 ParserMsg Parser_parse_string(inout Parser* self, out Vec* string) {
@@ -527,12 +678,24 @@ ParserMsg Parser_parse_block(inout Parser* self, out Parser* parser) {
     return Parser_parse_parens_helper(self, parser, "{", "}");
 }
 
+bool Parser_skip_block(inout Parser* self, out Parser* parser) {
+    return Parser_skip_parens_helper(self, parser, "{", "}");
+}
+
 ParserMsg Parser_parse_paren(inout Parser* self, out Parser* parser) {
     return Parser_parse_parens_helper(self, parser, "(", ")");
 }
 
+bool Parser_skip_paren(inout Parser* self, out Parser* parser) {
+    return Parser_skip_parens_helper(self, parser, "(", ")");
+}
+
 ParserMsg Parser_parse_index(inout Parser* self, out Parser* parser) {
     return Parser_parse_parens_helper(self, parser, "[", "]");
+}
+
+bool Parser_skip_index(inout Parser* self, out Parser* parser) {
+    return Parser_skip_parens_helper(self, parser, "[", "]");
 }
 
 void Parser_set_parser_vars(inout Parser* self, optional in Vec* parser_vars) {

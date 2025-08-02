@@ -4,9 +4,9 @@
 #include "util.h"
 
 static bool GlobalSyntax_parse_struct_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
-    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
+    bool public_flag = Parser_skip_keyword(&parser, "pub");
 
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "struct"))) {
+    if(!Parser_skip_keyword(&parser, "struct")) {
         return false;
     }
     
@@ -34,9 +34,9 @@ static bool GlobalSyntax_parse_struct_definision(Parser parser, inout Generator*
 }
 
 static bool GlobalSyntax_parse_enum_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
-    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
+    bool public_flag = Parser_skip_keyword(&parser, "pub");
 
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "enum"))) {
+    if(!Parser_skip_keyword(&parser, "enum")) {
         return false;
     }
     
@@ -91,9 +91,9 @@ static bool GlobalSyntax_parse_asmacro_definision(Parser parser, inout Generator
 }
 
 static bool GlobalSyntax_parse_type_alias(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
-    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
+    bool public_flag = Parser_skip_keyword(&parser, "pub");
 
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "type"))) {
+    if(!Parser_skip_keyword(&parser, "type")) {
         return false;
     }
 
@@ -156,7 +156,7 @@ static bool GlobalSyntax_parse_import(Parser parser, inout Generator* generator,
     assert(generator != NULL);
     assert(global_syntax != NULL);
 
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "import"))) {
+    if(!Parser_skip_keyword(&parser, "import")) {
         return false;
     }
 
@@ -176,10 +176,10 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
     i32 stack_offset = 16;
     
     while(!Parser_is_empty(&parser)) {
-        Parser_parse_keyword(&parser, "optional");
-        Parser_parse_keyword(&parser, "inout");
-        Parser_parse_keyword(&parser, "in");
-        Parser_parse_keyword(&parser, "out");
+        Parser_skip_keyword(&parser, "optional");
+        Parser_skip_keyword(&parser, "inout");
+        Parser_skip_keyword(&parser, "in");
+        Parser_skip_keyword(&parser, "out");
 
         Parser parser_copy = parser;
         i32 dummy = 0;
@@ -222,9 +222,9 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
 }
 
 static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
-    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
-    bool static_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "static"));
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "fn"))) {
+    bool public_flag = Parser_skip_keyword(&parser, "pub");
+    bool static_flag = Parser_skip_keyword(&parser, "static");
+    if(!Parser_skip_keyword(&parser, "fn")) {
         return false;
     }
 
@@ -282,9 +282,9 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
 
 static bool GlobalSyntax_parse_function_extern(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
     // (pub) extern fn $name ( args );
-    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "extern"))
-        || !ParserMsg_is_success(Parser_parse_keyword(&parser, "fn"))) {
+    bool public_flag = Parser_skip_keyword(&parser, "pub");
+    if(!Parser_skip_keyword(&parser, "extern")
+        || !Parser_skip_keyword(&parser, "fn")) {
         return false;
     }
 
@@ -321,11 +321,11 @@ static bool GlobalSyntax_parse_function_extern(Parser parser, inout Generator* g
 static bool GlobalSyntax_parse_static_variable(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
     // (pub|static) static $name: $type (= expr);
 
-    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "static"))) {
+    bool public_flag = Parser_skip_keyword(&parser, "pub");
+    if(!Parser_skip_keyword(&parser, "static")) {
         return false;
     }
-    bool static_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "static"));
+    bool static_flag = Parser_skip_keyword(&parser, "static");
 
     global_syntax->ok_flag = false;
     global_syntax->type = GlobalSyntax_StaticVariable;
@@ -360,8 +360,8 @@ static bool GlobalSyntax_parse_static_variable(Parser parser, inout Generator* g
 static bool GlobalSyntax_parse_const_variable(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
     // (pub) const $name: $type = expr;
 
-    bool public_flag = ParserMsg_is_success(Parser_parse_keyword(&parser, "pub"));
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "const"))) {
+    bool public_flag = Parser_skip_keyword(&parser, "pub");
+    if(!Parser_skip_keyword(&parser, "const")) {
         return false;
     }
 
@@ -386,8 +386,8 @@ static bool GlobalSyntax_parse_template(Parser parser, inout Generator* generato
     global_syntax->type = GlobalSyntax_TemplateDefinision;
 
     Parser parser_copy = parser;
-    Parser_parse_keyword(&parser_copy, "pub");
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "template"))) {
+    Parser_skip_keyword(&parser_copy, "pub");
+    if(!Parser_skip_keyword(&parser_copy, "template")) {
         return false;
     }
 
@@ -457,7 +457,7 @@ static bool GlobalSyntax_parse_impl(Parser parser, inout Generator* generator, o
     global_syntax->ok_flag = false;
     global_syntax->offset = parser.offset;
     global_syntax->type = GlobalSyntax_ImplDeclaration;
-    if(!ParserMsg_is_success(Parser_parse_keyword(&parser, "impl"))) {
+    if(!Parser_skip_keyword(&parser, "impl")) {
         return false;
     }
 

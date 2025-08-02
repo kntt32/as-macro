@@ -1,5 +1,6 @@
 import core;
 import core.vec;
+import std;
 
 pub template Vec(T) {
     impl RawVec($(T), STD_ALLOC);

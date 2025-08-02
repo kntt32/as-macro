@@ -1,0 +1,43 @@
+import core;
+
+pub enum Result {
+    Ok, Error
+};
+
+pub template Result(T, E) {
+    pub struct Result_$(T)_$(E) {
+        result: Result,
+        body: union {
+            ok: $(T),
+            error: $(E),
+        },
+    };
+
+    pub as ok(out self: Result_$(T)_$(E)@mem, in ok: $(T)@reg+mem+imm) {
+        self.result = Result.Ok;
+        self.body.ok = ok;
+    };
+
+    pub as error(out self: Result_$(T)_$(E)@mem, in error: $(T)@reg+mem+imm) {
+        self.result = Result.Error;
+        self.body.error = error;
+    };
+
+    pub as mov(out dst: Result_$(T)_$(E)@mem, in src: $(T)@reg+mem+imm) {
+        dst.result = src.result;
+        
+        switch(dst.result) {
+            Result.Ok => src.body.ok.clone(dst.body.ok),
+            Result.Error => src.body.error.clone(dst.body.error),
+        };
+    };
+/*
+    pub as clone() {
+
+    };
+
+    pub as drop() {
+
+    };*/
+};
+

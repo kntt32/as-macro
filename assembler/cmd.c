@@ -107,7 +107,7 @@ static void Cmd_build_file_save(Generator generator, AsmCmdArgs asm_cmd_args) {
             *extension = '\0';
         }
         wrapped_strcpy(save_path, temp_path, sizeof(save_path));
-        wrapped_strcpy(save_path, ".o", sizeof(save_path));
+        wrapped_strcat(save_path, ".o", sizeof(save_path));
     }
     Vec elf_binary = Elf64(&generator);
     Vec_save(elf_binary, save_path);

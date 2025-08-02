@@ -3,23 +3,22 @@ import core.mem;
 import std.syscall;
 import std.alloc;
 import std.io;
-import std.io.print;
 
 pub extern fn main();
 
 pub static STD_ALLOC: Alloc;
-pub static STD_STDOUT: Io;
-pub static STD_STDERR: Io;
+pub static __STDOUT: Out;
+pub static __STDERR: Out;
 
 pub fn _start() {
     STD_ALLOC.new();
-    STD_STDOUT.new(STDOUT);
-    STD_STDERR.new(STDERR);
+    __STDOUT.stdout();
+    __STDERR.stderr();
 
     main();
 
-    STD_STDERR.drop();
-    STD_STDOUT.drop();
+    __STDERR.flush();
+    __STDOUT.flush();
     STD_ALLOC.drop();
     let status: i32@rdi;
     status = 0;

@@ -7,6 +7,21 @@ pub template Option(T) {
             object: $(T)
         },
     };
+
+    pub as mov(out dst: Option_$(T)@mem, in src: Option_$(T)@mem) {
+        dst.flag = src.flag;
+
+        if(src.flag) {
+            dst.body.object = src.body.object;
+        };
+    };
+
+    pub as clone(in self: Option_$(T)@mem, out buff: Option_$(T)@mem) {
+        buff.flag = self.flag;
+        if(self.flag) {
+            self.body.object.clone(buff.body.object);
+        };
+    };
     
     pub as some(out self: Option_$(T)@mem, in object: $(T)@reg+mem+imm) {
         self.flag = true;
@@ -38,14 +53,6 @@ pub template Option(T) {
             panic();
         };
         self.flag = false;
-    };
-
-    pub as try_unwrap(inout self: Option_$(T)@mem, out object: $(T)@reg+mem) {
-        if(self.flag) {
-            object = self.body.object;
-        }else {
-            return;
-        };
     };
 
     pub as drop(inout self: Option_$(T)@mem) {

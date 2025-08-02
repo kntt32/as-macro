@@ -404,6 +404,7 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_sizeof_operator,
         Syntax_build_alignof_operator,
         Syntax_build_if,
+        Syntax_build_switch,
         Syntax_build_do_try_catch,
         Syntax_build_for,
         Syntax_build_while,
@@ -435,6 +436,11 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_subscript_operator,
         Syntax_build_variable_expression,
     };
+
+    if(Parser_is_empty(&parser)) {
+        *data = Data_void();
+        return SResult_new(NULL);
+    }
     
     for(u32 i=0; i<LEN(BUILDERS); i++) {
         Parser parser_copy = parser;
@@ -1734,6 +1740,200 @@ bool Syntax_build_if(Parser parser, inout Generator* generator, inout VariableMa
     }
 
     Syntax_build_if_build(condition_parser, if_branch_parser, else_branch_parser, generator, variable_manager);
+
+    return true;
+}
+
+static ParserMsg Syntax_build_switch_parse(inout Parser* parser, out Parser* value_parser, out Parser* branches_parser) {
+    PARSERMSG_UNWRAP(
+        Parser_parse_paren(parser, value_parser), (void)NULL
+    );
+
+    PARSERMSG_UNWRAP(
+        Parser_parse_block(parser, branches_parser), (void)NULL
+    );
+
+    return ParserMsg_new(parser->offset, NULL);
+}
+
+static SResult build_cmp(Data arg1, Data arg2, inout Generator* generator, inout VariableManager* variable_manager) {
+    Data tmp_data;
+
+    Vec cmp_args = Vec_new(sizeof(Data));
+    Vec_push(&cmp_args, &arg1);
+    Vec_push(&cmp_args, &arg2);
+
+    SRESULT_UNWRAP(
+        expand_asmacro("cmp", "", cmp_args, generator, variable_manager, &tmp_data), (void)NULL
+    );
+    
+    Data_free(tmp_data);
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_switch_build_branch_conditions_foreach(u32 id, u32 branch_id, in Data* value_data, inout Parser* branch_parser, inout Generator* generator, inout VariableManager* variable_manager) {
+    loop {
+        char branch_label[256];
+        snprintf(branch_label, 256, ".%u.switch.%u", id, branch_id);
+
+        if(Parser_skip_keyword(branch_parser, "default")) {
+            SRESULT_UNWRAP(
+                build_jmp(branch_label, generator, variable_manager), (void)NULL
+            );
+        }else {
+            Vec bin = Vec_new(sizeof(u8));
+            if(resolve_parsermsg(
+                Type_initialize(&value_data->type, branch_parser, &bin), generator
+            )) {
+                Vec_free(bin);
+                break;
+            }
+
+            Data data = Data_from_imm_bin(bin, Type_clone(&value_data->type));
+            Data value_data_clone = Data_clone(value_data);
+            SRESULT_UNWRAP(
+                build_cmp(value_data_clone, data, generator, variable_manager), (void)NULL
+            );
+
+            SRESULT_UNWRAP(
+                build_je(branch_label, generator, variable_manager), (void)NULL
+            );
+        }
+
+        if(!Parser_skip_symbol(branch_parser, ",")) {
+            break;
+        }
+    }
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_switch_build_branch_conditions(u32 id, in Data value_data, Parser* branches_parser, inout Generator* generator, inout VariableManager* variable_manager, inout Vec* proc_branches) {
+    u32 branch_id = 0;
+
+    while(!Parser_is_empty(branches_parser)) {
+        Parser branch_parser = Parser_split(branches_parser, ";");
+        
+        SRESULT_UNWRAP(
+            Syntax_build_switch_build_branch_conditions_foreach(id, branch_id, &value_data, &branch_parser, generator, variable_manager),
+            Data_free(value_data)
+        );
+        
+        Parser proc_branch_parser;
+        if(resolve_parsermsg(
+            Parser_parse_block(&branch_parser, &proc_branch_parser), generator
+        )) {
+            break;
+        }
+        Vec_push(proc_branches, &proc_branch_parser);
+
+        check_parser(&branch_parser, generator);
+
+        branch_id += 1;
+    }
+    Data_free(value_data);
+
+    char end_label[256];
+    snprintf(end_label, 256, ".%u.switch.end", id);
+    SRESULT_UNWRAP(
+        build_jmp(end_label, generator, variable_manager), (void)NULL
+    );
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_switch_build_branch_proc(u32 id, Vec proc_branches, inout Generator* generator, inout VariableManager* variable_manager) {
+    char end_label[256];
+    snprintf(end_label, 256, ".%u.switch.end", id);
+
+    for(u32 i=0; i<Vec_len(&proc_branches); i++) {
+        Parser* proc_branch_parser = Vec_index(&proc_branches, i);
+
+        char label[256];
+        snprintf(label, 256, ".%u.switch.%u", id, i);
+        if(resolve_sresult(
+            Generator_append_label(generator, ".text", label, false, Label_Notype),
+            proc_branch_parser->offset, generator
+        )) {
+            break;
+        }
+
+        SyntaxTree_build(*proc_branch_parser, generator, variable_manager);
+
+        if(resolve_sresult(
+            build_jmp(end_label, generator, variable_manager),
+            proc_branch_parser->offset, generator
+        )) {
+            break;
+        }
+    }
+    Vec_free(proc_branches);
+
+    SRESULT_UNWRAP(
+        Generator_append_label(generator, ".text", end_label, false, Label_Notype),
+        (void)NULL
+    );
+
+    return SResult_new(NULL);
+}
+
+static SResult Syntax_build_switch_build(Parser* value_parser, Parser* branches_parser, inout Generator* generator, inout VariableManager* variable_manager) {
+    u32 id = get_id();
+
+    Data value_data;
+    SRESULT_UNWRAP(
+        Syntax_build(*value_parser, generator, variable_manager, &value_data), (void)NULL
+    );
+
+    Vec proc_branches = Vec_new(sizeof(Parser));
+
+    SRESULT_UNWRAP(
+        Syntax_build_switch_build_branch_conditions(id, value_data, branches_parser, generator, variable_manager, &proc_branches),
+        Vec_free(proc_branches)
+    );
+
+    SRESULT_UNWRAP(
+        Syntax_build_switch_build_branch_proc(id, proc_branches, generator, variable_manager),
+        (void)NULL
+    );
+
+    return SResult_new(NULL);
+}
+
+bool Syntax_build_switch(Parser parser, inout Generator* generator, inout VariableManager* variable_manager, out Data* data) {
+    // switch(my_enum) {
+    //     MyEnum.A, MyEnum.B {
+    //         println("Ok");
+    //     };
+    //     MyEnum.C {
+    //         println("Error"),
+    //     };
+    //     default {
+    //
+    //     };
+    // };
+
+    if(!Parser_skip_keyword(&parser, "switch")) {
+        return false;
+    }
+
+    *data = Data_void();
+
+    Parser value_parser;
+    Parser branches_parser;
+    if(resolve_parsermsg(
+        Syntax_build_switch_parse(&parser, &value_parser, &branches_parser), generator
+    )) {
+        return true;
+    }
+
+    if(resolve_sresult(
+        Syntax_build_switch_build(&value_parser, &branches_parser, generator, variable_manager),
+        parser.offset, generator
+    )) {
+        return true;
+    }
 
     return true;
 }

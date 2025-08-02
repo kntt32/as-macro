@@ -1,0 +1,83 @@
+import core;
+import core.fmt;
+import std;
+import std.syscall;
+
+pub struct Out {
+    fd: i32,
+    buff: [u8; 1024],
+    len: u64,
+    primitive_flag: bool,
+};
+
+impl Display(Out);
+
+pub as stdout(out self: Out@mem) {
+    self.fd = STDOUT;
+    self.len = 0;
+    self.primitive_flag = true;
+};
+
+pub as stderr(out self: Out@mem) {
+    self.fd = STDIN;
+    self.len = 0;
+    self.primitive_flag = true;
+};
+
+pub as create(out self: Out@mem, in name: Str@mem) {
+    todo();
+};
+
+pub as write(inout self: Out@mem, in str: Str@mem) {
+    let str_addr: *char@auto;
+    str.as_ptr(str_addr);
+    let data_addr: *u8@auto = str_addr;
+
+    let str_len: u64@auto;
+    str.len(str_len);
+
+    self.write(data_addr, str_len);
+};
+
+pub as write(inout self: Out@mem, in data: *u8@reg+mem, in len: u64@reg+mem+imm) {
+    let flag: bool@auto;
+
+    let buff_new_len: u64@auto = self.len;
+    buff_new_len += len;
+
+    if(flag.ge(buff_new_len, 1024)) {
+        flush(self);
+    };
+
+    if(flag.gt(len, 1024)) {
+        write(self.fd, data, len);
+    }else {
+        let dst: *u8@auto;
+        dst =& self.buff;
+        dst += self.len;
+        
+        memcpy(dst, data, len);
+        self.len += len;
+    };
+};
+
+pub as flush(inout self: Out@mem) {
+    let data: *u8@auto;
+    data =& self.buff;
+
+    write(self.fd, data, self.len);
+
+    self.len = 0;
+};
+
+pub as drop(inout self: Out@mem) {
+    self.flush();
+
+    let flag: bool@auto = self.primitive_flag;
+
+    if(flag.not()) {
+        todo();
+    };
+};
+
+

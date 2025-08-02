@@ -1,5 +1,7 @@
 #pragma once
 #include "types.h"
+#include "vec.h"
+#include "gen.h"
 
 typedef struct {
     u32 argc;

@@ -4,27 +4,34 @@ import std.io;
 import std.vec;
 
 impl Vec(u32);
-impl Display_Vec(Io, u32);
+impl Display_Vec(Out, u32);
+
+enum MyEnum {
+    A, B, C, D, E
+};
 
 fn main() {
-    let flag: bool@auto = false;
-    do(flag) {
-        println("log: A");
-        try flag = true;
-        println("log: B");
-        try flag = false;
-        println("log: C");
-    }catch {
-        println("catch");
+    let my_enum: MyEnum@auto = MyEnum.B;
+
+    switch(my_enum) {
+        MyEnum.A {
+            println("A!");
+        };
+        MyEnum.B, MyEnum.C {
+            println("B/C");
+        };
+        default {
+            println("default");
+        };
     };
 
     get_prime_numbers();
 };
 
 fn get_prime_numbers() {
-    const MAX: u64 = 36000000;
-    const MAX_SQRT: u64 = 6000;
-    static FLAGS: [bool; 36000000];
+    const MAX: u64 = 10000;
+    const MAX_SQRT: u64 = 100;
+    static FLAGS: [bool; 10000];
 
     let flag: bool@auto;
     let flags: *bool@auto;

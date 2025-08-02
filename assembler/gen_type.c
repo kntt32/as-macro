@@ -441,26 +441,33 @@ static ParserMsg Type_initialize_array(in Type* self, inout Parser* parser, inou
         (void)NULL
     );
 
-    for(u32 i=0; i<self->body.t_array.len; i++) {
-        if(i != 0) {
+    if(Parser_skip_symbol(&parser_copy, "]")) {
+        u8 byte = 0;
+        for(u32 i=0; i<self->size; i++) {
+            Vec_push(bin, &byte);
+        }
+    }else {
+        for(u32 i=0; i<self->body.t_array.len; i++) {
+            if(i != 0) {
+                PARSERMSG_UNWRAP(
+                    Parser_parse_symbol(&parser_copy, ","),
+                    (void)NULL
+                );
+            }
+
             PARSERMSG_UNWRAP(
-                Parser_parse_symbol(&parser_copy, ","),
+                Type_initialize(self->body.t_array.type, &parser_copy,  bin),
                 (void)NULL
             );
         }
 
+        Parser_parse_symbol(&parser_copy, ",");
+
         PARSERMSG_UNWRAP(
-            Type_initialize(self->body.t_array.type, &parser_copy,  bin),
+            Parser_parse_symbol(&parser_copy, "]"),
             (void)NULL
         );
     }
-
-    Parser_parse_symbol(&parser_copy, ",");
-
-    PARSERMSG_UNWRAP(
-        Parser_parse_symbol(&parser_copy, "]"),
-        (void)NULL
-    );
 
     *parser = parser_copy;
     return ParserMsg_new(parser->offset, NULL);
@@ -560,13 +567,22 @@ static ParserMsg Type_initialize_struct(in Type* self, inout Parser* parser, ino
 }
 
 static ParserMsg Type_initialize_enum(in Type* self, inout Parser* parser, inout Vec* bin) {
+    Parser parser_copy = *parser;
+    PARSERMSG_UNWRAP(
+        Parser_parse_keyword(&parser_copy, self->name), (void)NULL
+    );
+    PARSERMSG_UNWRAP(
+        Parser_parse_symbol(&parser_copy, "."), (void)NULL
+    );
+
     for(u32 i=0; i<Vec_len(&self->body.t_enum); i++) {
         EnumMember* member = Vec_index(&self->body.t_enum, i);
-        if(ParserMsg_is_success(Parser_parse_keyword(parser, member->name))) {
+        if(ParserMsg_is_success(Parser_parse_keyword(&parser_copy, member->name))) {
             for(u32 i=0; i<4; i++) {
                 u8 byte = (member->value >> (i*8)) & 0xff;
                 Vec_push(bin, &byte);
             }
+            *parser = parser_copy;
             return ParserMsg_new(parser->offset, NULL);
         }
     }
@@ -574,10 +590,29 @@ static ParserMsg Type_initialize_enum(in Type* self, inout Parser* parser, inout
     return ParserMsg_new(parser->offset, "unexpected enum");
 }
 
+static ParserMsg Type_initialize_bool(in Type* self, inout Parser* parser, inout Vec* bin) {
+    if(Parser_skip_keyword(parser, "true")) {
+        u8 true_byte = 0x1;
+        Vec_push(bin, &true_byte);
+    }else if(Parser_skip_keyword(parser, "false")) {
+        u8 false_byte = 0x0;
+        Vec_push(bin, &false_byte);
+    }else {
+        return ParserMsg_new(parser->offset, "expected true or false");
+    }
+
+    return ParserMsg_new(parser->offset, NULL);
+}
+
 ParserMsg Type_initialize(in Type* self, inout Parser* parser, inout Vec* bin) {
     switch(self->type) {
         case Type_Integer:
-            if(Parser_start_with_symbol(parser, "\'")) {
+            if(strcmp(self->name, "bool") == 0) {
+                PARSERMSG_UNWRAP(
+                    Type_initialize_bool(self, parser, bin),
+                    (void)NULL
+                )
+            }else if(Parser_start_with_symbol(parser, "\'")) {
                 PARSERMSG_UNWRAP(
                     Type_initialize_char(self, parser, bin),
                     (void)NULL

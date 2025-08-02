@@ -13,7 +13,7 @@ pub as println(in c_str_array: bin@mem) {
 };
 
 pub as printf(in msg: bin@reg+mem+imm) {
-    STD_STDOUT.display(msg);
+    __STDOUT.display(msg);
 };
 
 pub as printfln(in msg: bin@reg+mem+imm) {
@@ -33,16 +33,16 @@ pub as eprintln(in c_str_array: bin@mem) {
 };
 
 pub as eprintf(in msg: bin@reg+mem+imm) {
-    STD_STDERR.display(msg);
-    STD_STDERR.flush();
+    __STDERR.display(msg);
+    __STDERR.flush();
 };
 
 pub as eprintfln(in msg: bin@reg+mem+imm) {
-    STD_STDERR.display(msg);
+    __STDERR.display(msg);
 
     let str: Str@stack;
     str.from("\n");
-    STD_STDERR.write(str);
-    STD_STDERR.flush();
+    __STDERR.write(str);
+    __STDERR.flush();
 };
 

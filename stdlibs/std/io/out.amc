@@ -34,7 +34,7 @@ pub as create(out self: Option_Out@mem, in name: Str@mem) {
     create_flags.or(O_TRUNC);
     
     let name_addr: *char@auto;
-    name.as_ptr(name_addr);
+    name.as_addr(name_addr);
 
     openat(stream.fd, AT_FDCWD, name_addr, create_flags, 0644);
     stream.len = 0;
@@ -51,7 +51,7 @@ pub as create(out self: Option_Out@mem, in name: Str@mem) {
 
 pub as write(inout self: Out@mem, in str: Str@mem) {
     let str_addr: *char@auto;
-    str.as_ptr(str_addr);
+    str.as_addr(str_addr);
     let data_addr: *u8@auto = str_addr;
 
     let str_len: u64@auto;

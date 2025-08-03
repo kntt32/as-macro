@@ -1,5 +1,18 @@
 import core;
 
+pub template Between(T) {
+    pub as between(flag: bool@reg+mem, self: $(T)@reg+mem+imm, min: $(T)@reg+mem+imm, max: $(T)@reg+mem+imm) {
+        if(flag.ge(self, min)) {
+            flag.le(self, max);
+        };
+    };
+};
+
+impl Between(b8);
+impl Between(b16);
+impl Between(b32);
+impl Between(b64);
+
 template CmpSignedRmRi(T) {
     pub as eq(flag: bool@reg+mem, left: $(T)@reg+mem, right: $(T)@reg+imm) {
         cmp(left, right);

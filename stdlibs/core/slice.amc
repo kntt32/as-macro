@@ -3,7 +3,7 @@ import panic;
 
 pub template Slice(T) {
     pub struct Slice_$(T) {
-        ptr: *$(T),
+        addr: *$(T),
         len: u64,
     };
 
@@ -28,43 +28,49 @@ pub template Slice(T) {
     };
 
     pub as mov(out dst: Slice_$(T)@mem, out src: Slice_$(T)@mem) {
-        dst.ptr = src.ptr;
+        dst.addr = src.addr;
         dst.len = src.len;
     };
 
-    pub as from(out self: Slice_$(T)@mem, in ptr: *$(T)@reg+mem, in len: u64@reg+mem+imm) {
-        self.ptr = ptr;
+    pub as from(out self: Slice_$(T)@mem, in addr: *$(T)@reg+mem, in len: u64@reg+mem+imm) {
+        self.addr = addr;
         self.len = len;
     };
 
+    pub as is_empty(out flag: bool@reg+mem, in self: Slice_$(T)@mem+imm) {
+        flag.eq(self.len, 0);
+    };
+
     pub as empty(out self: Slice_$(T)@mem) {
-        self.ptr = null;
+        self.addr = null;
         self.len = 0;
     };
     
-    pub as index(in self: Slice_$(T)@mem, in index: u64@reg+mem+imm, out ptr: *$(T)@reg+mem) {
+    pub as index(in self: Slice_$(T)@mem, in index: u64@reg+mem+imm, out addr: *$(T)@reg+mem) {
         panic_ge(index, self.len, "Slice:index: out of range");
-        let ptr_auto: *$(T)@auto = sizeof($(T));
-        ptr_auto.imul(index);
-        ptr_auto += self.ptr;
-        ptr = ptr_auto;
+        let addr_auto: *$(T)@auto = sizeof($(T));
+        addr_auto.imul(index);
+        addr_auto += self.addr;
+        addr = addr_auto;
     };
 
     pub as len(in self: Slice_$(T)@mem, out len: u64@reg+mem) {
         len = self.len;
     };
 
-    pub as as_ptr(in self: Slice_$(T)@mem, out ptr: *$(T)@reg+mem) {
-        ptr = self.ptr;
+    pub as as_addr(in self: Slice_$(T)@mem, out addr: *$(T)@reg+mem) {
+        addr = self.addr;
     };
 
     pub as slice(in self: Slice_$(T)@mem, in start: u64@reg+mem+imm, in len: u64@reg+mem+imm, out buff: Slice_$(T)@mem) {
         panic_le(self.len, start, "Slice:slice: out of range");
-        panic_lt(len, 0, "Slice:slice: out of range");
+        let origin_len: u64@auto = len;
+        origin_len += start;
+        panic_gt(origin_len, self.len, "Slice:slice: out of range");
 
-        buff.ptr = sizeof($(T));
-        buff.ptr.imul(start);
-        buff.ptr += self.ptr;
+        buff.addr = sizeof($(T));
+        buff.addr.imul(start);
+        buff.addr += self.addr;
 
         buff.len = len;
     };

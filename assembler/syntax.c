@@ -293,6 +293,7 @@ static SResult restore_variable(in StoredReg* stored_reg, inout Generator* gener
 SResult VariableManager_escape_block(inout VariableManager* self, inout Generator* generator) {
     VariableBlock* block_ptr = get_last_block(self);
     u32 variables_base = block_ptr->variables_base;
+    
     for(i32 i=Vec_len(&self->variables)-1; (i32)(variables_base)<=i; i--) {
         Variable* variable = Vec_index(&self->variables, i);
         if(variable->defer_flag && variable->name[0] != '\0') {
@@ -301,6 +302,24 @@ SResult VariableManager_escape_block(inout VariableManager* self, inout Generato
             );
         }
     }
+
+    block_ptr = get_last_block(self);
+
+    for(i32 i=Vec_len(&block_ptr->stored_regs)-1; 0<=i; i--) {
+        block_ptr = get_last_block(self);
+        StoredReg* stored_reg = Vec_index(&block_ptr->stored_regs, i);
+        SRESULT_UNWRAP(
+            restore_variable(stored_reg, generator, self),
+            (void)NULL
+        );
+    }
+
+    block_ptr = get_last_block(self);
+
+    SRESULT_UNWRAP(
+        sub_rsp_raw(self->stack_offset - block_ptr->stack_offset, generator, self),
+        (void)NULL
+    );
 
     return SResult_new(NULL);
 }
@@ -314,6 +333,8 @@ SResult VariableManager_delete_block(inout VariableManager* self, inout Generato
 
     VariableBlock block;
     Vec_pop(&self->blocks, &block);
+    self->stack_offset = block.stack_offset;
+
     for(i32 i=Vec_len(&self->variables)-1; (i32)(block.variables_base)<=i; i--) {
         Variable variable;
         Vec_pop(&self->variables, &variable);
@@ -322,19 +343,6 @@ SResult VariableManager_delete_block(inout VariableManager* self, inout Generato
 
     assert(Vec_len(&self->variables) == block.variables_base);
 
-    for(i32 i=Vec_len(&block.stored_regs)-1; 0<=i; i--) {
-        StoredReg* stored_reg = Vec_index(&block.stored_regs, i);
-        SRESULT_UNWRAP(
-            restore_variable(stored_reg, generator, self),
-            VariableBlock_free(block)
-        );
-    }
-
-    SRESULT_UNWRAP(
-        sub_rsp(self->stack_offset - block.stack_offset, generator, self),
-        VariableBlock_free(block)
-    );
-    self->stack_offset = block.stack_offset;
     VariableBlock_free(block);
 
     return SResult_new(NULL);

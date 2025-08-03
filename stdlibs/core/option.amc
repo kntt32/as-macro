@@ -50,7 +50,7 @@ pub template Option(T) {
         if(self.flag) {
             object = self.body.object;
         }else {
-            panic("can't take object from none");
+            panic("failed taking object from none");
         };
         self.flag = false;
     };

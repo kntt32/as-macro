@@ -66,6 +66,27 @@ pub as memset(in dst: *void@reg+mem, in value: u8@reg+mem+imm, in size: u64@reg+
     };
 };
 
+pub as memcmp(out flag: bool@reg+mem, in left: *void@reg+mem+imm, in right: *void@reg+mem+imm, in len: u64@reg+mem+imm) {
+    let left_auto: *u8@auto = left;
+    let right_auto: *u8@auto = right;
+    let len_auto: u64@auto = len;
+    let flag_auto: bool@auto;
+
+    {
+        let left_rdi: *u8@rdi = left_auto;
+        let right_rsi: *u8@rsi = right_auto;
+        let len_rcx: u64@rcx = len_auto;
+
+        cld();
+        repe(len_rcx);
+        cmps(left_rdi, right_rsi);
+
+        flag_auto.eq(len_rcx, 0);
+    };
+
+    flag = flag_auto;
+};
+
 pub as strlen(in s: *char@rsi, out len: u64@rcx) {
     let seek_ptr: *u8@rdi;
     seek_ptr = s;

@@ -1,0 +1,72 @@
+import core;
+
+pub as is_ascii(out flag: bool@reg+mem, in self: char@reg+mem+imm) {
+    let self_copy: char@auto = self;
+    self_copy.and(0x80);
+    flag.eq(self_copy, 0);
+};
+
+pub as is_alpha(out flag: bool@reg+mem, in self: char@reg+mem+imm) {
+    const ALPHA_LOWERCASE_MIN: char = 'a';
+    const ALPHA_LOWERCASE_MAX: char = 'z';
+    const ALPHA_UPPERCASE_MIN: char = 'A';
+    const ALPHA_UPPERCASE_MAX: char = 'Z';
+
+    if(flag.between(self, ALPHA_LOWERCASE_MIN, ALPHA_LOWERCASE_MAX)) {
+    }else if(flag.between(self, ALPHA_UPPERCASE_MIN, ALPHA_UPPERCASE_MAX)) {
+    }else {
+    };
+};
+
+pub as is_digit(out flag: bool@reg+mem, in self: char@reg+mem+imm) {
+    const DIGIT_MIN: char = '0';
+    const DIGIT_MAX: char = '9';
+
+    flag.between(self, DIGIT_MIN, DIGIT_MAX);
+};
+
+pub as is_hexdigit(out flag: bool@reg+mem, in self: char@reg+mem+imm) {
+    const HEXALPHA_LOWER_MIN: char = 'a';
+    const HEXALPHA_LOWER_MAX: char = 'f';
+    const HEXALPHA_UPPER_MIN: char = 'A';
+    const HEXALPHA_UPPER_MAX: char = 'F';
+
+    if(flag.is_digit(self)) {
+    }else if(flag.between(self, HEXALPHA_LOWER_MIN, HEXALPHA_LOWER_MAX)){
+    }else if(flag.between(self, HEXALPHA_UPPER_MIN, HEXALPHA_UPPER_MAX)) {
+    };
+};
+
+pub as is_punct(out flag: bool@reg+mem, in self: char@reg+mem+imm) {
+    const PUNCT_GROUP1_MIN: char = '!';
+    const PUNCT_GROUP1_MAX: char = '/';
+    const PUNCT_GROUP2_MIN: char = ':';
+    const PUNCT_GROUP2_MAX: char = '@';
+    const PUNCT_GROUP3_MIN: char = '[';
+    const PUNCT_GROUP3_MAX: char = '`';
+    const PUNCT_GROUP4_MIN: char = '{';
+    const PUNCT_GROUP4_MAX: char = '~';
+
+    if(flag.between(self, PUNCT_GROUP1_MIN, PUNCT_GROUP1_MAX)) {
+    }else if(flag.between(self, PUNCT_GROUP2_MIN, PUNCT_GROUP2_MAX)) {
+    }else if(flag.between(self, PUNCT_GROUP3_MIN, PUNCT_GROUP3_MAX)) {
+    }else if(flag.between(self, PUNCT_GROUP4_MIN, PUNCT_GROUP4_MAX)) {
+    };
+};
+
+pub as is_space(out flag: bool@reg+mem, in c: char@reg+mem+imm) {
+    switch(c) {
+        '\n', ' ', '\r', '\f', '\t', '\v' {
+            flag = true;
+        };
+        default {
+            flag = false;
+        };
+    };
+};
+
+pub as is_alpha_digit(out flag: bool@reg+mem, in c: char@reg+mem+imm) {
+    let flag2: bool@auto;
+    flag.is_digit(c).or(flag2.is_alpha(c));
+};
+

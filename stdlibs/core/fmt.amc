@@ -35,7 +35,6 @@ pub template Display(Formatter) {
     };
 
     pub as display(inout self: $(Formatter)@mem, in object: i64@reg+mem+imm) {
-        !DEBUG_OBJECT_AUTO;
         let object_auto: i64@auto = object;
         let str: Str@stack;
         let flag: bool@auto;
@@ -67,7 +66,6 @@ pub template Display(Formatter) {
                 buffer_ptr =& buffer;
                 buffer_ptr += buffer_index;
                 *buffer_ptr = '0';
-                !DEBUG;
                 *buffer_ptr += remainder_i8;
             };
 
@@ -80,7 +78,6 @@ pub template Display(Formatter) {
     };
 
     pub as display(inout self: $(Formatter)@mem, in object: u64@reg+mem+imm) {
-        !DEBUG_OBJECT_AUTO;
         let object_auto: u64@auto = object;
         let str: Str@stack;
         let flag: bool@auto;
@@ -106,7 +103,6 @@ pub template Display(Formatter) {
                 buffer_ptr =& buffer;
                 buffer_ptr += buffer_index;
                 *buffer_ptr = '0';
-                !DEBUG;
                 *buffer_ptr += remainder_i8;
             };
 

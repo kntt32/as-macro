@@ -776,8 +776,18 @@ as rep() : (double: 0xf3);
 pub as rep(_: u64@rcx) {
     rep();
 };
+pub as repe(_: u64@rcx) {
+    rep();
+};
+pub as repz(_: u64@rcx) {
+    rep();
+};
+
 as repne() : (double: 0xf2);
 pub as repne(_: u64@rcx) {
+    repne();
+};
+pub as repnz(_: u64@rcx) {
     repne();
 };
 

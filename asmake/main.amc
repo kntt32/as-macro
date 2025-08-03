@@ -1,0 +1,40 @@
+import std;
+import std.string;
+import core.char;
+import parser;
+
+impl Display_Parser(Out);
+
+fn open_file(inout in_object: *In@rdi) {
+    let str: Str@stack;
+    let optional_in: Option_In@stack;
+    optional_in.open(str.from("Asmake.toml"));
+    optional_in.take(*in_object);
+};
+
+fn main() {
+    let in_object: defer In@stack;
+    let in_object_ptr: *In@rdi;
+    in_object_ptr =& in_object;
+    open_file(in_object_ptr);
+
+    let target_string: defer String@stack;
+    in_object.read(target_string);
+
+    let target_str: Str@stack;
+    target_string.as_str(target_str);
+
+    let path_str: Str@stack;
+    path_str.empty();
+
+    let parser: Parser@stack;
+    parser.new(target_str, path_str);
+
+    printfln(parser);
+
+    parser.skip();
+    parser.skip();
+
+    printfln(parser);
+};
+

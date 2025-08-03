@@ -1,0 +1,209 @@
+import std;
+import core.char;
+import core.str;
+import core.option;
+
+impl Option(void);
+
+pub struct Offset {
+    line: u64,
+    column: u64,
+    path: Str,
+};
+
+pub as new(out self: Offset@mem, in path: Str@mem+imm) {
+    self.line = 1;
+    self.column = 1;
+    self.path = path;
+};
+
+pub as mov(out dst: Offset@mem, in src: Offset@mem) {
+    dst.line = src.line;
+    dst.column = src.column;
+    dst.path = src.path;
+};
+
+pub as seek(inout self: Offset@mem, in c: char@reg+mem+imm) {
+    switch(c) {
+        '\n' {
+            self.line += 1;
+            self.column = 1;
+        };
+        '\r' {
+            self.column = 1;
+        };
+        default {
+            self.column += 1;
+        };
+    };
+};
+
+pub template Display_Offset(Formatter) {
+    pub as display(inout self: $(Formatter)@mem, in object: Offset@mem+imm) {
+        let str: Str@stack;
+        self.write(str.from("Offset { line: "));
+        self.display(object.line);
+        self.write(str.from(", column: "));
+        self.display(object.column);
+        self.write(str.from(", path: \""));
+        self.display(object.path);
+        self.write(str.from("\" }"));
+    };
+};
+
+pub struct Parser {
+    str: Str,
+    offset: Offset,
+};
+
+pub as new(out self: Parser@mem, in str: Str@mem+imm, in path: Str@mem+imm) {
+    self.str = str;
+    self.offset.new(path);
+
+    self.skip_space();
+};
+
+pub as mov(out dst: Parser@mem, in src: Parser@mem) {
+    dst.str = src.str;
+    dst.offset = src.offset;
+};
+
+pub as look(inout self: Parser@mem, out c: char@reg+mem) {
+    let flag: bool@auto;
+
+    if(flag.is_empty(self.str)) {
+        c = '\0';
+    }else {
+        let c_addr: *char@auto;
+        self.str.index(0, c_addr);
+        c = *c_addr;
+    };
+};
+
+pub as read(inout self: Parser@mem, out c: char@reg+mem) {
+    let flag: bool@auto;
+
+    if(flag.is_empty(self.str)) {
+        c = '\0';
+    }else {
+        let c_addr: *char@auto;
+        self.str.index(0, c_addr);
+        c = *c_addr;
+
+        self.offset.seek(c);
+        
+        let new_str: Str@stack;
+        let new_len: u64@auto;
+        self.str.len(new_len);
+        new_len -= 1;
+
+        self.str.slice(1, new_len, new_str);
+        self.str = new_str;
+    };
+};
+
+as skip_space(inout self: Parser@mem) {
+    let c: char@auto;
+    let flag: bool@auto;
+
+    while((self.look(c); flag.is_space(c))) {
+        self.read(c);
+    };
+};
+
+pub as skip(inout self: Parser@mem) {
+    let flag: bool@auto;
+
+    let exist: bool@auto = false;
+
+    do((flag = exist; flag.not())) {
+        let str: Str@stack;
+        try self.parse_ident(str, exist);
+
+        let c: char@auto;
+        self.read(c);
+        self.skip_space();
+    };
+};
+
+pub as parse_ident(inout self: Parser@mem, out str: Str@mem, out exist: bool@reg+mem) {
+    let index: u64@auto = 0;
+    let self_addr: *char@auto;
+    self.str.as_addr(self_addr);
+    
+    let c: char@auto;
+    let flag: bool@auto;
+
+    while((self.look(c); flag.is_alpha_digit(c))) {
+        self.read(c);
+        index += 1;
+    };
+    exist.neq(index, 0);
+    self.skip_space();
+    !IDENT_END;
+};
+
+pub as parse_keyword(inout self: Parser@mem, in keyword: Str@mem, out exist: bool@reg+mem) {
+    exist = true;
+    
+    do(exist) {
+        let self_copy: Parser@stack = self;
+        let ident: Str@stack;
+        try self_copy.parse_ident(ident, exist);
+        try exist.eq(ident, keyword);
+
+        self = self_copy;
+        self.skip_space();
+    }catch {
+        exist = false;
+    };
+};
+
+pub as parse_symbol(inout self: Parser@mem, in symbol: Str@mem, out exist: bool@reg+mem) {
+    let symbol_len: u64@auto;
+    symbol.len(symbol_len);
+    let symbol_addr: *char@auto;
+    symbol.as_addr(symbol_addr);
+
+    let self_len: u64@auto;
+    self.str.len(self_len);
+    let self_addr: *char@auto;
+    self.str.as_addr(self_addr);
+    exist = false;
+    
+    let flag: bool@auto;
+    if(flag.le(symbol_len, self_len)) {
+        if(flag.memcmp(symbol_addr, self_addr, symbol_len)) {
+            let c: char@auto;
+            for(let i: u64@auto = 0; flag.lt(i, symbol_len); ++i) {
+                self.read(c);
+            };
+
+            exist = true;
+
+            self.skip_space();
+        };
+    };
+};
+
+pub as parse_symbol_char(inout self: Parser@mem, in symbol: char@reg+mem+imm, out exist: bool@reg+mem) {
+    let c: char@auto;
+    if((self.look(c); exist.eq(c, symbol))) {
+        self.read(c);
+    };
+};
+
+pub template Display_Parser(Formatter) {
+    impl Display_Offset($(Formatter));
+
+    pub as display(inout self: $(Formatter)@mem, in object: Parser@mem+imm) {
+        let str: Str@stack;
+        self.write(str.from("Parser { str: \""));
+        self.display(object.str);
+        self.write(str.from("\", offset: "));
+        self.display(object.offset);
+        self.write(str.from(" }"));
+    };
+};
+
+

@@ -28,7 +28,7 @@ pub as open(out self: Option_In@mem, in name: Str@mem) {
     let stream: In@stack;
 
     let name_addr: *char@auto;
-    name.as_ptr(name_addr);
+    name.as_addr(name_addr);
 
     openat(stream.fd, AT_FDCWD, name_addr, O_RDONLY, 0);
     stream.primitive_flag = false;

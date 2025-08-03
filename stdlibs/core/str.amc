@@ -19,6 +19,14 @@ pub as eq(out flag: bool@reg+mem, in left: Str@mem, in right: Str@mem) {
     flag.eq(left.slice, right.slice);
 };
 
+pub as is_empty(out flag: bool@reg+mem, in self: Str@mem+imm) {
+    flag.is_empty(self.slice);
+};
+
+pub as empty(out self: Str@mem) {
+    self.slice.empty();
+};
+
 pub as from(out self: Str@mem, in cstr: *char@reg+mem) {
     let len: u64@auto;
     let cstr_rsi: *char@auto = cstr;
@@ -30,8 +38,8 @@ pub as from(out self: Str@mem, in cstr: *char@reg+mem, in len: u64@reg+mem+imm) 
     self.slice.from(cstr, len);
 };
 
-pub as as_ptr(in self: Str@mem, out ptr: *char@reg+mem) {
-    self.slice.as_ptr(ptr);
+pub as as_addr(in self: Str@mem, out ptr: *char@reg+mem) {
+    self.slice.as_addr(ptr);
 };
 
 pub as from(out self: Str@mem, in cstr_array: bin@mem) {
@@ -50,7 +58,7 @@ pub as index(in self: Str@mem, in index: u64@reg+mem+imm, out c: *char@reg+mem) 
     self.slice.index(index, c);
 };
 
-pub as slice(in self: Str@mem, in start: u64@reg+mem+imm, in end: u64@reg+mem+imm, out buff: Str@mem) {
-    self.slice.slice(start, end, buff);
+pub as slice(in self: Str@mem, in start: u64@reg+mem+imm, in len: u64@reg+mem+imm, out buff: Str@mem) {
+    self.slice.slice(start, len, buff.slice);
 };
 

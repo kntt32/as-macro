@@ -269,6 +269,10 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
         return true;
     }
 
+    if(resolve_sresult(Generator_append_label(generator, NULL, name, true, Label_Func), parser.offset, generator)) {
+        return true;
+    }
+
     check_parser(&parser, generator);
 
     strcpy(global_syntax->body.function_definision.name, name);

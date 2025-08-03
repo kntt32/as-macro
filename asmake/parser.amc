@@ -63,6 +63,13 @@ pub as new(out self: Parser@mem, in str: Str@mem+imm, in path: Str@mem+imm) {
     self.skip_space();
 };
 
+pub as is_empty(out flag: bool@reg+mem, in self: Parser@mem) {
+    let len: u64@auto;
+    self.str.len(len);
+
+    flag.eq(len, 0);
+};
+
 pub as mov(out dst: Parser@mem, in src: Parser@mem) {
     dst.str = src.str;
     dst.offset = src.offset;
@@ -111,18 +118,71 @@ as skip_space(inout self: Parser@mem) {
     };
 };
 
+fn Parser_skip_fn(inout self_addr: *Parser@rdi) {
+    (*self_addr).skip();
+};
+
 pub as skip(inout self: Parser@mem) {
     let flag: bool@auto;
 
     let exist: bool@auto = false;
 
-    do((flag = exist; flag.not())) {
-        let str: Str@stack;
-        try self.parse_ident(str, exist);
+    if(flag.is_empty(self).not()) {
+        do((flag = exist; flag.not())) {
+            let str: Str@stack;
+            try self.parse_ident(str, exist);
 
-        let c: char@auto;
-        self.read(c);
-        self.skip_space();
+            let parser: Parser@stack;
+            try self.parse_paren(parser, exist);
+            try self.parse_block(parser, exist);
+            try self.parse_index(parser, exist);
+
+            let string: defer String@stack;
+            try self.parse_string(string, exist);
+            string.new();
+
+            let c: char@auto;
+            self.read(c);
+            self.skip_space();
+        };
+    };
+};
+
+pub as split(inout self: Parser@mem, in at: char@reg+mem+imm, out parser: Parser@mem) {
+    let flag: bool@auto;
+    let flag2: bool@auto;
+    parser = self;
+
+    let c: char@auto;
+    let self_addr: *Parser@auto;
+    self_addr =& self;
+    {
+        let self_addr_rdi: *Parser@rdi = self_addr;
+        while(((*self_addr_rdi).look(c); flag.neq(c, at).and(flag.neq(c, '\0')))) {
+            Parser_skip_fn(self_addr_rdi);
+        };
+    };
+    self.read(c);
+
+    let self_len: u64@auto;
+    self.str.len(self_len);
+
+    let parser_len: u64@auto;
+    parser.str.len(parser_len);
+    parser_len -= self_len;
+    parser_len -= 1;
+
+    let parser_str: Str@stack;
+    parser.str.slice(0, parser_len, parser_str);
+    parser.str = parser_str;
+
+    self.skip_space();
+};
+
+as parse_parens_helper(inout self: Parser@mem, in start: char@reg+mem+imm, in end: char@reg+mem+imm, out parser: Parser@mem, out exist: bool@reg+mem) {
+    do(exist) {
+        try self.parse_symbol_char(start, exist);
+        self.split(end, parser);
     };
 };
 
@@ -138,9 +198,10 @@ pub as parse_ident(inout self: Parser@mem, out str: Str@mem, out exist: bool@reg
         self.read(c);
         index += 1;
     };
+
+    str.from(self_addr, index);
     exist.neq(index, 0);
     self.skip_space();
-    !IDENT_END;
 };
 
 pub as parse_keyword(inout self: Parser@mem, in keyword: Str@mem, out exist: bool@reg+mem) {
@@ -154,8 +215,6 @@ pub as parse_keyword(inout self: Parser@mem, in keyword: Str@mem, out exist: boo
 
         self = self_copy;
         self.skip_space();
-    }catch {
-        exist = false;
     };
 };
 
@@ -190,6 +249,37 @@ pub as parse_symbol_char(inout self: Parser@mem, in symbol: char@reg+mem+imm, ou
     let c: char@auto;
     if((self.look(c); exist.eq(c, symbol))) {
         self.read(c);
+        self.skip_space();
+    };
+};
+
+pub as parse_paren(inout self: Parser@mem, out parser: Parser@mem, out exist: bool@reg+mem) {
+    self.parse_parens_helper('(', ')', parser, exist);
+};
+
+pub as parse_block(inout self: Parser@mem, out parser: Parser@mem, out exist: bool@reg+mem) {
+    self.parse_parens_helper('{', '}', parser, exist);
+};
+
+pub as parse_index(inout self: Parser@mem, out parser: Parser@mem, out exist: bool@reg+mem) {
+    self.parse_parens_helper('[', ']', parser, exist);
+};
+
+pub as parse_string(inout self: Parser@mem, out string: String@mem, out exist: bool@reg+mem) {
+    do(exist) {
+        let c: char@auto;
+        self.look(c);
+        try exist.eq(c, '\"');
+        self.read(c);
+
+        let flag: bool@auto;
+        let flag2: bool@auto;
+        string.new();
+        while((self.read(c); flag.neq(c, '\"').and(flag2.is_empty(self).not()))) {
+            string.push(c);
+        };
+
+        self.skip_space();
     };
 };
 

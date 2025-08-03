@@ -1,5 +1,6 @@
 #!/bin/bash
 
 ../assembler/asm.elf main.amc
-ld main.o ../stdlibs/std.o ../stdlibs/core.o -o a.out
+../assembler/asm.elf parser.amc
+ld main.o parser.o ../stdlibs/std.o ../stdlibs/core.o -o a.out
 

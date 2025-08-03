@@ -32,8 +32,23 @@ fn main() {
 
     printfln(parser);
 
-    parser.skip();
-    parser.skip();
+    let exist: bool@auto = true;
+
+    do(exist) {
+        let index_parser: Parser@stack;
+        try parser.parse_index(index_parser, exist);
+        printfln(index_parser);
+        printfln(parser);
+        let str: Str@stack;
+        try parser.parse_keyword(str.from("name"), exist);
+        try parser.parse_symbol_char('=', exist);
+        let string: String@stack;
+        try parser.parse_string(string, exist);
+        printfln(string);
+        string.drop();
+    }catch {
+        println("catch");
+    };
 
     printfln(parser);
 };

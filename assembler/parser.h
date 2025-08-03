@@ -4,7 +4,7 @@
 #include "vec.h"
 
 typedef struct {
-    char path[4096];
+    char path[256];
     u32 line;
     u32 column;
 } Offset;

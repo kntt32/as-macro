@@ -2,8 +2,9 @@
 
 syntax match asmacroComment "//.*$"
 syntax region asmacroComment start="/\*" end="\*/"
-syntax region asmacroString start=+"+ end=+"+ skip=+\\"+
-syntax region asmacroChar start=+'+ end=+'+ skip=+\\'+
+syntax match asmacroEscape "\\[ntra\"\'\\]"
+syntax region asmacroString start=+"+ end=+"+ contains=asmacroEscape
+syntax region asmacroChar start=+'+ end=+'+ contains=asmacroEscape
 syntax match asmacroNumber "\<\(0[xX][0-9a-fA-F]\+\|[0-9]\+\|0[bB][01]\+\)\>"
 syntax keyword asmacroBool true false
 syntax keyword asmacroNull null
@@ -16,6 +17,7 @@ syntax keyword asmacroUserType struct enum union type
 syntax keyword asmacroPrimitiveType bool char i8 u8 i16 u16 i32 u32 i64 u64 b8 b16 b32 b64 bin fn
 
 highlight link asmacroComment Comment
+highlight link asmacroEscape SpecialChar
 highlight link asmacroString String
 highlight link asmacroChar Character
 highlight link asmacroNumber Number

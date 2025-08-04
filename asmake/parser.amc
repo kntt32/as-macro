@@ -132,6 +132,9 @@ pub as skip(inout self: Parser@mem) {
             let str: Str@stack;
             try self.parse_ident(str, exist);
 
+            let c: char@auto;
+            try self.parse_char(c, exist);
+
             let parser: Parser@stack;
             try self.parse_paren(parser, exist);
             try self.parse_block(parser, exist);
@@ -265,6 +268,18 @@ pub as parse_index(inout self: Parser@mem, out parser: Parser@mem, out exist: bo
     self.parse_parens_helper('[', ']', parser, exist);
 };
 
+as escape_as_raw(inout self: char@reg+mem) {
+    switch(self) {
+        'n' { self = '\n' };
+        't' { self = '\t' };
+        '\\' { self = '\\' };
+        'r' { self = '\r' };
+        'a' { self = '\a' };
+        '0' { self = '\0' };
+        default { self = '?' };
+    };
+};
+
 pub as parse_string(inout self: Parser@mem, out string: String@mem, out exist: bool@reg+mem) {
     do(exist) {
         let c: char@auto;
@@ -276,10 +291,31 @@ pub as parse_string(inout self: Parser@mem, out string: String@mem, out exist: b
         let flag2: bool@auto;
         string.new();
         while((self.read(c); flag.neq(c, '\"').and(flag2.is_empty(self).not()))) {
+            if(flag.eq(c, '\\')) {
+                self.read(c);
+                c.escape_as_raw();
+            };
             string.push(c);
         };
 
         self.skip_space();
+    };
+};
+
+pub as parse_char(inout self: Parser@mem, out c: char@reg+mem, out exist: bool@reg+mem) {
+    do(exist) {
+        self.look(c);
+        try exist.eq(c, '\'');
+        self.read(c);
+
+        self.read(c);
+        let flag: bool@auto;
+        if(flag.eq(c, '\\')) {
+            self.read(c);
+            c.escape_as_raw();
+        };
+
+        try self.parse_symbol_char('\'', exist);
     };
 };
 

@@ -18,7 +18,9 @@ u64 Disp_size(in Disp* self) {
 
 i32 Disp_value(in Disp* self) {
     assert(self != NULL);
-    return self->offset;
+    
+    i32 value = (self->label[0] == '\0')?(self->offset):(0);
+    return value;
 }
 
 SResult Disp_set_label(in Disp* self, inout Generator* generator) {

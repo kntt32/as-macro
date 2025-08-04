@@ -3,7 +3,7 @@ import core;
 pub as memcpy(in dst: *void@reg+mem, in src: *void@reg+mem, in size: u64@reg+mem+imm) {
     let dst_auto: *u8@auto = dst;
     let src_auto: *u8@auto = src;
-    let size_auto: *u8@auto = size;
+    let size_auto: u64@auto = size;
 
     {
         let dst_rdi: *u8@rdi = dst_auto;
@@ -20,7 +20,7 @@ pub as memcpy(in dst: *void@reg+mem, in src: *void@reg+mem, in size: u64@reg+mem
 pub as memmove(in dst: *void@reg+mem, in src: *void@reg+mem, in size: u64@reg+mem+imm) {
     let dst_auto: *u8@auto = dst;
     let src_auto: *u8@auto = src;
-    let size_auto: *u8@auto = size;
+    let size_auto: u64@auto = size;
     
     {
         let flag: bool@auto;

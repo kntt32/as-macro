@@ -293,12 +293,30 @@ static ParserMsg Type_parse_fn(inout Parser* parser, in Generator* generator, ou
         Parser_parse_paren(&parser_copy, &paren_parser), (void)NULL
     );
 
+    i32 stack_offset = 16;
     Vec arguments = Vec_new(sizeof(Data));
     while(!Parser_is_empty(&paren_parser)) {
-        i32 dummy = 0;
+        Parser_skip_keyword(&paren_parser, "optional");
+        Parser_skip_keyword(&paren_parser, "inout");
+        Parser_skip_keyword(&paren_parser, "in");
+        Parser_skip_keyword(&paren_parser, "out");
+
         Data argument;
+        Parser paren_parser_copy = paren_parser;
+        i32 dummy = 0;
         PARSERMSG_UNWRAP(
-            Data_parse(&paren_parser, generator, &dummy, NULL, &argument), Vec_free_all(arguments, Data_free_for_vec)
+            Data_parse(&paren_parser_copy, generator, &dummy, NULL, &argument), Vec_free_all(arguments, Data_free_for_vec)
+        );
+        if(argument.storage.type == StorageType_mem) {
+            i32 size = argument.type.size;
+            i32 align = argument.type.align;
+            stack_offset = (stack_offset + align - 1)/align*align;
+            stack_offset += size;
+        }
+        Data_free(argument);
+
+        PARSERMSG_UNWRAP(
+            Data_parse(&paren_parser, generator, &stack_offset, NULL, &argument), Vec_free_all(arguments, Data_free_for_vec)
         );
         Vec_push(&arguments, &argument);
 
@@ -591,6 +609,7 @@ static ParserMsg Type_initialize_enum(in Type* self, inout Parser* parser, inout
 }
 
 static ParserMsg Type_initialize_bool(in Type* self, inout Parser* parser, inout Vec* bin) {
+    (void)self;
     if(Parser_skip_keyword(parser, "true")) {
         u8 true_byte = 0x1;
         Vec_push(bin, &true_byte);

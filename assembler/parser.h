@@ -65,7 +65,7 @@ void Parser_set_parser_vars(inout Parser* self, in Vec* parser_vars);
 
 #define PARSERMSG_UNWRAP(parser_msg, catch_proc) {\
     ParserMsg msg = (parser_msg);\
-    if(!ParserMsg_is_success(msg)) {\
+    if(!ParserMsg_is_success_ptr(&msg)) {\
         catch_proc;\
         return msg;\
     }\
@@ -73,6 +73,7 @@ void Parser_set_parser_vars(inout Parser* self, in Vec* parser_vars);
 
 ParserMsg ParserMsg_new(Offset offset, optional char* msg);
 bool ParserMsg_is_success(ParserMsg self);
+bool ParserMsg_is_success_ptr(in ParserMsg* self);
 ParserMsg ParserMsg_from_sresult(SResult sresult, Offset offset);
 
 bool ParserVar_cmp_value(in ParserVar* self, in ParserVar* other);

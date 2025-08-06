@@ -49,7 +49,7 @@ typedef struct {
 #define BOOL_TO_STR(b) (b)?("true"):("false")
 #define SRESULT_UNWRAP(r, catch_proc) {\
     SResult result = r;\
-    if(!SResult_is_success(result)) {\
+    if(!SResult_is_success_ptr(&result)) {\
         catch_proc;\
         return result;\
     }\
@@ -63,6 +63,7 @@ typedef struct {
 
 SResult SResult_new(optional char* error);
 bool SResult_is_success(SResult self);
+bool SResult_is_success_ptr(in SResult* self);
 
 void u8_print_for_vec(in void* ptr);
 bool u8_cmp_for_vec(in void* ptr1, in void* ptr2);

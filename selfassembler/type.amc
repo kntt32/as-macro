@@ -89,6 +89,7 @@ pub template Display_StructMember(Formatter) {
         self.write(str.from(", type: "));
         self.display(value.type);
         self.write(str.from(", offset: "));
+        self.display(value.offset);
         self.display(str.from(" }"));
     };
 };

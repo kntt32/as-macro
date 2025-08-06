@@ -513,10 +513,24 @@ SResult Generator_addend_rela(inout Generator* self, in char* section) {
 }
 
 static SResult Generator_get_section(in Generator* self, in char* name, out Section** section) {
-    for(u32 i=0; i<Vec_len(&self->sections); i++) {
-        *section = Vec_index(&self->sections, i);
-        if(strcmp((*section)->name, name) == 0) {
-            return SResult_new(NULL);
+    static bool cache_flag = false;
+    static char cache_section[256] = "";
+    static u32 cache_index = 0;
+
+    if(cache_flag && strcmp(cache_section, name) == 0) {
+        *section = Vec_index(&self->sections, cache_index);
+        return SResult_new(NULL);
+    }else {
+        cache_flag = false;
+        
+        for(u32 i=0; i<Vec_len(&self->sections); i++) {
+            *section = Vec_index(&self->sections, i);
+            if(strcmp((*section)->name, name) == 0) {
+                wrapped_strcpy(cache_section, name, sizeof(cache_section));
+                cache_index = i;
+                cache_flag = true;
+                return SResult_new(NULL);
+            }
         }
     }
 
@@ -531,6 +545,7 @@ SResult Generator_append_binary(inout Generator* self, in char* name, u8 byte) {
         Generator_get_section(self, name, &section),
         (void)NULL
     );
+
     Vec_push(&section->binary, &byte);
     return SResult_new(NULL);
 }

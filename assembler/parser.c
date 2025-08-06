@@ -720,6 +720,10 @@ bool ParserMsg_is_success(ParserMsg self) {
     return self.msg[0] == '\0';
 }
 
+bool ParserMsg_is_success_ptr(in ParserMsg* self) {
+    return self->msg[0] == '\0';
+}
+
 ParserMsg ParserMsg_from_sresult(SResult sresult, Offset offset) {
     if(SResult_is_success(sresult)) {
         return ParserMsg_new(offset, NULL);

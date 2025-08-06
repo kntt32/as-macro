@@ -97,6 +97,31 @@ pub as mov(out dst: Storage@mem, in src: Storage@mem) {
 };
 
 pub as parse(inout parser: Parser@mem, in auto_reg: Option_Register@mem, out storage: Storage@mem, out exist: bool@reg+mem) {
+    let parser_auto: *Parser@auto;
+    let auto_reg_auto: *Option_Register@auto;
+    let storage_auto: *Storage@auto;
+    let exist_stack: bool@stack;
+    parser_auto =& parser;
+    auto_reg_auto =& auto_reg;
+    storage_auto =& storage;
+    
+    {
+        let parser_rdi: *Parser@rdi = parser_auto;
+        let auto_reg_rsi: *Option_Register@rsi = auto_reg_auto;
+        let storage_rcx: *Storage@rcx = storage_auto;
+        let exist_rdx: *bool@rdx;
+        exist_rdx =& exist_stack;
+        parse(parser_rdi, auto_reg_rsi, storage_rcx, exist_rdx);
+    };
+
+    exist = exist_stack;
+};
+
+fn parse(inout parser: *Parser@rdi, in auto_reg: *Option_Register@rsi, out storage: *Storage@rcx, out exist: *bool@rdx) {
+    parse_internal(*parser, *auto_reg, *storage, *exist);
+};
+
+as parse_internal(inout parser: Parser@mem, in auto_reg: Option_Register@mem, out storage: Storage@mem, out exist: bool@reg+mem) {
     let str: Str@stack;
     let register: Register@auto;
     let flag: bool@auto;

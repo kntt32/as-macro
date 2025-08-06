@@ -16,37 +16,40 @@ pub as mov(out dst: PartialType@mem, in src: PartialType@mem) {
 };
 
 impl Vec(PartialType);
-/*
-pub as get(out self: *PartialType@reg+mem, in name: Str@mem, in partial_types: Vec_PartialType@mem, out exist: bool@reg+mem) {
-    let flag: bool@auto;
-    let len: u64@auto;
-    partial_types.len(len);
-    let partial_type: *PartialType@auto;
-    let str: Str@mem;
 
-    for(let i: u64@auto = 0; flag.lt(i, len); ++i) {
-        partial_types.index(i, partial_type);
-        partial_type.name.as_str(str);
-        if(flag.eq(name, str)) {
-            self = partial_type;
-            i = len;
-        };
-    };
-};
-*/
 pub as parse(inout self: Parser@mem, out partial_type: PartialType@mem, out exist: bool@reg+mem) {
-    let self_copy: Parser@stack = self;
+    let self_auto: *Parser@auto;
+    let partial_type_auto: *PartialType@auto;
+    let exist_stack: bool@stack;
+    let exist_auto: *bool@auto;
+    self_auto =& self;
+    partial_type_auto =& partial_type;
+    exist_auto =& exist_stack;
+
+    {
+        let self_rdi: *Parser@rdi = self_auto;
+        let partial_type_rsi: *PartialType@rsi = partial_type_auto;
+        let exist_rcx: *bool@rcx = exist_auto;
+        PartialType_parse(self_rdi, partial_type_rsi, exist_rcx);
+    };
+
+    exist = exist_stack;
+};
+
+
+fn PartialType_parse(inout self: *Parser@rdi, out partial_type: *PartialType@rsi, out exist: *bool@rcx) {
+    let self_copy: Parser@stack = *self;
     let str: Str@stack;
-    self_copy.parse_keyword(str.from("pub"), partial_type.public);
+    self_copy.parse_keyword(str.from("pub"), (*partial_type).public);
 
     let flag: bool@auto;
-    do(exist) {
-        try self_copy.parse_ident(str, exist);
-        try self_copy.parse_ident(str, exist);
+    do(*exist) {
+        try self_copy.parse_ident(str, *exist);
+        try self_copy.parse_ident(str, *exist);
 
-        partial_type.name.from(str);
+        (*partial_type).name.from(str);
 
-        partial_type.parser = self;
+        (*partial_type).parser = *self;
     };
 };
 
@@ -135,7 +138,7 @@ pub as parse(inout self: Parser@mem, out struct_member: StructMember@mem, inout 
         struct_member.type = self;
 
         let type: defer Type@stack;
-        try self.parse_wrapped(type, partial_types, error, exist);
+        try self.parse(type, partial_types, error, exist);
 
         if(flag.gt(type.align, align)) {
             align = type.align;
@@ -276,13 +279,12 @@ pub template Display_Type(Formatter) {
     };
 };
 
-pub as parse_wrapped(inout self: Parser@mem, out type: Type@mem, in partial_types: Vec_PartialType@mem, out error: Error@mem, out exist: bool@reg+mem) {
+pub as parse(inout self: Parser@mem, out type: Type@mem, in partial_types: Vec_PartialType@mem, out error: Error@mem, out exist: bool@reg+mem) {
     let self_addr: *Parser@auto;
     let type_addr: *Type@auto;
     let partial_types_addr: *Vec_PartialType@auto;
     let error_addr: *Error@auto;
     let exist_stack: bool@stack;
-    !DEBUG_DEBUG;
     let exist_addr: *bool@auto;
     self_addr =& self;
     type_addr =& type;
@@ -303,10 +305,10 @@ pub as parse_wrapped(inout self: Parser@mem, out type: Type@mem, in partial_type
 };
 
 fn Type_parse_fn(inout self: *Parser@rdi, out type: *Type@rsi, in partial_types: *Vec_PartialType@rbx, out error: *Error@rdx, out exist: *bool@rax) {
-    parse(*self, *type, *partial_types, *error, *exist);
+    parse_internal(*self, *type, *partial_types, *error, *exist);
 };
 
-pub as parse(inout self: Parser@mem, out type: Type@mem, in partial_types: Vec_PartialType@mem, out error: Error@mem, out exist: bool@reg+mem) {
+as parse_internal(inout self: Parser@mem, out type: Type@mem, in partial_types: Vec_PartialType@mem, out error: Error@mem, out exist: bool@reg+mem) {
     let str: Str@stack;
 
     if((self.parse_keyword(str.from("i64"), exist); exist)) {
@@ -346,6 +348,37 @@ pub as parse(inout self: Parser@mem, out type: Type@mem, in partial_types: Vec_P
 };
 
 pub as from(out self: Type@mem, in partial_type: PartialType@mem, in partial_types: Vec_PartialType@mem, out error: Error@mem, out exist: bool@reg+mem) {
+    let self_auto: *Type@auto;
+    let partial_type_auto: *PartialType@auto;
+    let partial_types_auto: *Vec_PartialType@auto;
+    let error_auto: *Error@auto;
+    let exist_stack: *bool@stack;
+    let exist_auto: *bool@auto;
+    self_auto =& self;
+    partial_type_auto =& partial_type;
+    partial_types_auto =& partial_types;
+    error_auto =& error;
+    exist_auto =& exist_stack;
+
+    {
+        let self_rdi: *Type@rdi = self_auto;
+        let partial_type_rsi: *PartialType@rsi = partial_type_auto;
+        let partial_types_rcx: *Vec_PartialType@rcx = partial_types_auto;
+        let error_rdx: *Error@rdx = error_auto;
+        let exist_addr_stack: *bool@stack = exist_auto;
+        Type_from_partial_type(self_rdi, partial_type_rsi, partial_types_rcx, error_rdx, exist_addr_stack);
+    };
+
+    exist = exist_stack;
+};
+
+fn Type_from_partial_type(out self: *Type@rdi, in partial_type: *PartialType@rsi, in partial_types: *Vec_PartialType@rcx, out error: *Error@rdx, out exist: *bool@stack) {
+    let exist_auto: *bool@auto = exist;
+
+    from_internal(*self, *partial_type, *partial_types, *error, *exist_auto);
+};
+
+as from_internal(out self: Type@mem, in partial_type: PartialType@mem, in partial_types: Vec_PartialType@mem, out error: Error@mem, out exist: bool@reg+mem) {
     let parser: Parser@stack = partial_type.parser;
     let str: Str@stack;
     let flag: bool@auto;

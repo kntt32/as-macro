@@ -2,13 +2,55 @@ import std;
 import std.parser;
 import std.string;
 import storage;
+import type;
 
 pub struct Data {
     type: Type,
     storage: Storage,
 };
-/*
-pub as parse(inout parser: Parser@mem, in auto_reg: Option_Register@mem, out data: Data@mem, out exist: bool@reg+mem) {
-    Parser parse
+
+pub as parse(inout parser: Parser@mem, out data: Data@mem, in auto_reg: Option_Register@mem, in partial_types: Vec_PartialType@mem, out error: Error@mem, out exist: bool@reg+mem) {
+    let parser_auto: *Parser@auto;
+    let data_auto: *Data@auto;
+    let auto_reg: *Option_Register@auto;
+    let partial_types: *Vec_PartialType@auto;
+    let partial_error: *Error@auto;
 };
-*/
+
+fn Data_parse(inout parser: *Parser@rdi, out data: *Data@rsi, in auto_reg: *Option_Register@rcx, in partial_types: *Vec_PartialType@rdx, out error: *Error@stack, out exist: *bool@stack) {
+    let error_auto: *Error@auto = error;
+    let exist_auto: *bool@auto = exist;
+    parse_internal(*parser, *data, *auto_reg, *partial_types, *error_auto, *exist_auto);
+};
+
+as parse_internal(inout parser: Parser@mem, out data: Data@mem, in auto_reg: Option_Register@mem, in partial_types: Vec_PartialType@mem, out error: Error@mem, out exist: bool@reg+mem) {
+    // Type@Storage
+    let str: Str@stack;
+
+    do(exist) {
+        let type: Type@stack;
+        try parser.parse(type, partial_types, error);
+        parser.parse_symbol_char('@', exist);
+        try if(exist.not()) {
+            type.drop();
+            error.from(parser.offset, str.from("expected symbol \"@\""));
+            exist.not();
+        }else {
+            exist.not();
+        };
+
+        let storage: Storage@stack;
+        parser.parse(auto_reg, storage, exist);
+        try if(exist.not()) {
+            type.drop();
+            error.from(parser.offset, str.from("expected storage"));
+            exist.not();
+        }else {
+            exist.not();
+        };
+
+        data.type = type;
+        data.storage = storage;
+    };
+};
+

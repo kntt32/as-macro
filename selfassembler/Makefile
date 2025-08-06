@@ -1,10 +1,11 @@
 LINKER ?= ld
 ASMACRO = ../assembler/asm.elf
 
-a.out: main.o register.o type.o $(ASMACRO_STDLIBS)/std.a $(ASMACRO_STDLIBS)/core.o
+a.out: main.o register.o type.o storage.o $(ASMACRO_STDLIBS)/std.a $(ASMACRO_STDLIBS)/core.o
 	$(LINKER) $^ -o $@
 
 main.o: main.amc register.amc gen.amc global_syntax.amc type.amc
+storage.o: storage.amc register.amc
 register.o: register.amc
 type.o: type.amc
 

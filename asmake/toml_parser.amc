@@ -1,0 +1,27 @@
+import std;
+import parser;
+
+enum NodeType {
+    Branch, Leave
+};
+
+struct TomlBranch {
+    branches: Vec_TomlNodeBranch,
+};
+
+struct TomlLeave {
+};
+
+union TomlNodeBody {
+    branch: Box_TomlBranch,
+    leave: Box_TomlLeave,
+};
+
+pub struct TomlNode {
+    node_type: NodeType,
+    body: 
+};
+
+
+
+

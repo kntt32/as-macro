@@ -1,7 +1,26 @@
 import std;
 import std.io;
+import std.parser;
+
+as shadowtest(inout value: bool@mem) {
+    let parser: Parser@stack;
+    let str: Str@stack;
+    let path: Str@stack;
+    parser.new(str.from("u64@rax"), path.from("aaaaa"));
+    parser.parse_keyword(str.from("u64"), value);
+    if(value) {
+        eprintln("A");
+    };
+};
+
+fn shadowtest_fn(inout value: *bool@rax) {
+    shadowtest(*value);
+};
 
 fn main() {
-    println("Hello, World!");
+    let value: bool@stack;
+    let value_rax_addr: *bool@rax;
+    value_rax_addr =& value;
+    shadowtest_fn(value_rax_addr);
 };
 

@@ -145,7 +145,7 @@ bool Argument_match_with(in Argument* self, in Data* data) {
             if(data->storage.type == StorageType_imm
                 && self->type.type == Type_Integer
                 && (data->type.type == Type_Integer || data->type.type == Type_Ptr)
-                && (strcmp(data->type.name, "char") != 0 && strcmp(data->type.name, "bool") != 0) && strcmp(data->type.name, "void")) {
+                && (strcmp(self->type.name, "char") != 0 && strcmp(self->type.name, "bool") != 0) && strcmp(data->type.name, "void")) {
                 if(data->storage.body.imm.type == Imm_Value) {
                     Vec* imm_value = &storage->body.imm.body.value;
                     u32 imm_size = Vec_len(imm_value);

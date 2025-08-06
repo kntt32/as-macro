@@ -47,7 +47,7 @@ pub template Slice(T) {
     };
     
     pub as index(in self: Slice_$(T)@mem, in index: u64@reg+mem+imm, out addr: *$(T)@reg+mem) {
-        panic_ge(index, self.len, "Slice:index: out of range");
+        panic_ge(index, self.len, "Slice:index: out of rangea");
         let addr_auto: *$(T)@auto = sizeof($(T));
         addr_auto.imul(index);
         addr_auto += self.addr;
@@ -63,16 +63,24 @@ pub template Slice(T) {
     };
 
     pub as slice(in self: Slice_$(T)@mem, in start: u64@reg+mem+imm, in len: u64@reg+mem+imm, out buff: Slice_$(T)@mem) {
-        panic_le(self.len, start, "Slice:slice: out of range");
-        let origin_len: u64@auto = len;
-        origin_len += start;
-        panic_gt(origin_len, self.len, "Slice:slice: out of range");
+        let flag: bool@auto;
+        if(flag.neq(len, 0)) {
+            panic_le(self.len, start, "Slice:slice: out of rangeb");
+            let origin_len: u64@auto = len;
+            origin_len += start;
+            panic_gt(origin_len, self.len, "Slice:slice: out of rangec");
 
-        buff.addr = sizeof($(T));
-        buff.addr.imul(start);
-        buff.addr += self.addr;
+            buff.addr = sizeof($(T));
+            buff.addr.imul(start);
+            buff.addr += self.addr;
 
-        buff.len = len;
+            buff.len = len;
+        }else {
+            buff.addr = start;
+            buff.addr.imul(sizeof($(T)));
+            buff.addr += self.addr;
+            buff.len = 0;
+        };
     };
 };
 

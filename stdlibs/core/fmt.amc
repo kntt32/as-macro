@@ -119,7 +119,7 @@ pub template Display(Formatter) {
         self.display(i64_object);
     };
 
-    pub as display(inout self: $(Formatter)@mem, in object: b32@reg+mem+imm) {
+    pub as display(inout self: $(Formatter)@mem, in object: u32@reg+mem+imm) {
         let u64_object: u64@auto = object;
         self.display(u64_object);
     };
@@ -129,7 +129,7 @@ pub template Display(Formatter) {
         self.display(i64_object);
     };
 
-    pub as display(inout self: $(Formatter)@mem, in object: b16@reg+mem+imm) {
+    pub as display(inout self: $(Formatter)@mem, in object: u16@reg+mem+imm) {
         let u64_object: u64@auto = object;
         self.display(u64_object);
     };
@@ -139,7 +139,7 @@ pub template Display(Formatter) {
         self.display(i64_object);
     };
 
-    pub as display(inout self: $(Formatter)@mem, in object: b8@reg+mem+imm) {
+    pub as display(inout self: $(Formatter)@mem, in object: u8@reg+mem+imm) {
         let u64_object: u64@auto = object;
         self.display(u64_object);
     };

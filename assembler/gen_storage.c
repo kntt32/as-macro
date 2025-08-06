@@ -149,6 +149,9 @@ ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, optional 
         if(auto_reg == NULL) {
             return ParserMsg_new(parser->offset, "auto register is not available");
         }
+        if(type->type == Type_Array || type->type == Type_Struct) {
+            return ParserMsg_new(parser->offset, "array of struct can't store on register or xmm'");
+        }
 
         storage->type = StorageType_reg;
         storage->body.reg = *auto_reg;

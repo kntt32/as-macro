@@ -1,0 +1,14 @@
+import std;
+import std.parser;
+import std.string;
+import storage;
+
+pub struct Data {
+    type: Type,
+    storage: Storage,
+};
+/*
+pub as parse(inout parser: Parser@mem, in auto_reg: Option_Register@mem, out data: Data@mem, out exist: bool@reg+mem) {
+    Parser parse
+};
+*/

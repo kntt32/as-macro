@@ -426,8 +426,6 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_assignment,
         Syntax_build_asmacro_expansion,
         Syntax_build_call_fnptr,
-        Syntax_build_block,
-        Syntax_build_paren,
         Syntax_build_register_expression,
         Syntax_build_imm_expression,
         Syntax_build_true_expression,
@@ -442,6 +440,8 @@ SResult Syntax_build(Parser parser, inout Generator* generator, inout VariableMa
         Syntax_build_dot_operator,
         Syntax_build_refer_operator,
         Syntax_build_subscript_operator,
+        Syntax_build_block,
+        Syntax_build_paren,
         Syntax_build_variable_expression,
     };
 
@@ -894,8 +894,11 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
         Asmacro_free(asmacro);
     );
 
-    u32 old_visible_block_base = VariableManager_new_visible_block_base(variable_manager);
-    VariableManager_new_block(variable_manager);
+    u32 old_visible_block_base;
+    if(asmacro.type != Asmacro_AsmMacro) {
+        old_visible_block_base = VariableManager_new_visible_block_base(variable_manager);
+        VariableManager_new_block(variable_manager);
+    }
 
     switch(asmacro.type) {
         case Asmacro_AsmMacro:
@@ -924,15 +927,18 @@ SResult expand_asmacro(in char* name, in char* path, Vec arguments, inout Genera
     }else {
         *data = Data_void();
     }
+
+    if(asmacro.type != Asmacro_AsmMacro) {
+        SRESULT_UNWRAP(
+            VariableManager_delete_block(variable_manager, generator),
+            Data_free(*data)
+        );
+        VariableManager_set_visible_block_base(variable_manager, old_visible_block_base);
+    }
+
     Asmacro_free(asmacro);
     Vec_free_all(arguments, Data_free_for_vec);
-    
-    SRESULT_UNWRAP(
-        VariableManager_delete_block(variable_manager, generator),
-        Data_free(*data)
-    );
-    VariableManager_set_visible_block_base(variable_manager, old_visible_block_base);
-    
+
     Generator_finish_asmacro_expand(generator);
 
     return SResult_new(NULL);

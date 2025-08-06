@@ -1,7 +1,7 @@
 FSANITIZE ?= 1
 RELEASE ?= 0
 
-CC ?= gcc
+CC := clang
 
 CFLAGS := -Wall -Wextra -O0 -g -fsanitize=undefined -fsanitize=address -fsanitize=leak
 ifeq ($(FSANITIZE), 0)

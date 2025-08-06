@@ -1,0 +1,33 @@
+import std;
+import std.parser;
+
+pub struct Error {
+    offset: Offset,
+    msg: String,
+};
+
+pub template Display_Error(Formatter) {
+    pub as display(inout self: $(Formatter)@mem, in value: Error@mem) {
+        let str: Str@stack;
+        self.write(str.from("Error { offset: "));
+        self.display(value.offset);
+        self.write(str.from(", msg: "));
+        self.display(value.msg);
+        self.write(str.from(" }"));
+    };
+};
+
+pub as new(out self: Error@mem, in offset: Offset@mem, msg: String@mem) {
+    self.offset = offset;
+    self.msg = msg;
+};
+
+pub as new(out self: Error@mem, in offset: Offset@mem, in msg: Str@mem) {
+    let string: String@stack;
+    self.new(offset, string.from(msg));
+};
+
+pub as drop(self: Error@mem) {
+    self.msg.drop();
+};
+

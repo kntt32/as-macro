@@ -7,6 +7,7 @@ typedef struct {
     enum {
         GlobalSyntax_StructDefinision,
         GlobalSyntax_EnumDefinision,
+        GlobalSyntax_UnionDefinision,
         GlobalSyntax_AsmacroDefinision,
         GlobalSyntax_TypeAlias,
         GlobalSyntax_FunctionDefinision,

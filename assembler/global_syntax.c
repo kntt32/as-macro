@@ -63,6 +63,36 @@ static bool GlobalSyntax_parse_enum_definision(Parser parser, inout Generator* g
     return true;
 }
 
+static bool GlobalSyntax_parse_union_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
+    bool public_flag = Parser_skip_keyword(&parser, "pub");
+
+    if(!Parser_skip_keyword(&parser, "union")) {
+        return false;
+    }
+    
+    global_syntax->offset = parser.offset;
+    global_syntax->type = GlobalSyntax_UnionDefinision;
+    global_syntax->ok_flag = false;
+    
+    Type type;
+    if(resolve_parsermsg(Type_parse_union(&parser, generator, &type), generator)) {
+        return true;
+    }
+
+    if(!public_flag) {
+        Type_restrict_namespace(&type, Parser_path(&parser));
+    }
+    
+    if(resolve_sresult(Generator_add_type(generator, type), parser.offset, generator)) {
+        return true;
+    }
+
+    global_syntax->ok_flag = true;
+
+    check_parser(&parser, generator);
+    return true;
+}
+
 static bool GlobalSyntax_parse_asmacro_definision(Parser parser, inout Generator* generator, out GlobalSyntax* global_syntax) {
     Parser temp_parser = parser;
     Parser_parse_keyword(&temp_parser, "pub");
@@ -203,11 +233,7 @@ static ParserMsg function_definision_parse_arguments(Parser parser, in Generator
             (void)NULL
         );
 
-        resolve_sresult(
-            VariableManager_push(variable_manager, Variable_clone(&variable), generator),
-            parser.offset,
-            generator
-        );
+        VariableManager_push_alias(variable_manager, Variable_clone(&variable)),
         Vec_push(arguments, &variable);
  
         if(!Parser_is_empty(&parser)) {
@@ -254,6 +280,8 @@ static bool GlobalSyntax_parse_function_definision(Parser parser, inout Generato
         Vec_free_all(arguments, Variable_free_for_vec);
         return true;
     }
+
+    assert(variable_manager.stack_offset == 0);
 
     char* valid_path = (public_flag)?(""):(Parser_path(&parser));
 
@@ -502,6 +530,7 @@ ParserMsg GlobalSyntax_parse(Parser parser, inout Generator* generator, out Glob
         GlobalSyntax_parse_asmacro_definision,
         GlobalSyntax_parse_struct_definision,
         GlobalSyntax_parse_enum_definision,
+        GlobalSyntax_parse_union_definision,
         GlobalSyntax_parse_type_alias,
         GlobalSyntax_parse_import,
         GlobalSyntax_parse_function_definision,
@@ -645,6 +674,7 @@ void GlobalSyntax_build(inout GlobalSyntax* self, inout Generator* generator) {
     switch(self->type) {
         case GlobalSyntax_StructDefinision:
         case GlobalSyntax_EnumDefinision:
+        case GlobalSyntax_UnionDefinision:
         case GlobalSyntax_TypeAlias:
         case GlobalSyntax_AsmacroDefinision:
         case GlobalSyntax_Import:
@@ -673,6 +703,7 @@ void GlobalSyntax_print(in GlobalSyntax* self) {
     if(self->ok_flag) {
         switch(self->type) {
             case GlobalSyntax_StructDefinision:
+            case GlobalSyntax_UnionDefinision:
                 printf("none");
                 break;
             case GlobalSyntax_EnumDefinision:
@@ -727,6 +758,7 @@ void GlobalSyntax_free(GlobalSyntax self) {
     switch(self.type) {
         case GlobalSyntax_StructDefinision:
         case GlobalSyntax_EnumDefinision:
+        case GlobalSyntax_UnionDefinision:
         case GlobalSyntax_TypeAlias:
         case GlobalSyntax_Import:
         case GlobalSyntax_ConstVariable:

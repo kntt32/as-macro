@@ -194,6 +194,12 @@ static ParserMsg Type_parse_union_member(Parser parser, in Generator* generator,
         if(type->size < size) {
             type->size = size;
         }
+
+        if(!Parser_is_empty(&parser)) {
+            PARSERMSG_UNWRAP(
+                Parser_parse_symbol(&parser, ","), Vec_free(type->body.t_union)
+            );
+        }
     }
 
     return ParserMsg_new(parser.offset, NULL);
@@ -564,7 +570,7 @@ static ParserMsg Type_initialize_struct(in Type* self, inout Parser* parser, ino
         );
         PARSERMSG_UNWRAP(Parser_parse_symbol(&parser_copy, ":"), (void)NULL);
 
-        while(member->offset + bin_init_offset == Vec_len(bin)) {
+        while(member->offset + bin_init_offset != Vec_len(bin)) {
             u8 byte = 0;
             Vec_push(bin, &byte);
         }
@@ -572,6 +578,10 @@ static ParserMsg Type_initialize_struct(in Type* self, inout Parser* parser, ino
         PARSERMSG_UNWRAP(
             Type_initialize(&member->type, &parser_copy, bin), (void)NULL
         );
+    }
+    while(self->size + bin_init_offset != Vec_len(bin)) {
+        u8 byte = 0;
+        Vec_push(bin, &byte);
     }
 
     Parser_parse_symbol(&parser_copy, ",");

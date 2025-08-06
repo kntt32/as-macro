@@ -23,21 +23,51 @@ pub template Result(T, E) {
         self.body.error = error;
     };
 
-    pub as mov(out dst: Result_$(T)_$(E)@mem, in src: $(T)@reg+mem+imm) {
+    pub as take_ok(self: Result_$(T)_$(E)@mem, out ok: $(T)@reg+mem) {
+        panic_neq(self.result, Result.Ok, "failed to take from result.ok");
+        ok = self.body.ok;
+    };
+
+    pub as take_error(self: Result_$(T)_$(E)@mem, out error: $(T)@reg+mem) {
+        panic_neq(self.result, Result.Error, "failed to take from result.error");
+        error = self.body.error;
+    };
+
+    pub as clone(out dst: Result_$(T)_$(E)@mem, in src: Result_$(T)_$(E)@mem+imm) {
         dst.result = src.result;
         
         switch(dst.result) {
-            Result.Ok => src.body.ok.clone(dst.body.ok),
-            Result.Error => src.body.error.clone(dst.body.error),
+            Result.Ok {
+                src.body.ok.clone(dst.body.ok);
+            };
+            Result.Error {
+                src.body.error.clone(dst.body.error);
+            };
         };
     };
-/*
-    pub as clone() {
 
+    pub as mov(out dst: Result_$(T)_$(E)@mem, in src: Result_$(T)_$(E)@mem+imm) {
+        dst.result = src.result;
+        
+        switch(dst.result) {
+            Result.Ok {
+                dst.body.ok = src.body.ok;
+            };
+            Result.Error {
+                dst.body.error = src.body.error;
+            };
+        };
     };
 
-    pub as drop() {
-
-    };*/
+    pub as drop(inout self: Result_$(T)_$(E)@mem) {
+        switch(self.result) {
+            Result.Ok {
+                self.body.ok.drop();
+            };
+            Result.Error {
+                self.body.error.drop();
+            };
+        };
+    };
 };
 

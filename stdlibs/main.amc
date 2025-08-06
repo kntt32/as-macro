@@ -2,6 +2,10 @@ import std;
 import std.io;
 import std.string;
 
+fn func_test(in value: u64@stack) {
+    printfln(value);
+};
+
 fn main() {
     let optional_stream: Option_In@stack;
     let stream: defer In@stack;
@@ -13,5 +17,8 @@ fn main() {
     stream.read(buff);
 
     printfln(buff);
+
+    let value: u64@stack = 1;
+    func_test(value);
 };
 

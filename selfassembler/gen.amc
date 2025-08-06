@@ -1,0 +1,35 @@
+import std;
+import std.vec;
+import type;
+
+impl Vec(PartialType);
+
+pub struct Generator {
+    types: Vec_PartialType,
+};
+
+pub as new(out self: Generator@mem) {
+    self.types.new();
+};
+
+pub as push(inout self: Generator@mem, partial_type: PartialType@mem) {
+    self.types.push(partial_type);
+};
+
+pub as drop(inout self: Generator@mem) {
+    self.types.drop();
+};
+
+pub template Display_Generator(Formatter) {
+    impl Display($(Formatter));
+    impl Display_PartialType($(Formatter));
+    impl Display_Vec($(Formatter), PartialType);
+
+    pub as display(inout self: $(Formatter)@mem, in object: Generator@mem) {
+        let str: Str@stack;
+        self.write(str.from("Generator { types: "));
+        self.display(object.types);
+        self.write(str.from(" }"));
+    };
+};
+

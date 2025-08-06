@@ -28,7 +28,7 @@ pub as eprint(in c_str_array: bin@mem) {
 };
 
 pub as eprintln(in c_str_array: bin@mem) {
-    print(c_str_array);
+    eprint(c_str_array);
     eprint("\n");
 };
 

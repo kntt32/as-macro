@@ -32,8 +32,13 @@ pub template Option(T) {
         self.flag = false;
     };
 
-    pub as is_some(in self: Option_$(T)@reg, out flag: bool@reg+mem) {
+    pub as is_some(in self: Option_$(T)@mem, out flag: bool@reg+mem) {
         flag = self.flag;
+    };
+
+    pub as is_none(in self: Option_$(T)@mem, out flag: bool@reg+mem) {
+        flag = self.flag;
+        flag.not();
     };
 
     pub as eq(out flag: bool@reg+mem, in left: Option_$(T)@mem, out right: Option_$(T)@mem) {
@@ -57,7 +62,7 @@ pub template Option(T) {
 
     pub as drop(inout self: Option_$(T)@mem) {
         if(self.flag) {
-            self.body.drop();
+            self.body.object.drop();
         };
         self.flag = false;
     };

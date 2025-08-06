@@ -1,0 +1,91 @@
+import std;
+import std.parser;
+import std.vec;
+import std.string;
+
+pub struct GlobalSyntax {
+    is_fn_def: bool
+};
+
+pub as mov(out dst: GlobalSyntax@mem, in src: GlobalSyntax@mem) {
+    dst.is_fn_def = src.is_fn_def;
+};
+
+as parse_type_definision(inout parser: Parser@mem, out global_syntax: GlobalSyntax@mem, inout generator: Generator@mem, out exist: bool@reg+mem) {
+    let partial_type: PartialType@stack;
+
+    do(exist) {
+        try parser.parse(partial_type, exist);
+        generator.push(partial_type);
+    };
+};
+
+pub as parse(inout self: Parser@mem, out global_syntax: GlobalSyntax@mem, inout generator: Generator@mem, out exist: bool@reg+mem) {
+    let flag: bool@auto;
+
+    do((flag = exist; flag.not())) {
+        try self.parse_type_definision(global_syntax, generator, exist);
+    };
+};
+
+pub as drop(inout self: GlobalSyntax@mem) {
+};
+
+pub template Display_GlobalSyntax(Formatter) {
+    impl Display($(Formatter));
+
+    pub as display(inout self: $(Formatter)@mem, in object: GlobalSyntax@mem) {
+        let str: Str@stack;
+        self.write(str.from("GlobalSyntax { is_fn_def: "));
+        self.display(object.is_fn_def);
+        self.write(str.from(" }"));
+    };
+};
+
+impl Vec(GlobalSyntax);
+
+pub struct GlobalSyntaxTree {
+    tree: Vec_GlobalSyntax,
+    generator: Generator,
+};
+
+pub as parse(inout self: Parser@mem, out global_syntax_tree: GlobalSyntaxTree@mem) {
+    let flag: bool@auto;
+
+    global_syntax_tree.tree.new();
+    global_syntax_tree.generator.new();
+
+    let global_syntax_parser: Parser@stack;
+    let global_syntax: GlobalSyntax@stack;
+
+    while(flag.is_empty(self).not()) {
+        self.split(';', global_syntax_parser);
+        global_syntax_parser.parse(global_syntax, global_syntax_tree.generator, flag);
+        if(flag.not()) {
+            todo("global_syntax.amc");
+        }else {
+            global_syntax_tree.tree.push(global_syntax);
+        };
+    };
+};
+
+pub as drop(inout self: GlobalSyntaxTree@mem) {
+    self.tree.drop();
+    self.generator.drop();
+};
+
+pub template Display_GlobalSyntaxTree(Formatter) {
+    impl Display_GlobalSyntax($(Formatter));
+    impl Display_Vec($(Formatter), GlobalSyntax);
+    impl Display_Generator($(Formatter));
+
+    pub as display(inout self: $(Formatter)@mem, in object: GlobalSyntaxTree@mem) {
+        let str: Str@stack;
+        self.write(str.from("GlobalSyntaxTree { tree: "));
+        self.display(object.tree);
+        self.write(str.from(", generator: "));
+        self.display(object.generator);
+        self.write(str.from(" }"));
+    };
+};
+

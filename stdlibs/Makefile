@@ -17,10 +17,10 @@ std.amc: core.amc
 core.amc: 
 
 %.o: %.amc
-	$(ASMACRO) $< -o $@
+	asmacro $< -o $@
 
 %.o: std/%.amc
-	$(ASMACRO) $< -o $@
+	asmacro $< -o $@
 
 %.h:
 	touch $@ -c
@@ -32,8 +32,5 @@ debug: a.out
 	gdb a.out
 
 clean:
-	rm -f *.o *.out *.elf
-
-init:
-	export ASMACRO_STDLIBS=$(HOME)/as-macro/test
+	rm -f *.o *.out *.elf *.a
 

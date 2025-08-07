@@ -52,6 +52,12 @@ path.h: types.h
 %.h:
 	touch $@ -c
 
+install:
+	make clean
+	make RELEASE=1
+	mv asm.elf ../install/asmacro
+	../install/install.bash
+
 run: asm.elf
 	./asm.elf $(ARGS)
 

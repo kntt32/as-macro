@@ -150,12 +150,6 @@ static SResult ModRmType_encode_rex_prefix_reg(in ModRmType* self, in AsmArgs* a
                 (void)NULL
             );
             break;
-        case AsmArgs_Reg_Xmm:
-            SRESULT_UNWRAP(
-                Register_get_reg_code(args->reg.xmm, &modrmreg_code),
-                (void)NULL
-            );
-            break;
     }
     
     if(modrmreg_code & REG_REXR) {
@@ -242,7 +236,6 @@ static SResult ModRmType_encode_rex_prefix_regmem(in ModRmType* self, in AsmArgs
 
     switch(args->regmem_type) {
         case AsmArgs_Rm_Reg:
-        case AsmArgs_Rm_Xmm:
             SRESULT_UNWRAP(
                 ModRmType_encode_rex_prefix_regmem_reg(self, args, rex_prefix, rex_prefix_needed_flag),
                 (void)NULL
@@ -287,16 +280,13 @@ static SResult ModRmType_encode_reg(in ModRmType* self, in AsmArgs* args, inout 
     switch(self->type) {
         case ModRmType_R:
             assert(args->reg_flag);
-            if(args->reg_type == AsmArgs_Reg_Reg) {
-                SRESULT_UNWRAP(
-                    Register_get_reg_code(args->reg.reg, &code),
-                    (void)NULL
-                );
-            }else {
-                SRESULT_UNWRAP(
-                    Register_get_reg_code(args->reg.xmm, &code),
-                    (void)NULL
-                );
+            switch(args->reg_type) {
+                case AsmArgs_Reg_Reg:
+                    SRESULT_UNWRAP(
+                        Register_get_reg_code(args->reg.reg, &code),
+                        (void)NULL
+                    );
+                    break;
             }
             break;
         case ModRmType_Digit:
@@ -365,13 +355,6 @@ static SResult ModRmType_encode_mod_and_rm(in AsmArgs* args, inout u8* mod_rm, i
             mod = 0b11;
             SRESULT_UNWRAP(
                 Register_get_modrm_base_code(args->regmem.reg, &code),
-                (void)NULL
-            );
-            break;
-        case AsmArgs_Rm_Xmm:
-            mod = 0b11;
-            SRESULT_UNWRAP(
-                Register_get_modrm_base_code(args->regmem.xmm, &code),
                 (void)NULL
             );
             break;

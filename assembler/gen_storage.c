@@ -125,9 +125,8 @@ ParserMsg Storage_parse(inout Parser* parser, inout i32* stack_offset, optional 
         }
         if(Register_is_integer(storage->body.reg)) {
             storage->type = StorageType_reg;
-        }else if(Register_is_xmm(storage->body.reg)) {
-            storage->type = StorageType_xmm;
-            storage->body.xmm = storage->body.reg;
+        }else {
+            PANIC("unknown register type");
         }
     }else if(ParserMsg_is_success(Parser_parse_keyword(&parser_copy, "imm"))){
         storage->type = StorageType_imm;
@@ -263,8 +262,6 @@ bool Storage_cmp(in Storage* self, in Storage* other) {
             return self->body.reg == other->body.reg;
         case StorageType_mem:
             return Memory_cmp(&self->body.mem, &other->body.mem);
-        case StorageType_xmm:
-            return self->body.xmm == other->body.xmm;
         case StorageType_imm:
             return Imm_cmp(&self->body.imm, &other->body.imm);
     }
@@ -284,8 +281,6 @@ bool Storage_doubling(in Storage* self, in Storage* other) {
             return self->body.reg == other->body.reg;
         case StorageType_mem:
             return false;
-        case StorageType_xmm:
-            return self->body.xmm == other->body.xmm;
         case StorageType_imm:
             return false;
     }
@@ -312,10 +307,6 @@ void Storage_print(in Storage* self) {
             printf(".mem: ");
             Memory_print(&self->body.mem);
             break;
-        case StorageType_xmm:
-            printf(".xmm: ");
-            Register_print(self->body.xmm);
-            break;
         case StorageType_imm:
             printf(".imm: ");
             Imm_print(&self->body.imm);
@@ -331,7 +322,6 @@ Storage Storage_clone(in Storage* self) {
     switch(self->type) {
         case StorageType_reg:
         case StorageType_mem:
-        case StorageType_xmm:
             storage.body = self->body;
             break;
         case StorageType_imm:
@@ -346,7 +336,6 @@ void Storage_free(Storage self) {
     switch(self.type) {
         case StorageType_reg:
         case StorageType_mem:
-        case StorageType_xmm:
             break;
         case StorageType_imm:
             Imm_free(self.body.imm);

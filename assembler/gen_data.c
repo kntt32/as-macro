@@ -52,23 +52,11 @@ bool Data_cmp_signature_for_vec(in void* left, in void* right) {
 }
 
 Data Data_from_register(Register reg) {
-    if(Register_is_integer(reg)) {
-        Data data = {
-            {"i64", "", Type_Integer, {}, 8, 8},
-            {StorageType_reg, {.reg = reg}}
-        };
-        return data;
-    }else if(Register_is_xmm(reg)) {
-        Data data = {
-            {"f64", "", Type_Floating, {}, 8, 8},
-            {StorageType_xmm, {.reg = reg}}
-        };
-        return data;
-    }
-    
-    PANIC("unreachable");
-    Data uninit;
-    return uninit;
+    Data data = {
+        {"i64", "", Type_Integer, {}, 8, 8},
+        {StorageType_reg, {.reg = reg}}
+    };
+    return data;
 }
 
 Data Data_from_imm(u64 imm) {

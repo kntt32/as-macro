@@ -11,8 +11,7 @@ static ParserMsg Argument_parse_storage_bound(inout Parser* parser, inout Argume
         struct { char* keyword; bool* flag;} bounds[] = {
             {"reg", &argument->storage.trait.reg_flag},
             {"mem", &argument->storage.trait.mem_flag},
-            {"imm", &argument->storage.trait.imm_flag},
-            {"xmm", &argument->storage.trait.xmm_flag}
+            {"imm", &argument->storage.trait.imm_flag}
         };
         
         for(u32 i=0; i<LEN(bounds); i++) {
@@ -88,8 +87,7 @@ bool Argument_cmp(in Argument* self, out Argument* other) {
         case Argument_Trait:    
             if(self->storage.trait.reg_flag != other->storage.trait.reg_flag
                 || self->storage.trait.mem_flag != other->storage.trait.mem_flag
-                || self->storage.trait.imm_flag != other->storage.trait.imm_flag
-                || self->storage.trait.xmm_flag != other->storage.trait.xmm_flag) {
+                || self->storage.trait.imm_flag != other->storage.trait.imm_flag) {
                 return false;
             }
             break;
@@ -116,16 +114,14 @@ Argument Argument_from(in Variable* variable) {
     switch(var_storage->type) {
         case StorageType_imm:
         case StorageType_reg:
-        case StorageType_xmm:
             argument.storage_type = Argument_Storage;
             argument.storage.storage = Storage_clone(var_storage);
             break;
         case StorageType_mem:
             argument.storage_type = Argument_Trait;
-            argument.storage.trait.reg_flag = false;
+            argument.storage.trait.reg_flag = true;
             argument.storage.trait.mem_flag = true;
             argument.storage.trait.imm_flag = true;
-            argument.storage.trait.xmm_flag = false;
             break;
     }
 
@@ -138,8 +134,7 @@ bool Argument_match_with(in Argument* self, in Data* data) {
         case Argument_Trait:
             if(!((self->storage.trait.reg_flag && storage->type == StorageType_reg)
                 || (self->storage.trait.mem_flag && storage->type == StorageType_mem)
-                || (self->storage.trait.imm_flag && storage->type == StorageType_imm)
-                || (self->storage.trait.xmm_flag && storage->type == StorageType_xmm))) {
+                || (self->storage.trait.imm_flag && storage->type == StorageType_imm))) {
                 return false;
             }
             if(data->storage.type == StorageType_imm
@@ -241,15 +236,14 @@ static SResult AsmArgs_from_trait(in Data* data, in Argument* arg, inout AsmArgs
     bool reg_flag = arg->storage.trait.reg_flag;
     bool mem_flag = arg->storage.trait.mem_flag;
     bool imm_flag = arg->storage.trait.imm_flag;
-    bool xmm_flag = arg->storage.trait.xmm_flag;
 
     switch(data->storage.type) {
         case StorageType_reg:
-            if(reg_flag && mem_flag && !imm_flag && !xmm_flag) {
+            if(reg_flag && mem_flag && !imm_flag) {
                 asm_args->regmem_flag = true;
                 asm_args->regmem_type = AsmArgs_Rm_Reg;
                 asm_args->regmem.reg = data->storage.body.reg;
-            }else if(reg_flag && !mem_flag && !imm_flag && !xmm_flag) {
+            }else if(reg_flag && !mem_flag && !imm_flag) {
                 asm_args->reg_flag = true;
                 asm_args->reg_type = AsmArgs_Reg_Reg;
                 asm_args->reg.reg = data->storage.body.reg;
@@ -260,9 +254,8 @@ static SResult AsmArgs_from_trait(in Data* data, in Argument* arg, inout AsmArgs
         case StorageType_mem:
             asm_args->regmem_flag = true;
             asm_args->regmem_type = AsmArgs_Rm_Mem;
-            if((reg_flag && mem_flag && !imm_flag && !xmm_flag)
-                || (!reg_flag && mem_flag && !imm_flag && xmm_flag)
-                || (!reg_flag && mem_flag && !imm_flag && !xmm_flag)) {
+            if((reg_flag && mem_flag && !imm_flag)
+                || (!reg_flag && mem_flag && !imm_flag)) {
                 asm_args->regmem_flag = true;
                 asm_args->regmem_type = AsmArgs_Rm_Mem;
                 asm_args->regmem.mem = data->storage.body.mem;
@@ -270,21 +263,8 @@ static SResult AsmArgs_from_trait(in Data* data, in Argument* arg, inout AsmArgs
                 return result;
             }
             break;
-        case StorageType_xmm:
-            if(!reg_flag && mem_flag && !imm_flag && xmm_flag) {
-                asm_args->regmem_flag = true;
-                asm_args->regmem_type = AsmArgs_Rm_Xmm;
-                asm_args->regmem.xmm = data->storage.body.xmm;
-            }else if(!reg_flag && !mem_flag && !imm_flag && xmm_flag) {
-                asm_args->reg_flag = true;
-                asm_args->reg_type = AsmArgs_Reg_Xmm;
-                asm_args->reg.xmm = data->storage.body.xmm;
-            }else {
-                return result;
-            }
-            break;
         case StorageType_imm:
-            if(!reg_flag && !mem_flag && imm_flag && !xmm_flag) {
+            if(!reg_flag && !mem_flag && imm_flag) {
                 asm_args->imm_flag = true;
                 asm_args->imm = Imm_clone(&data->storage.body.imm);
             }else {

@@ -55,7 +55,7 @@ path.h: types.h
 install:
 	make clean
 	make RELEASE=1
-	mv asm.elf ../install/asmacro
+	cp asm.elf ../install/asmacro
 	../install/install.bash
 
 run: asm.elf

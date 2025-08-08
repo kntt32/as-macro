@@ -92,9 +92,6 @@ static SResult store_variable(inout VariableManager* self, in Variable* variable
         case StorageType_reg:
             reg = storage->body.reg;
             break;
-        case StorageType_xmm:
-            reg = storage->body.xmm;
-            break;
         default:
             return SResult_new(NULL);
     }
@@ -179,9 +176,6 @@ SResult VariableManager_push(inout VariableManager* self, Variable variable, ino
             switch(storage->type) {
                 case StorageType_reg:
                     reg = storage->body.reg;
-                    break;
-                case StorageType_xmm:
-                    reg = storage->body.xmm;
                     break;
                 default:
                     continue;
@@ -575,9 +569,6 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(in Vec*
         case StorageType_reg:
             reg = variable->data.storage.body.reg;
             break;
-        case StorageType_xmm:
-            reg = variable->data.storage.body.xmm;
-            break;
         default:
             return SResult_new(NULL);
     }
@@ -585,9 +576,6 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_vars_helper(in Vec*
     if(Vec_len(arguments) != 0) {
         Data* arg = Vec_index(arguments, 0);
         if(arg->storage.type == StorageType_reg && arg->storage.body.reg == reg) {
-            return SResult_new(NULL);
-        }
-        if(arg->storage.type == StorageType_xmm && arg->storage.body.xmm == reg) {
             return SResult_new(NULL);
         }
     }
@@ -615,9 +603,6 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_vars_helper(in Vec* 
         case StorageType_reg:
             reg = variable->data.storage.body.reg;
             break;
-        case StorageType_xmm:
-            reg = variable->data.storage.body.xmm;
-            break;
         default:
             return SResult_new(NULL);
     }
@@ -625,9 +610,6 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_vars_helper(in Vec* 
     if(Vec_len(arguments) != 0) {
         Data* arg = Vec_index(arguments, 0);
         if(arg->storage.type == StorageType_reg && arg->storage.body.reg == reg) {
-            return SResult_new(NULL);
-        }
-        if(arg->storage.type == StorageType_xmm && arg->storage.body.xmm == reg) {
             return SResult_new(NULL);
         }
     }
@@ -655,9 +637,6 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_args_helper(in Vec*
         case StorageType_reg:
             reg = data->storage.body.reg;
             break;
-        case StorageType_xmm:
-            reg = data->storage.body.xmm;
-            break;
         default:
             return SResult_new(NULL);
     }
@@ -665,9 +644,6 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_args_helper(in Vec*
     if(Vec_len(arguments) != 0) {
         Data* arg = Vec_index(arguments, 0);
         if(arg->storage.type == StorageType_reg && arg->storage.body.reg == reg) {
-            return SResult_new(NULL);
-        }
-        if(arg->storage.type == StorageType_xmm && arg->storage.body.xmm == reg) {
             return SResult_new(NULL);
         }
     }
@@ -695,9 +671,6 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_args_helper(in Vec* 
         case StorageType_reg:
             reg = data->storage.body.reg;
             break;
-        case StorageType_xmm:
-            reg = data->storage.body.xmm;
-            break;
         default:
             return SResult_new(NULL);
     }
@@ -705,9 +678,6 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_pop_args_helper(in Vec* 
     if(Vec_len(arguments) != 0) {
         Data* arg = Vec_index(arguments, 0);
         if(arg->storage.type == StorageType_reg && arg->storage.body.reg == reg) {
-            return SResult_new(NULL);
-        }
-        if(arg->storage.type == StorageType_xmm && arg->storage.body.xmm == reg) {
             return SResult_new(NULL);
         }
     }

@@ -34,25 +34,6 @@ static struct {
     {R15, "r15", 15, 15, 15, false},
 };
 
-static struct {Register reg; char* str; bool volatile_flag;} XMM_TABLE[] = {
-    {Xmm0, "xmm0", true},
-    {Xmm1, "xmm1", true},
-    {Xmm2, "xmm2", true},
-    {Xmm3, "xmm3", true},
-    {Xmm4, "xmm4", true},
-    {Xmm5, "xmm5", true},
-    {Xmm6, "xmm6", true},
-    {Xmm7, "xmm7", true},
-    {Xmm8, "xmm8", true},
-    {Xmm9, "xmm9", true},
-    {Xmm10, "xmm10", true},
-    {Xmm11, "xmm11", true},
-    {Xmm12, "xmm12", true},
-    {Xmm13, "xmm13", true},
-    {Xmm14, "xmm14", true},
-    {Xmm15, "xmm15", true},
-};
-
 SResult Register_get_addreg_code(Register self, out u8* value) {
     for(u32 i=0; i<LEN(REGISTER_TABLE); i++) {
         if(REGISTER_TABLE[i].reg == self) {
@@ -93,12 +74,6 @@ bool Register_is_volatile(Register self) {
         }
     }
 
-    for(u32 i=0; i<LEN(XMM_TABLE); i++) {
-        if(XMM_TABLE[i].reg == self) {
-            return XMM_TABLE[i].volatile_flag;
-        }
-    }
-
     return false;
 }
 
@@ -117,32 +92,13 @@ ParserMsg Register_parse(Parser* parser, Register* restrict ptr) {
             return ParserMsg_new(parser->offset, NULL);
         }
     }
-
-    for(u32 i=0; i<LEN(XMM_TABLE); i++) {
-        char* rtable_str = XMM_TABLE[i].str;
-        Register rtable_reg = XMM_TABLE[i].reg;
-
-        if(Parser_parse_keyword(parser, rtable_str).msg[0] == '\0') {
-            *ptr = rtable_reg;
-            return ParserMsg_new(parser->offset, NULL);
-        } 
-    }
-
-    return ParserMsg_new(parser->offset, "expected keyword");
+    
+    return ParserMsg_new(parser->offset, "expected register");
 }
 
 bool Register_is_integer(Register self) {
     for(u32 i=0; i<LEN(REGISTER_TABLE); i++) {
         if(REGISTER_TABLE[i].reg == self) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool Register_is_xmm(Register self) {
-    for(u32 i=0; i<LEN(XMM_TABLE); i++) {
-        if(XMM_TABLE[i].reg == self) {
             return true;
         }
     }
@@ -164,17 +120,7 @@ void Register_print(in Register self) {
             return;
         }
     }
-
-    for(u32 i=0; i<LEN(XMM_TABLE); i++) {
-        char* xtable_str = XMM_TABLE[i].str;
-        Register xtable_reg = XMM_TABLE[i].reg;
-
-        if(self == xtable_reg) {
-            printf("%s", xtable_str);
-            return;
-        }
-    }
-
+    
     PANIC("unknown value");
     
     return;

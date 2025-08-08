@@ -20,8 +20,6 @@ struct Type {
         Type_Struct,
         Type_Enum,
         Type_Union,
-        Type_Floating,
-        Type_LazyPtr,
         Type_Alias,
         Type_Fn,
     } type;
@@ -95,7 +93,6 @@ typedef struct {
 typedef enum {
     StorageType_reg,
     StorageType_mem,
-    StorageType_xmm,
     StorageType_imm
 } StorageType;
 
@@ -128,7 +125,6 @@ typedef struct {
     union {
         Register reg;
         Memory mem;
-        Register xmm;
         Imm imm;
     } body;
 } Storage;
@@ -154,7 +150,6 @@ typedef struct {
             bool reg_flag;
             bool mem_flag;
             bool imm_flag;
-            bool xmm_flag;
         } trait;
         Storage storage;
     } storage;
@@ -162,17 +157,15 @@ typedef struct {
 
 typedef struct {
     bool reg_flag;
-    enum {AsmArgs_Reg_Reg, AsmArgs_Reg_Xmm} reg_type;
+    enum {AsmArgs_Reg_Reg} reg_type;
     union {
         Register reg;
-        Register xmm;
     } reg;
     bool regmem_flag;
-    enum {AsmArgs_Rm_Reg, AsmArgs_Rm_Mem, AsmArgs_Rm_Xmm} regmem_type;
+    enum {AsmArgs_Rm_Reg, AsmArgs_Rm_Mem} regmem_type;
     union {
         Register reg;
         Memory mem;
-        Register xmm;
     } regmem;
     bool imm_flag;
     optional Imm imm;

@@ -34,23 +34,6 @@ typedef enum {
     R13,
     R14,
     R15,
-
-    Xmm0,
-    Xmm1,
-    Xmm2,
-    Xmm3,
-    Xmm4,
-    Xmm5,
-    Xmm6,
-    Xmm7,
-    Xmm8,
-    Xmm9,
-    Xmm10,
-    Xmm11,
-    Xmm12,
-    Xmm13,
-    Xmm14,
-    Xmm15,
 } Register;
 
 extern Register GENERAL_REGISTERS[14];
@@ -69,4 +52,3 @@ void Register_print(in Register self);
 
 bool Register_is_integer(Register self);
 
-bool Register_is_xmm(Register self);

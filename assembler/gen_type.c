@@ -17,8 +17,6 @@ Vec Type_primitives(void) {
         {"u32", "", Type_Integer, {}, 4, 4},
         {"i64", "", Type_Integer, {}, 8, 8},
         {"u64", "", Type_Integer, {}, 8, 8},
-        {"f32", "", Type_Floating, {}, 4, 4},
-        {"f64", "", Type_Floating, {}, 8, 8},
         {"b8", "", Type_Integer, {}, 1, 1},
         {"b16", "", Type_Integer, {}, 2, 2},
         {"b32", "", Type_Integer, {}, 4, 4},
@@ -28,24 +26,6 @@ Vec Type_primitives(void) {
     Vec types = Vec_from(primitives, LEN(primitives), sizeof(Type));
 
     return types;
-}
-
-static ParserMsg Type_parse_ptr_lazyptr(inout Parser* parser, out Type* type) {
-    char token[256];
-    PARSERMSG_UNWRAP(
-        Parser_parse_ident(parser, token), (void)NULL
-    );
-
-    wrapped_strcpy(type->name, "*", sizeof(type->name));
-    wrapped_strcat(type->name, token, sizeof(type->name));
-    type->valid_path[0] = '\0';
-    type->type = Type_LazyPtr;
-    wrapped_strcpy(type->body.t_lazy_ptr.name, token, sizeof(type->body.t_lazy_ptr.name));
-    wrapped_strcpy(type->body.t_lazy_ptr.path, Parser_path(parser), sizeof(type->body.t_lazy_ptr.path));
-    type->size = 8;
-    type->align = 8;
-
-    return ParserMsg_new(parser->offset, NULL);
 }
 
 static ParserMsg Type_parse_ptr(inout Parser* parser, in Generator* generator, out Type* type) {
@@ -63,14 +43,12 @@ static ParserMsg Type_parse_ptr(inout Parser* parser, in Generator* generator, o
         UNWRAP_NULL(type->body.t_ptr);
         *type->body.t_ptr = child_type;
         type->size = 8;
-        type->align = 8;       
-    }else {
-        PARSERMSG_UNWRAP(
-            Type_parse_ptr_lazyptr(parser, type), (void)NULL
-        );
+        type->align = 8;
+
+        return ParserMsg_new(parser->offset, NULL);
     }
 
-    return ParserMsg_new(parser->offset, NULL);
+    return ParserMsg_new(parser->offset, "expected pointer type");
 }
 
 static ParserMsg Type_parse_struct_members(Parser parser, in Generator* generator, inout Type* type) {
@@ -747,12 +725,6 @@ SResult Type_ref(in Type* src, in Generator* generator, out Type* type) {
         case Type_Ptr:
             *type = Type_clone(src->body.t_ptr);
             break;
-        case Type_LazyPtr:
-            SRESULT_UNWRAP(
-                Generator_get_type(generator, src->body.t_lazy_ptr.name, src->body.t_lazy_ptr.path, type),
-                (void)NULL
-            );
-            break;
         case Type_Alias:
             SRESULT_UNWRAP(
                 Type_ref(src->body.t_alias, generator, type), (void)NULL
@@ -825,13 +797,11 @@ bool Type_cmp(in Type* self, in Type* other) {
 }
 
 static bool Type_match_bound(in Type* self, in Type* other) {
-    if((strcmp(self->name, "*void") == 0 && (other->type == Type_Ptr || other->type == Type_LazyPtr))
-        || (strcmp(other->name, "*void") == 0 && (self->type == Type_Ptr || self->type == Type_LazyPtr))) {
+    if((strcmp(self->name, "*void") == 0 && other->type == Type_Ptr)
+        || (strcmp(other->name, "*void") == 0 && self->type == Type_Ptr)) {
         return true;
     }
-    if(((other->type == Type_Ptr || other->type == Type_Integer
-        || other->type == Type_LazyPtr || other->type == Type_Enum
-        || other->type == Type_Floating)
+    if(((other->type == Type_Ptr || other->type == Type_Integer || other->type == Type_Enum)
         && ((strcmp(self->name, "b8") == 0 && other->size == 1)
         || (strcmp(self->name, "b16") == 0 && other->size == 2)
         || (strcmp(self->name, "b32") == 0 && other->size == 4)
@@ -906,10 +876,6 @@ Type Type_clone(in Type* self) {
         case Type_Union:
             type.body.t_union = Vec_clone(&self->body.t_union, StructMember_clone_for_vec);
             break;
-        case Type_Floating:
-            break;
-        case Type_LazyPtr:
-            break;
         case Type_Alias:
             type.body.t_alias = malloc(sizeof(Type));
             UNWRAP_NULL(type.body.t_alias);
@@ -949,12 +915,6 @@ void Type_print(in Type* self) {
             printf(".t_union: ");
             Vec_print(&self->body.t_union, StructMember_print_for_vec);
             break;
-        case Type_Floating:
-            printf("none");
-            break;
-        case Type_LazyPtr:
-            printf(".t_lazy_ptr: { name: %s, path: %s }", self->body.t_lazy_ptr.name, self->body.t_lazy_ptr.path);
-            break;
         case Type_Alias:
             printf(".t_alias: ");
             Type_print(self->body.t_alias);
@@ -992,10 +952,6 @@ void Type_free(Type self) {
             break;
         case Type_Union:
             Vec_free_all(self.body.t_union, StructMember_free_for_vec);
-            break;
-        case Type_Floating:
-            break;
-        case Type_LazyPtr:
             break;
         case Type_Alias:
             Type_free(*self.body.t_alias);

@@ -38,10 +38,11 @@ template MovUnsignedExpandCast(D, T) {
 };
 
 pub as mov(dst: u64@reg+mem, src: u32@reg+mem) {
+    let src_auto: u32@auto = src;
     let dst_auto: u64@auto;
 
     {
-        let src_rax_s: u32@rax = src;
+        let src_rax_s: u32@rax = src_auto;
         let src_rax_d: u64@rax;
         dst_auto = src_rax_d;
     };

@@ -346,7 +346,7 @@ Data Data_false(void);
 Data Data_null(void);
 Data Data_from_char(u8 code);
 Data Data_clone(in Data* self);
-void Data_clone_for_vec(in void* src, out void* dst);
+void Data_clone_for_vec(out void* dst, in void* src);
 SResult Data_dot_operator(in Data* left, in char* element, out Data* data);
 SResult Data_ref(Data src, in Generator* generator, out Data* data);
 SResult Data_as_integer(in Data* self, out u64* integer);
@@ -387,7 +387,7 @@ Argument Argument_from(in Variable* variable);
 bool Argument_match_with(in Argument* self, in Data* data);
 void Argument_print(in Argument* self);
 Argument Argument_clone(in Argument* self);
-void Argument_clone_for_vec(in void* src, out void* dst);
+void Argument_clone_for_vec(out void* dst, in void* src);
 void Argument_free(Argument self);
 void Argument_free_for_vec(inout void* ptr);
 

@@ -12,8 +12,8 @@ ParserMsg Data_parse(inout Parser* parser, in Generator* generator, inout i32* s
         Type_parse(&parser_copy, generator, &data->type),
         (void)NULL
     );
-    if(strcmp(data->type.name, "b") == 0) {
-        return ParserMsg_new(parser->offset, "construct Data with Type \"b\" is disallowed");
+    if(strcmp(data->type.name, "bin") == 0) {
+        return ParserMsg_new(parser->offset, "construct Data with Type \"bin\" is disallowed");
     }
     PARSERMSG_UNWRAP(
         Parser_parse_symbol(&parser_copy, "@"),
@@ -199,7 +199,7 @@ Data Data_clone(in Data* self) {
     return data;
 }
 
-void Data_clone_for_vec(in void* src, out void* dst) {
+void Data_clone_for_vec(out void* dst, in void* src) {
     Data* data = dst;
     *data = Data_clone(src);
 }

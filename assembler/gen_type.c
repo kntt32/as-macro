@@ -311,7 +311,7 @@ static ParserMsg Type_parse_fn(inout Parser* parser, in Generator* generator, ou
         }
     }
 
-    type->name[0] = '\0';
+    wrapped_strcpy(type->name, "__fn_internal_entity", sizeof(type->name));
     type->valid_path[0] = '\0';
     type->type = Type_Fn;
     type->body.t_fn = arguments;
@@ -329,7 +329,7 @@ ParserMsg Type_parse_fnptr(inout Parser* parser, in Generator* generator, out Ty
         Type_parse_fn(parser, generator, &fn_type), (void)NULL
     );
 
-    type->name[0] = '\0';
+    wrapped_strcpy(type->name, "fn", sizeof(type->name));
     type->valid_path[0] = '\0';
     type->type = Type_Ptr;
     type->body.t_ptr = malloc(sizeof(Type));

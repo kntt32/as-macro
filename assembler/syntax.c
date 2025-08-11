@@ -799,7 +799,7 @@ static SResult Syntax_build_asmacro_expansion_fnwrapper_push_stack_args(in Asmac
     return SResult_new(NULL);
 }
 
-static SResult Syntax_build_asmacro_expansion_fnwrapper(in Asmacro* asmacro, in Data call_to, in Vec* arguments, inout Generator* generator, inout VariableManager* variable_manager) {
+static SResult Syntax_build_asmacro_expansion_fnwrapper(in Asmacro* asmacro, Data call_to, in Vec* arguments, inout Generator* generator, inout VariableManager* variable_manager) {
     i32 stack_offset = variable_manager->stack_offset;
 
     SRESULT_UNWRAP(
@@ -1048,6 +1048,7 @@ static SResult Syntax_build_call_fnptr_build(Parser fnptr_parser, Parser args_pa
             }
         }
     }else {
+        Data_free(fnptr_data);
         result = SResult_new("mismatching arguments");
     }
     Asmacro_free(asmacro);

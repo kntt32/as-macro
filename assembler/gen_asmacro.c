@@ -216,9 +216,9 @@ Argument Argument_clone(in Argument* self) {
     return argument;
 }
 
-void Argument_clone_for_vec(in void* src, out void* dst) {
-    Argument* src_ptr = src;
-    *src_ptr = Argument_clone(dst);
+void Argument_clone_for_vec(out void* dst, in void* src) {
+    Argument* dst_ptr = dst;
+    *dst_ptr = Argument_clone(src);
 }
 
 void Argument_free(Argument self) {

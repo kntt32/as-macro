@@ -2,6 +2,14 @@ import std;
 import std.io;
 
 fn main() {
-    println("Hello, World!");
+    let fnptr: fn(u32@rax)@rdi;
+    fnptr =& test;
+    let x: u32@rax = 1;
+    (fnptr)(x);
+};
+
+fn test(x: u32@rax) {
+    println("Hello, FnPtr!");
+    printfln(x);
 };
 

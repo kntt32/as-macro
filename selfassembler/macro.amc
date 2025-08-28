@@ -1,7 +1,0 @@
-import std;
-import std.parser;
-
-pub struct Asmacro {
-    name: String
-};
-

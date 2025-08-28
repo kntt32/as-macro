@@ -89,7 +89,7 @@ u32 Cmd_interpreter(int argc, char* argv[]) {
     }
 
     if(asm_cmd_args.version) {
-        printf("as-macro version alpha\n");
+        printf("as-macro v1.0\n");
     }
 
     return Cmd_build_file(asm_cmd_args);

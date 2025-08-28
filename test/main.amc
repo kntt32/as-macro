@@ -1,15 +1,17 @@
 import std;
 import std.io;
+import std.vec;
+
+impl Vec(i32);
+impl Display_Vec(Out, i32);
 
 fn main() {
-    let fnptr: fn(u32@rax)@rdi;
-    fnptr =& test;
-    let x: u32@rax = 1;
-    (fnptr)(x);
-};
+    let vec: defer Vec_i32@stack;
+    vec.new();
 
-fn test(x: u32@rax) {
-    println("Hello, FnPtr!");
-    printfln(x);
-};
+    for((let i: i32@auto = 0; let flag: bool@auto); flag.lt(i, 1024); ++i) {
+        vec.push(i);
+    };
 
+    printfln(vec);
+};

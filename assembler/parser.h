@@ -2,12 +2,7 @@
 
 #include "types.h"
 #include "vec.h"
-
-typedef struct {
-    char path[256];
-    u32 line;
-    u32 column;
-} Offset;
+#include "tokenizer.h"
 
 typedef struct {
     char* src;

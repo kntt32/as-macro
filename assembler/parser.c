@@ -13,57 +13,6 @@ static struct { char expr; char code; } ESCAPE_SEQUENCES[] = {
     {'f', '\f'}, {'n', '\n'}, {'r', '\r'}, {'t', '\t'}, {'v', '\v'}, {'0', '\0'},
 };
 
-Offset Offset_new(in char* path) {
-    assert(path != NULL);
-
-    Offset offset;
-
-    wrapped_strcpy(offset.path, path, sizeof(offset.path));
-    offset.line = 1;
-    offset.column = 1;
-
-    return offset;
-}
-
-bool Offset_cmp(in Offset* self, in Offset* other) {
-    assert(self != NULL && other != NULL);
-    return strcmp(self->path, other->path) == 0
-        && self->line == other->line
-        && self->column == other->column;
-}
-
-void Offset_seek_char(inout Offset* self, char c) {
-    assert(self != NULL);
-
-    switch(c) {
-        case '\n':
-            self->line ++;
-            self->column = 1;
-            break;
-        case '\0':
-            break;
-        default:
-            self->column ++;
-            break;
-    }
-}
-
-void Offset_seek(inout Offset* self, char* token) {
-    assert(self != NULL);
-    assert(token != NULL);
-
-    u32 token_len = strlen(token);
-
-    for(u32 i=0; i<token_len; i++) {
-        Offset_seek_char(self, token[i]);
-    }
-}
-
-void Offset_print(in Offset* self) {
-    assert(self != NULL);
-    printf("Offset { path: %s, line: %u, column: %u }", self->path, self->line, self->column);
-}
-
 Parser Parser_new(optional in char* src, in char* path) {
     assert(path != NULL);
 

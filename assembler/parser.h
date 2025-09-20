@@ -21,12 +21,6 @@ typedef struct {
     char value[256];
 } ParserVar;
 
-Offset Offset_new(in char* path);
-bool Offset_cmp(in Offset* self, in Offset* other);
-void Offset_seek_char(inout Offset* self, char c);
-void Offset_seek(inout Offset* self, char* token);
-void Offset_print(in Offset* self);
-
 Parser Parser_new(optional in char* src, in char* path);
 Parser Parser_empty(Offset offset);
 void Parser_take(in Parser* self, out char string[256]);

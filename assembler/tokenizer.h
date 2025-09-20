@@ -12,7 +12,6 @@ typedef struct {
 typedef enum {
     TokenType_Keyword,
     TokenType_Symbol,
-    TokenType_Number,
     TokenType_String,
     TokenType_Character,
 } TokenType;
@@ -22,7 +21,6 @@ typedef struct {
     union {
         char keyword[256];
         char symbol;
-        i64 number;
         char* string;// owned string
         char character;
     } body;
@@ -30,7 +28,22 @@ typedef struct {
 } Token;
 
 typedef struct {
-    char path[4096];
     Vec tokens;// Vec<Token>
-} TokenVec;
+} TokenField;
 
+Offset Offset_new(in char* path);
+bool Offset_cmp(in Offset* self, in Offset* other);
+void Offset_seek_char(inout Offset* self, char c);
+void Offset_seek(inout Offset* self, char* token);
+void Offset_print(in Offset* self);
+
+void TokenType_print(TokenType self);
+
+Token Token_from(char** src, Offset* offset);
+void Token_print(Token* self);
+void Token_print_for_vec(void* ptr);
+void Token_free(Token self);
+void Token_free_for_vec(void* ptr);
+
+TokenField TokenField_new(char* src, char* path);
+void TokenField_free(TokenField self);

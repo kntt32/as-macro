@@ -1,5 +1,8 @@
-#include "tokenizer.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
 #include <assert.h>
+#include "tokenizer.h"
 #include "util.h"
 
 Offset Offset_new(in char* path) {
@@ -61,9 +64,6 @@ void TokenType_print(TokenType self) {
         case TokenType_Symbol:
             printf("TokenType_Symbol");
             break;
-        case TokenType_Number:
-            printf("TokenType_Number");
-            break;
         case TokenType_String:
             printf("TokenType_String");
             break;
@@ -71,6 +71,26 @@ void TokenType_print(TokenType self) {
             printf("TokenType_Character");
             break;
     }
+}
+
+static Token Token_from_keyword(char** src, Offset* offset) {
+    TODO();
+    Token token;
+    return token;
+}
+
+Token Token_from(char** src, Offset* offset) {
+    char c = **src;
+    unsigned char unsigned_c = c;
+    Token token;
+
+    if(isalpha(unsigned_c) || isdigit(unsigned_c)) {
+        token = Token_from_keyword(src, offset);
+    }else {
+        TODO();
+    }
+
+    return token;
 }
 
 void Token_print(Token* self) {
@@ -84,9 +104,6 @@ void Token_print(Token* self) {
         case TokenType_Symbol:
             printf(".symbol: %c", self->body.symbol);
             break;
-        case TokenType_Number:
-            printf(".number: %ld", self->body.number);
-            break;
         case TokenType_String:
             printf(".string: %s", self->body.string);
             break;
@@ -99,6 +116,49 @@ void Token_print(Token* self) {
     printf(" }");
 }
 
+void Token_print_for_vec(void* ptr) {
+    Token_print(ptr);
+}
+
 void Token_free(Token self) {
-    TODO();
+    switch(self.type) {
+        case TokenType_Keyword:
+        case TokenType_Symbol:
+        case TokenType_Character:
+            break;
+        case TokenType_String:
+            free(self.body.string);
+            break;
+    }
+}
+
+void Token_free_for_vec(void* ptr) {
+    Token* this = ptr;
+    Token_free(*this);
+}
+
+TokenField TokenField_new(char* src, char* path) {
+    Vec tokens = Vec_new(sizeof(Token));// Vec<Token>
+    Offset offset = Offset_new(path);
+
+    while(*src != '\0') {
+        char c = *src;
+        Token token = Token_from(&src, &offset);
+        Vec_push(&tokens, &token);
+    }
+
+    TokenField this;
+    this.tokens = tokens;
+
+    return this;
+}
+
+void TokenField_print(TokenField* self) {
+    printf("TokenField { tokens: ");
+    Vec_print(&self->tokens, Token_print_for_vec);
+    printf(" }");
+}
+
+void TokenField_free(TokenField self) {
+    Vec_free_all(self.tokens, Token_free_for_vec);
 }

@@ -14,7 +14,7 @@ endif
 asm.elf: main.o types.o vec.o parser.o util.o register.o gen.o gen_type.o gen_encode.o gen_storage.o gen_data.o gen_variable.o gen_asmacro.o gen_elf.o gen_template.o syntax.o global_syntax.o cmd.o path.o tokenizer.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-main.o: main.c types.h cmd.h
+main.o: main.c types.h cmd.h tokenizer.h
 types.o: types.c types.h util.h
 parser.o: parser.c parser.h util.h
 tokenizer.o: tokenizer.c tokenizer.h util.h

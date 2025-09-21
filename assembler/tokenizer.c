@@ -5,6 +5,11 @@
 #include "tokenizer.h"
 #include "util.h"
 
+static struct { char expr; char code; } ESCAPE_SEQUENCES[] = {
+    {'\\', '\\'}, {'\'', '\''}, {'\"', '\"'}, {'?', '?'}, {'a', '\a'}, {'b', '\b'},
+    {'f', '\f'}, {'n', '\n'}, {'r', '\r'}, {'t', '\t'}, {'v', '\v'}, {'0', '\0'},
+};
+
 Offset Offset_new(in char* path) {
     assert(path != NULL);
 
@@ -70,30 +75,120 @@ void TokenType_print(TokenType self) {
         case TokenType_Character:
             printf("TokenType_Character");
             break;
+        case TokenType_Whitespace:
+            printf("TokenType_Whitespace");
+            break;
+        case TokenType_Eof:
+            printf("TokenType_Eof");
+            break;
     }
 }
 
-static Token Token_from_keyword(char** src, Offset* offset) {
+static char Token_look(in char** src) {
+    return **src;
+}
+
+static char Token_read(inout char** src, inout Offset* offset) {
+    char c = Token_look(src);
+    if(c != '\0') {
+        Offset_seek_char(offset, c);
+        (*src) ++;
+    }
+    return c;
+}
+
+static Token Token_from_keyword(inout char** src, inout Offset* offset) {
+    u32 len = 0;
+    Token token = {TokenType_Keyword, {.keyword = ""}, *offset};
+
+    while(len < sizeof(token.body.keyword)) {
+        char c = Token_look(src);
+        unsigned char unsigned_c = c;
+
+        if(c == '\0' || !isascii(unsigned_c) || !(isalpha(unsigned_c) || isdigit(unsigned_c))) {
+            token.body.keyword[len] = '\0';
+            break;
+        }
+
+        token.body.keyword[len] = Token_read(src, offset);
+        len ++;
+    }
+
+    token.body.keyword[255] = '\0';
+    return token;
+}
+
+static Token Token_from_symbol(inout char** src, inout Offset* offset) {
+    Token token = {TokenType_Symbol, {.symbol = Token_read(src, offset)}, *offset};
+
+    return token;
+}
+
+static Token Token_from_character(inout char** src, inout Offset* offset) {
+    assert(Token_look(src) == '\'');
+    Token_read(src, offset);
+
+    Token token = {TokenType_Character, {.character = '\0'}, *offset};
+
+    char c = Token_read(src, offset);
+    if(c != '\0' && c == '\\') {
+        for(u32 i=0; i<LEN(ESCAPE_SEQUENCES); i++) {
+            if(ESCAPE_SEQUENCES[i].expr == Token_look(src)) {
+                Token_read(src, offset);
+                c = ESCAPE_SEQUENCES[i].code;
+                break;
+            }
+        }
+    }
+    Token_read(src, offset);
+    token.body.character = c;
+
+    return token;
+}
+
+static Token Token_from_string(inout char** src, inout Offset* offset) {
     TODO();
     Token token;
     return token;
 }
 
-Token Token_from(char** src, Offset* offset) {
-    char c = **src;
+static void Token_skip_space(inout char** src, inout Offset* offset) {
+    while(**src != '\0' && isspace((unsigned char)**src)) {
+        Token_read(src, offset);
+    }
+}
+
+Token Token_from(inout char** src, inout Offset* offset) {
+    char c = Token_look(src);
     unsigned char unsigned_c = c;
     Token token;
 
+    if(isspace(c)) {
+        Token whitespace_token = {TokenType_Whitespace, {}, *offset};
+        Token_skip_space(src, offset);
+        return whitespace_token;
+    }
+    if(c == '\0') {
+        Token eof_token = {TokenType_Eof, {}, *offset};
+        return eof_token;
+    }
+
     if(isalpha(unsigned_c) || isdigit(unsigned_c)) {
         token = Token_from_keyword(src, offset);
+    }else if(c != '\'' && c != '\"') {
+        token = Token_from_symbol(src, offset);
+    }else if(c == '\"') {
+        token = Token_from_string(src, offset);
+    }else if(c == '\'') {
+        token = Token_from_character(src, offset);
     }else {
-        TODO();
+        PANIC("unreachable");
     }
 
     return token;
 }
 
-void Token_print(Token* self) {
+void Token_print(in Token* self) {
     printf("Token { type: ");
     TokenType_print(self->type);
     printf(", body: ");
@@ -110,13 +205,17 @@ void Token_print(Token* self) {
         case TokenType_Character:
             printf(".character: %c", self->body.character);
             break;
+        case TokenType_Whitespace:
+        case TokenType_Eof:
+            printf("none");
+            break;
     }
     printf(", offset: ");
     Offset_print(&self->offset);
     printf(" }");
 }
 
-void Token_print_for_vec(void* ptr) {
+void Token_print_for_vec(in void* ptr) {
     Token_print(ptr);
 }
 
@@ -125,6 +224,8 @@ void Token_free(Token self) {
         case TokenType_Keyword:
         case TokenType_Symbol:
         case TokenType_Character:
+        case TokenType_Whitespace:
+        case TokenType_Eof:
             break;
         case TokenType_String:
             free(self.body.string);
@@ -132,19 +233,22 @@ void Token_free(Token self) {
     }
 }
 
-void Token_free_for_vec(void* ptr) {
+void Token_free_for_vec(inout void* ptr) {
     Token* this = ptr;
     Token_free(*this);
 }
 
-TokenField TokenField_new(char* src, char* path) {
+TokenField TokenField_new(in char* src, in char* path) {
     Vec tokens = Vec_new(sizeof(Token));// Vec<Token>
     Offset offset = Offset_new(path);
 
-    while(*src != '\0') {
-        char c = *src;
+    loop {
         Token token = Token_from(&src, &offset);
+        TokenType type = token.type;
         Vec_push(&tokens, &token);
+        if(type == TokenType_Eof) {
+            break;
+        }
     }
 
     TokenField this;
@@ -153,7 +257,7 @@ TokenField TokenField_new(char* src, char* path) {
     return this;
 }
 
-void TokenField_print(TokenField* self) {
+void TokenField_print(in TokenField* self) {
     printf("TokenField { tokens: ");
     Vec_print(&self->tokens, Token_print_for_vec);
     printf(" }");

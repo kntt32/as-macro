@@ -14,6 +14,8 @@ typedef enum {
     TokenType_Symbol,
     TokenType_String,
     TokenType_Character,
+    TokenType_Whitespace,
+    TokenType_Eof,
 } TokenType;
 
 typedef struct {
@@ -39,11 +41,12 @@ void Offset_print(in Offset* self);
 
 void TokenType_print(TokenType self);
 
-Token Token_from(char** src, Offset* offset);
-void Token_print(Token* self);
-void Token_print_for_vec(void* ptr);
+Token Token_from(inout char** src, inout Offset* offset);
+void Token_print(in Token* self);
+void Token_print_for_vec(in void* ptr);
 void Token_free(Token self);
-void Token_free_for_vec(void* ptr);
+void Token_free_for_vec(inout void* ptr);
 
-TokenField TokenField_new(char* src, char* path);
+TokenField TokenField_new(in char* src, in char* path);
+void TokenField_print(in TokenField* self);
 void TokenField_free(TokenField self);

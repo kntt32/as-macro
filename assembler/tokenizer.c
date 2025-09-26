@@ -81,7 +81,26 @@ void TokenType_print(TokenType self) {
         case TokenType_Eof:
             printf("TokenType_Eof");
             break;
+        case TokenType_Error:
+            printf("TokenType_Error");
+            break;
     }
+}
+
+char* TokenError_as_str(TokenError self) {
+    static struct {TokenError error; char* string;} TABLE[] = {
+        {TokenError_UnknownEscape, "UnknownEscape"},
+        {TokenError_InvalidCharLiteral, "InvalidCharLiteral"},
+        {TokenError_InvalidStringLiteral, "InvalidStringLiteral"},
+    };
+
+    for(u32 i=0; i<LEN(TABLE); i++) {
+        if(TABLE[i].error == self) {
+            return TABLE[i].string;
+        }
+    }
+
+    PANIC("unreachable");
 }
 
 static char Token_look(in char** src) {
@@ -124,6 +143,16 @@ static Token Token_from_symbol(inout char** src, inout Offset* offset) {
     return token;
 }
 
+static Option_char Token_unescape(char c) {
+    for(u32 i=0; i<LEN(ESCAPE_SEQUENCES); i++) {
+        if(ESCAPE_SEQUENCES[i].expr == c) {
+            return Option_char_some(ESCAPE_SEQUENCES[i].code);
+        }
+    }
+
+    return Option_char_none();
+}
+
 static Token Token_from_character(inout char** src, inout Offset* offset) {
     assert(Token_look(src) == '\'');
     Token_read(src, offset);
@@ -131,24 +160,60 @@ static Token Token_from_character(inout char** src, inout Offset* offset) {
     Token token = {TokenType_Character, {.character = '\0'}, *offset};
 
     char c = Token_read(src, offset);
-    if(c != '\0' && c == '\\') {
-        for(u32 i=0; i<LEN(ESCAPE_SEQUENCES); i++) {
-            if(ESCAPE_SEQUENCES[i].expr == Token_look(src)) {
-                Token_read(src, offset);
-                c = ESCAPE_SEQUENCES[i].code;
-                break;
-            }
+    if(c == '\\') {
+        Option_char optional_c = Token_unescape(c);
+        if(Option_char_is_some(&optional_c)) {
+            c = Option_char_unwrap(optional_c);
+        }else {
+            Token error_token = {TokenType_Error, {.error = TokenError_UnknownEscape}, *offset};
+            return error_token;
         }
     }
-    Token_read(src, offset);
+    if(Token_read(src, offset) != '\'') {
+        Token error_token = {TokenType_Error, {.error = TokenError_InvalidCharLiteral}, *offset};
+        return error_token;
+    }
     token.body.character = c;
 
     return token;
 }
 
 static Token Token_from_string(inout char** src, inout Offset* offset) {
-    TODO();
-    Token token;
+    assert(Token_look(src) == '\"');
+    Token_read(src, offset);
+
+    Token token = {TokenType_String, {.string = Vec_new(sizeof(char))}, *offset};
+
+    loop {
+        char c = Token_read(src, offset);
+
+        switch(c) {
+            case '\"':
+                return token;
+            case '\0':
+                {
+                    Token error_token = {TokenType_Error, {.error = TokenError_InvalidStringLiteral}, *offset};
+                    return error_token;
+                }
+            case '\\':
+                {
+                    Option_char optional_c = Token_unescape(Token_read(src, offset));
+                    if(Option_char_is_some(&optional_c)) {
+                        char c = Option_char_unwrap(optional_c);
+                        Vec_push(&token.body.string, &c);
+                    }else {
+                        Token error_token = {TokenType_Error, {.error = TokenError_UnknownEscape}, *offset};
+                        return error_token;
+                    }
+                }
+                break;
+            default:
+                Vec_push(&token.body.string, &c);
+                break;
+        }
+    }
+
+    PANIC("unreachable");
     return token;
 }
 
@@ -200,7 +265,10 @@ void Token_print(in Token* self) {
             printf(".symbol: %c", self->body.symbol);
             break;
         case TokenType_String:
-            printf(".string: %s", self->body.string);
+            printf(".string: ");
+            for(u32 i=0; i<Vec_len(&self->body.string); i++) {
+                printf("%c", *(char*)Vec_index(&self->body.string, i));
+            }
             break;
         case TokenType_Character:
             printf(".character: %c", self->body.character);
@@ -208,6 +276,9 @@ void Token_print(in Token* self) {
         case TokenType_Whitespace:
         case TokenType_Eof:
             printf("none");
+            break;
+        case TokenType_Error:
+            printf(".error: %s", TokenError_as_str(self->body.error));
             break;
     }
     printf(", offset: ");
@@ -226,9 +297,10 @@ void Token_free(Token self) {
         case TokenType_Character:
         case TokenType_Whitespace:
         case TokenType_Eof:
+        case TokenType_Error:
             break;
         case TokenType_String:
-            free(self.body.string);
+            Vec_free(self.body.string);
             break;
     }
 }

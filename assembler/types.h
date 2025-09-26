@@ -23,6 +23,53 @@ typedef struct {
     char error[256];
 } SResult;
 
+#define DeriveOption(type)\
+    typedef struct {\
+        bool is_some;\
+        union { type some; } body;\
+    } Option_##type;\
+\
+    Option_##type Option_##type##_some(type value);\
+    Option_##type Option_##type##_none(void);\
+    bool Option_##type##_is_some(Option_##type* self);\
+    bool Option_##type##_is_none(Option_##type* self);\
+    type Option_##type##_unwrap(Option_##type self);\
+    void Option_##type##_free(Option_##type self);\
+
+#define DeriveOptionMethods(type)\
+    Option_##type Option_##type##_some(type value) {\
+        Option_##type this = {true, {.some = value}};\
+        return this;\
+    }\
+\
+    Option_##type Option_##type##_none(void) {\
+        Option_##type this = {false, {}};\
+        return this;\
+    }\
+\
+    bool Option_##type##_is_some(Option_##type* self) {\
+        return self->is_some;\
+    }\
+\
+    bool Option_##type##_is_none(Option_##type* self) {\
+        return !self->is_some;\
+    }\
+\
+    type Option_##type##_unwrap(Option_##type self) {\
+        if(!self.is_some) {\
+            PANIC("expected some");\
+        }\
+        return self.body.some;\
+    }\
+\
+    void Option_##type##_free(Option_##type self) {\
+        if(self.is_some) {\
+            type##_free(self.body.some);\
+        }\
+    }\
+
+DeriveOption(char)
+
 #define in
 #define out
 #define inout

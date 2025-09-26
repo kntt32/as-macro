@@ -3,6 +3,12 @@
 #include "types.h"
 #include "util.h"
 
+static void char_free(char self) {
+    // nothing to do
+}
+
+DeriveOptionMethods(char)
+
 SResult SResult_new(optional char* error) {
     SResult result = {""};
     if(error != NULL) {

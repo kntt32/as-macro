@@ -16,15 +16,23 @@ typedef enum {
     TokenType_Character,
     TokenType_Whitespace,
     TokenType_Eof,
+    TokenType_Error,
 } TokenType;
+
+typedef enum {
+    TokenError_InvalidStringLiteral,
+    TokenError_InvalidCharLiteral,
+    TokenError_UnknownEscape,
+} TokenError;
 
 typedef struct {
     TokenType type;
     union {
         char keyword[256];
         char symbol;
-        char* string;// owned string
+        Vec string;// Vec<char>
         char character;
+        TokenError error;
     } body;
     Offset offset;
 } Token;
@@ -40,6 +48,8 @@ void Offset_seek(inout Offset* self, char* token);
 void Offset_print(in Offset* self);
 
 void TokenType_print(TokenType self);
+
+char* TokenError_as_str(TokenError self);
 
 Token Token_from(inout char** src, inout Offset* offset);
 void Token_print(in Token* self);

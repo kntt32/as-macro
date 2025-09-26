@@ -2,7 +2,7 @@
 
 #include "types.h"
 
-typedef struct Vec {
+typedef struct {
     void* ptr;
     u32 size;
     u32 len;

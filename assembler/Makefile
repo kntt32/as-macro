@@ -11,12 +11,13 @@ ifeq ($(RELEASE),1)
 	CFLAGS := -Wall -Wextra -Ofast -flto -static
 endif
 
-asm.elf: main.o types.o vec.o parser.o util.o register.o gen.o gen_type.o gen_encode.o gen_storage.o gen_data.o gen_variable.o gen_asmacro.o gen_elf.o gen_template.o syntax.o global_syntax.o cmd.o path.o tokenizer.o
+asm.elf: main.o types.o vec.o parser.o util.o register.o gen.o gen_type.o gen_encode.o gen_storage.o gen_data.o gen_variable.o gen_asmacro.o gen_elf.o gen_template.o syntax.o global_syntax.o cmd.o path.o tokenizer.o fixed_parser.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-main.o: main.c types.h cmd.h tokenizer.h
+main.o: main.c types.h cmd.h tokenizer.h fixed_parser.h
 types.o: types.c types.h util.h
 parser.o: parser.c parser.h util.h
+fixed_parser.o: fixed_parser.c fixed_parser.h util.h
 tokenizer.o: tokenizer.c tokenizer.h util.h
 vec.o: vec.c vec.h types.h
 util.o: util.c util.h types.h
@@ -37,6 +38,7 @@ path.o: path.c path.h types.h
 
 types.h:
 parser.h: types.h vec.h tokenizer.h
+fixed_parser.h: types.h tokenizer.h
 tokenizer.h: types.h vec.h
 vec.h: types.h
 util.h: types.h

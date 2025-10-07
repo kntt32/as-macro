@@ -39,6 +39,7 @@ typedef struct {
 
 typedef struct {
     Vec tokens;// Vec<Token>
+    Offset offset;
 } TokenField;
 
 Offset Offset_new(in char* path);

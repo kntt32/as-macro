@@ -193,6 +193,7 @@ static Token Token_from_string(inout char** src, inout Offset* offset) {
             case '\0':
                 {
                     Token error_token = {TokenType_Error, {.error = TokenError_InvalidStringLiteral}, *offset};
+                    Token_free(token);
                     return error_token;
                 }
             case '\\':
@@ -203,6 +204,7 @@ static Token Token_from_string(inout char** src, inout Offset* offset) {
                         Vec_push(&token.body.string, &c);
                     }else {
                         Token error_token = {TokenType_Error, {.error = TokenError_UnknownEscape}, *offset};
+                        Token_free(token);
                         return error_token;
                     }
                 }
@@ -323,8 +325,7 @@ TokenField TokenField_new(in char* src, in char* path) {
         }
     }
 
-    TokenField this;
-    this.tokens = tokens;
+    TokenField this = {tokens, offset};
 
     return this;
 }

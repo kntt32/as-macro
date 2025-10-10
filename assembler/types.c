@@ -26,6 +26,11 @@ bool SResult_is_success_ptr(in SResult* self) {
     return self->error[0] == '\0';
 }
 
+void char_print_for_vec(in void* ptr) {
+    char* char_ptr = ptr;
+    printf("%c", *char_ptr);
+}
+
 void u8_print_for_vec(in void* ptr) {
     u8* u8_ptr = ptr;
     printf("%x", *u8_ptr);

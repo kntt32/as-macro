@@ -22,6 +22,7 @@ typedef enum {
 typedef enum {
     TokenError_InvalidStringLiteral,
     TokenError_InvalidCharLiteral,
+    TokenError_InvalidCodepoint,
     TokenError_UnknownEscape,
 } TokenError;
 
@@ -29,7 +30,7 @@ typedef struct {
     TokenType type;
     union {
         char keyword[256];
-        char symbol;
+        char symbol[256];
         Vec string;// Vec<char>
         char character;
         TokenError error;

@@ -1,16 +1,12 @@
 #include <stdio.h>
+#include <errno.h>
 #include "fixed_parser.h"
 #include "util.h"
-
-FixedParser FixedParser_new(in TokenField* field) {
-    FixedParser this = {field, 0};
-    return this;
-}
 
 static bool FixedParser_look(in FixedParser* self, optional out Token** token) {
     Vec* tokens = &self->token_field->tokens;
     
-    if(Vec_len(tokens) <= self->cursor) {
+    if(Vec_len(tokens) <= self->cursor || self->len <= self->cursor) {
         return false;
     }
 
@@ -29,6 +25,40 @@ static bool FixedParser_read(inout FixedParser* self, optional out Token** token
     self->cursor ++;
 
     return true;
+}
+
+static void FixedParser_skip_whitespace(inout FixedParser* self) {
+    loop {
+        Token* token = NULL;
+        if(!FixedParser_look(self, &token) || token->type != TokenType_Whitespace) {
+            break;
+        }
+        FixedParser_read(self, NULL);
+    }
+}
+
+FixedParser FixedParser_new(in TokenField* field) {
+    FixedParser this = {field, 0, Vec_len(&field->tokens)};
+    FixedParser_skip_whitespace(&this);
+    return this;
+}
+
+FixedParser FixedParser_split(inout FixedParser* self, in char* symbol) {
+    FixedParser other = *self;
+    u64 len = 0;
+    Token* token = NULL;
+    while(FixedParser_read(self, &token)) {
+        if(token->type == TokenType_Symbol && strncmp(token->body.symbol, symbol, 256) == 0) {
+            break;
+        }
+        len ++;
+    }
+
+    FixedParser_skip_whitespace(self);
+
+    other.len = len;
+
+    return other;
 }
 
 Offset FixedParser_offset(in FixedParser* self) {
@@ -58,10 +88,12 @@ FixedParserMsg FixedParser_parse_ident(inout FixedParser* self, out char token[2
 
     wrapped_strcpy(token, field_token->body.keyword, 256);
 
+    FixedParser_skip_whitespace(self);
+
     return FixedParserMsg_new(FixedParser_offset(self), NULL);
 }
 
-FixedParserMsg FixedParser_parse_keyword(inout FixedParser* self, in char keyword[256]) {
+FixedParserMsg FixedParser_parse_keyword(inout FixedParser* self, in char* keyword) {
     Token* field_token = NULL;
     if(!FixedParser_look(self, &field_token)) {
         return FixedParserMsg_new(FixedParser_offset(self), "expected token");
@@ -79,10 +111,76 @@ FixedParserMsg FixedParser_parse_keyword(inout FixedParser* self, in char keywor
     }
 
     FixedParser_read(self, NULL);
+    FixedParser_skip_whitespace(self);
 
     return FixedParserMsg_new(FixedParser_offset(self), NULL);
 }
 
+FixedParserMsg FixedParser_parse_symbol(inout FixedParser* self, in char* symbol) {
+    Token* field_token = NULL;
+    if(!FixedParser_look(self, &field_token) || field_token->type != TokenType_Symbol || strncmp(field_token->body.symbol, symbol, 256) != 0) {
+        char msg[256] = "";
+        snprintf(msg, 255, "expected symbol \'%s\'", symbol);
+        return FixedParserMsg_new(FixedParser_offset(self), msg);
+    }
+
+    FixedParser_read(self, NULL);
+    FixedParser_skip_whitespace(self);
+
+    return FixedParserMsg_new(FixedParser_offset(self), NULL);
+}
+
+FixedParserMsg FixedParser_parse_char(inout FixedParser* self, out char* code) {
+    Token* field_token = NULL;
+    if(!FixedParser_look(self, &field_token) || field_token->type != TokenType_Character) {
+        return FixedParserMsg_new(FixedParser_offset(self), "expected character literal");
+    }
+
+    FixedParser_read(self, NULL);
+    FixedParser_skip_whitespace(self);
+
+    *code = field_token->body.character;
+
+    return FixedParserMsg_new(FixedParser_offset(self), NULL);
+}
+
+FixedParserMsg FixedParser_parse_string(inout FixedParser* self, out Vec* string) {
+    Token* field_token = NULL;
+    if(!FixedParser_look(self, &field_token) || field_token->type != TokenType_String) {
+        return FixedParserMsg_new(FixedParser_offset(self), "expected string literal");
+    }
+
+    FixedParser_read(self, NULL);
+    FixedParser_skip_whitespace(self);
+
+    *string = Vec_clone(&field_token->body.string, NULL);
+
+    return FixedParserMsg_new(FixedParser_offset(self), NULL);
+}
+
+FixedParserMsg FixedParser_parse_number(inout FixedParser* self, out u64* value) {
+    Token* field_token = NULL;
+    if(!FixedParser_look(self, &field_token) || field_token->type != TokenType_Keyword) {
+        return FixedParserMsg_new(FixedParser_offset(self), "expected number literal");
+    }
+
+    char* end = NULL;
+    errno = 0;
+    *value = strtoll(field_token->body.keyword, &end, 0);
+    if(errno == ERANGE || end == field_token->body.keyword) {
+        return FixedParserMsg_new(FixedParser_offset(self), "expected number literal");
+    }
+
+    FixedParser_read(self, &field_token);
+    FixedParser_skip_whitespace(self);
+
+    return FixedParserMsg_new(FixedParser_offset(self), NULL);
+}
+/*
+FixedParserMsg FixedParser_parse_paren(inout FixedParser* self, out Parser* parser) {
+    FixedParser_parse_parens_helper(self, '(', ')', parser);
+}
+*/
 FixedParserMsg FixedParserMsg_new(Offset offset, optional char* msg) {
     FixedParserMsg parser_msg;
     

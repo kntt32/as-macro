@@ -115,3 +115,5 @@ bool SResult_is_success_ptr(in SResult* self);
 void u8_print_for_vec(in void* ptr);
 bool u8_cmp_for_vec(in void* ptr1, in void* ptr2);
 
+void char_print_for_vec(in void* ptr);
+

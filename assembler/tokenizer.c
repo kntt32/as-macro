@@ -92,6 +92,7 @@ char* TokenError_as_str(TokenError self) {
         {TokenError_UnknownEscape, "UnknownEscape"},
         {TokenError_InvalidCharLiteral, "InvalidCharLiteral"},
         {TokenError_InvalidStringLiteral, "InvalidStringLiteral"},
+        {TokenError_InvalidCodepoint, "InvalidCodepoint"},
     };
 
     for(u32 i=0; i<LEN(TABLE); i++) {
@@ -138,7 +139,24 @@ static Token Token_from_keyword(inout char** src, inout Offset* offset) {
 }
 
 static Token Token_from_symbol(inout char** src, inout Offset* offset) {
-    Token token = {TokenType_Symbol, {.symbol = Token_read(src, offset)}, *offset};
+    char* start = *src;
+    while(ispunct((unsigned char)**src)) {
+        (*src) ++;
+    }
+
+    if(start == *src) {
+        Token error_token = {TokenType_Error, {.error = TokenError_InvalidCodepoint}, *offset};
+        Token_read(src, offset);
+        return error_token;
+    }
+
+    Token token = {TokenType_Symbol, {.symbol = ""}, *offset};
+    u64 len = *src - start;
+    if(256 <= len) {
+        len = 255;
+    }
+    memcpy(token.body.symbol, start, len);
+    token.body.symbol[len] = '\0';
 
     return token;
 }
@@ -264,7 +282,7 @@ void Token_print(in Token* self) {
             printf(".keyword: %s", self->body.keyword);
             break;
         case TokenType_Symbol:
-            printf(".symbol: %c", self->body.symbol);
+            printf(".symbol: %s", self->body.symbol);
             break;
         case TokenType_String:
             printf(".string: ");

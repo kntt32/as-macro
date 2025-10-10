@@ -28,6 +28,7 @@ typedef struct {
 }
 
 FixedParser FixedParser_new(in TokenField* field);
+void FixedParser_print(in FixedParser* self);
 FixedParser FixedParser_split(inout FixedParser* self, in char* symbol);
 Offset FixedParser_offset(in FixedParser* self);
 FixedParserMsg FixedParser_parse_ident(inout FixedParser* self, out char token[256]);
@@ -36,6 +37,9 @@ FixedParserMsg FixedParser_parse_symbol(inout FixedParser* self, in char* symbol
 FixedParserMsg FixedParser_parse_char(inout FixedParser* self, out char* code);
 FixedParserMsg FixedParser_parse_string(inout FixedParser* self, out Vec* string);
 FixedParserMsg FixedParser_parse_number(inout FixedParser* self, out u64* value);
+FixedParserMsg FixedParser_parse_paren(inout FixedParser* self, out FixedParser* parser);
+FixedParserMsg FixedParser_parse_block(inout FixedParser* self, out FixedParser* parser);
+FixedParserMsg FixedParser_parse_index(inout FixedParser* self, out FixedParser* parser);
 
 FixedParserMsg FixedParserMsg_new(Offset offset, optional char* msg);
 bool FixedParserMsg_is_success(FixedParserMsg self);

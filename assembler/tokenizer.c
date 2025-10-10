@@ -139,9 +139,28 @@ static Token Token_from_keyword(inout char** src, inout Offset* offset) {
 }
 
 static Token Token_from_symbol(inout char** src, inout Offset* offset) {
+    static char* SYMBOLS[] = {"(", ")", "[", "]", "{", "}", ";", "="};
+
     char* start = *src;
-    while(ispunct((unsigned char)**src)) {
-        (*src) ++;
+    while(ispunct((unsigned char)Token_look(src))) {
+        bool flag = false;
+        for(u32 i=0; i<LEN(SYMBOLS); i++) {
+            if(strncmp(SYMBOLS[i], start, *src + 1 - start) == 0) {
+                flag = true;
+                break;
+            }
+        }
+        if(!flag) {
+            if(*src == start) {
+                Token error_token = {TokenType_Error, {.error = TokenError_InvalidCodepoint}, *offset};
+                Token_read(src, offset);
+                return error_token;
+            }else {
+                break;
+            }
+        }
+
+        Token_read(src, offset);
     }
 
     if(start == *src) {

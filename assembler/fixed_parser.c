@@ -37,26 +37,64 @@ static void FixedParser_skip_whitespace(inout FixedParser* self) {
     }
 }
 
+static FixedParserMsg FixedParser_parse_parens_helper(inout FixedParser* self, char* start, char* end, out FixedParser* parser) {
+    PARSERMSG_UNWRAP(
+        FixedParser_parse_symbol(self, start), (void)NULL
+    );
+
+    *parser = FixedParser_split(self, end);
+
+    return FixedParserMsg_new(FixedParser_offset(self), NULL);
+}
+
 FixedParser FixedParser_new(in TokenField* field) {
     FixedParser this = {field, 0, Vec_len(&field->tokens)};
     FixedParser_skip_whitespace(&this);
     return this;
 }
 
+void FixedParser_skip(inout FixedParser* self) {
+    Token* token = NULL;
+    if(!FixedParser_look(self, &token)) {
+       return;
+    }
+    if(token->type != TokenType_Symbol || (strcmp(token->body.symbol, "(") != 0 && strcmp(token->body.symbol, "{") != 0 && strcmp(token->body.symbol, "[") != 0)) {
+        FixedParser_read(self, NULL);
+        return;
+    }
+    if(strcmp(token->body.symbol, "(") != 0) {
+        FixedParser dummy;
+        FixedParser_parse_paren(self, &dummy);
+    }
+    if(strcmp(token->body.symbol, "{") != 0) {
+        FixedParser dummy;
+        FixedParser_parse_block(self, &dummy);
+    }
+    if(strcmp(token->body.symbol, "[") != 0) {
+        FixedParser dummy;
+        FixedParser_parse_index(self, &dummy);
+    }
+
+    return;
+}
+
+void FixedParser_print(in FixedParser* self) {
+    printf("FixedParser { token_field: %p, cursor: %lu, len: %lu }", self->token_field, self->cursor, self->len);
+}
+
 FixedParser FixedParser_split(inout FixedParser* self, in char* symbol) {
     FixedParser other = *self;
-    u64 len = 0;
     Token* token = NULL;
-    while(FixedParser_read(self, &token)) {
+    while(FixedParser_look(self, &token)) {
         if(token->type == TokenType_Symbol && strncmp(token->body.symbol, symbol, 256) == 0) {
+            other.len = self->cursor;
+            FixedParser_read(self, NULL);
             break;
         }
-        len ++;
+        FixedParser_skip(self);
     }
 
     FixedParser_skip_whitespace(self);
-
-    other.len = len;
 
     return other;
 }
@@ -176,11 +214,19 @@ FixedParserMsg FixedParser_parse_number(inout FixedParser* self, out u64* value)
 
     return FixedParserMsg_new(FixedParser_offset(self), NULL);
 }
-/*
-FixedParserMsg FixedParser_parse_paren(inout FixedParser* self, out Parser* parser) {
-    FixedParser_parse_parens_helper(self, '(', ')', parser);
+
+FixedParserMsg FixedParser_parse_paren(inout FixedParser* self, out FixedParser* parser) {
+    return FixedParser_parse_parens_helper(self, "(", ")", parser);
 }
-*/
+
+FixedParserMsg FixedParser_parse_block(inout FixedParser* self, out FixedParser* parser) {
+    return FixedParser_parse_parens_helper(self, "{", "}", parser);
+}
+
+FixedParserMsg FixedParser_parse_index(inout FixedParser* self, out FixedParser* parser) {
+    return FixedParser_parse_parens_helper(self, "[", "]", parser);
+}
+
 FixedParserMsg FixedParserMsg_new(Offset offset, optional char* msg) {
     FixedParserMsg parser_msg;
     

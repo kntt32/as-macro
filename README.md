@@ -5,6 +5,7 @@ as-macroは、中水準プログラミングと高級アセンブラを合わせ
 
 ## サンプルコード
 ```
+import std;
 import std.io;
 
 pub fn main() {

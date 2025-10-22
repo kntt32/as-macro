@@ -36,5 +36,5 @@ pub as memcpy(in dst: *void@reg+mem, in src: *void@reg+mem, in size: u64@reg+mem
 [as-macro Wiki](https://github.com/kntt32/as-macro/wiki)
 
 ## 関連リポジトリ
-[as-macro-rs](https://github.com/kntt32/as-macro-rs) : as-macroアセンブラをRustで書き直し
+[as-macro-rs](https://github.com/kntt32/as-macro-rs) : as-macroアセンブラをRustで書き直し  
 [as-os](https://github.com/kntt32/as-os/) : as-macroとRustを使用する予定のOS

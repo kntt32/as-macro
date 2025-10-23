@@ -3,6 +3,10 @@
 
 as-macroは、中水準プログラミングと高級アセンブラを合わせたアセンブラを作るプロジェクトです
 
+## 紹介動画
+https://github.com/user-attachments/assets/3e8e74df-f1b1-4552-8f6b-757e1280aee9
+
+
 ## サンプルコード
 ```
 import std;

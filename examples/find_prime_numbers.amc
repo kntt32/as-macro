@@ -1,0 +1,49 @@
+import std;
+import std.io;
+
+fn main() {
+    get_prime_numbers();
+};
+
+fn get_prime_numbers() {
+    const MAX: u64 = 36000000;
+    const MAX_SQRT: u64 = 6000;
+    static FLAGS: [bool; 36000000];
+
+    let flag: bool@auto;
+    let flags: *bool@auto;
+    flags =& FLAGS;
+    flags += 2;
+
+    for(let i: u64@auto = 2; flag.lt(i, MAX); ++i) {
+        *flags = true;
+        ++ flags;
+    };
+    flags =& FLAGS;
+    flags += 2;
+
+    for(let i: u64@auto = 2; flag.lt(i, MAX_SQRT); ++i) {
+        if(*flags) {
+            let local_flags: *bool@auto = flags;
+            let k: u64@auto = i;
+            for(k += i; flag.lt(k, MAX); k += i) {
+                local_flags += i;
+                *local_flags = false;
+            };
+        };
+        flags += 1;
+    };
+
+    flags =& FLAGS;
+    flags += 2;
+    let str: Str@stack;
+    str.from(", ");
+    for(let i: u64@auto = 2; flag.lt(i, MAX); ++i) {
+        if(*flags) {
+            printf(i);
+            printf(str);
+        };
+        ++ flags;
+    };
+    print("\n");
+};

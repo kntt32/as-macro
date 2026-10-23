@@ -2,6 +2,7 @@
 #include "types.h"
 #include "register.h"
 #include "vec.h"
+#include "hashmap.h"
 
 #define REX_B 0x1
 #define REX_X 0x2
@@ -245,6 +246,16 @@ typedef struct {
     Vec sections;// Vec<Section>
     Vec labels;// Vec<Label>
     Vec relas;// Vec<Rela>
+    HashMap type_index;
+    HashMap variable_index;
+    HashMap asmacro_index;
+    HashMap template_index;
+    HashMap import_index;
+    HashMap section_index;
+    HashMap label_index;
+    HashMap pending_relas;
+    HashMap symbol_index;
+    u32 section_cache_index;
 } Generator;
 
 Vec Type_primitives(void);
@@ -468,5 +479,6 @@ void Generator_print(in Generator* self);
 void Generator_free(Generator self);
 bool resolve_sresult(SResult result, Offset offset, inout Generator* generator);
 bool resolve_parsermsg(ParserMsg msg, inout Generator* generator);
+
 
 

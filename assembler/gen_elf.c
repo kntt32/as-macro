@@ -311,23 +311,19 @@ void Elf64_Shdr_note_gnustack(inout Vec* shdrs, inout StrTable* shstrtable) {
 }
 
 static u32 get_symbol_index(in Generator* generator, in char* name) {
-    u32 index = 1;
-    bool flag = false;
-
-    do {
-        for(u32 i=0; i<Vec_len(&generator->labels); i++) {
-            Label* label = Vec_index(&generator->labels, i);
-            if(label->public_flag == flag) {
-                if(strcmp(label->name, name) == 0) {
-                    return index;
+    if(generator->symbol_index.len == 0) {
+        u32 index = 1;
+        for(u32 pass = 0; pass < 2; pass++) {
+            for(u32 i = 0; i < Vec_len(&generator->labels); i++) {
+                Label* label = Vec_index(&generator->labels, i);
+                if(label->public_flag == (pass != 0)) {
+                    HashMap_add(&generator->symbol_index, label->name, index++);
                 }
-                index++;
             }
         }
-        flag = !flag;
-    } while(flag);
-    
-    return 0;
+    }
+    Vec indices = HashMap_get(&generator->symbol_index, name);
+    return Vec_len(&indices) ? *(u32*)Vec_index(&indices, 0) : 0;
 }
 
 Elf64_Rela Elf64_Rela_from(Rela* rela, in Generator* generator) {
@@ -499,3 +495,4 @@ void RawBin_print(in RawBin* self) {
 void RawBin_free(RawBin self) {
     Vec_free(self.bin);
 }
+

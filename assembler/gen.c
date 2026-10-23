@@ -138,13 +138,20 @@ Generator Generator_new(Vec import_paths) {
         "",
         Vec_new(sizeof(Section)),
         Vec_new(sizeof(Label)),
-        Vec_new(sizeof(Rela))
+        Vec_new(sizeof(Rela)),
+        .type_index = {0}
     };
+    for(u32 i = 0; i < Vec_len(&generator.types); i++) {
+        Type* type = Vec_index(&generator.types, i);
+        HashMap_add(&generator.type_index, type->name, i);
+    }
     return generator;
 }
 
 static bool already_imported(in Generator* self, in char* module_realpath) {
-    for(u32 i=0; i<Vec_len(&self->imports); i++) {
+    Vec candidates = HashMap_get(&self->import_index, module_realpath);
+    for(u32 candidate = 0; candidate < Vec_len(&candidates); candidate++) {
+        u32 i = *(u32*)Vec_index(&candidates, candidate);
         Import* import = Vec_index(&self->imports, i);
         if(strcmp(import->path, module_realpath) == 0) {
             return true;
@@ -172,6 +179,7 @@ SResult Generator_import_by_path(inout Generator* self, in char* path, out bool*
     }
 
     *parser = Parser_new(import.src, import.path);
+    HashMap_add(&self->import_index, import.path, Vec_len(&self->imports));
     Vec_push(&self->imports, &import);
     return SResult_new(NULL);
 }
@@ -248,7 +256,9 @@ ParserMsg Generator_import(inout Generator* self, Parser parser, out bool* doubl
 }
 
 SResult Generator_add_type(inout Generator* self, Type type) {
-    for(u32 i=0; i<Vec_len(&self->types); i++) {
+    Vec candidates = HashMap_get(&self->type_index, type.name);
+    for(u32 candidate = 0; candidate < Vec_len(&candidates); candidate++) {
+        u32 i = *(u32*)Vec_index(&candidates, candidate);
         Type* ptr = Vec_index(&self->types, i);
         if(strcmp(ptr->name, type.name) == 0 && strcmp(ptr->valid_path, type.valid_path)) {
             Type_free(type);
@@ -258,6 +268,7 @@ SResult Generator_add_type(inout Generator* self, Type type) {
         }
     }
 
+    HashMap_add(&self->type_index, type.name, Vec_len(&self->types));
     Vec_push(&self->types, &type);
 
     return SResult_new(NULL);
@@ -266,7 +277,9 @@ SResult Generator_add_type(inout Generator* self, Type type) {
 SResult Generator_get_type(in Generator* self, in char* name, in char* path, out Type* type) {
     Type* temp = NULL;
 
-    for(u32 i=0; i<Vec_len(&self->types); i++) {
+    Vec candidates = HashMap_get(&self->type_index, name);
+    for(u32 candidate = 0; candidate < Vec_len(&candidates); candidate++) {
+        u32 i = *(u32*)Vec_index(&candidates, candidate);
         Type* ptr = Vec_index(&self->types, i);
         if(strcmp(ptr->name, name) == 0) {
             if(ptr->valid_path[0] == '\0') {
@@ -289,7 +302,9 @@ SResult Generator_get_type(in Generator* self, in char* name, in char* path, out
 }
 
 SResult Generator_add_global_variable(inout Generator* self, Variable variable) {
-    for(u32 i=0; i<Vec_len(&self->global_variables); i++) {
+    Vec candidates = HashMap_get(&self->variable_index, variable.name);
+    for(u32 candidate = 0; candidate < Vec_len(&candidates); candidate++) {
+        u32 i = *(u32*)Vec_index(&candidates, candidate);
         Variable* ptr = Vec_index(&self->global_variables, i);
         if(strcmp(ptr->name, variable.name) == 0) {
             Variable_free(variable);
@@ -299,6 +314,7 @@ SResult Generator_add_global_variable(inout Generator* self, Variable variable) 
         }
     }
 
+    HashMap_add(&self->variable_index, variable.name, Vec_len(&self->global_variables));
     Vec_push(&self->global_variables, &variable);
 
     return SResult_new(NULL);
@@ -307,7 +323,9 @@ SResult Generator_add_global_variable(inout Generator* self, Variable variable) 
 SResult Generator_get_global_variable(in Generator* self, in char* path, in char* name, out Variable* variable) {
     Variable* temp = NULL;
 
-    for(u32 i=0; i<Vec_len(&self->global_variables); i++) {
+    Vec candidates = HashMap_get(&self->variable_index, name);
+    for(u32 candidate = 0; candidate < Vec_len(&candidates); candidate++) {
+        u32 i = *(u32*)Vec_index(&candidates, candidate);
         Variable* ptr = Vec_index(&self->global_variables, i);
         if(strcmp(ptr->name, name) == 0) {
             if(ptr->valid_path[0] == '\0') {
@@ -334,7 +352,9 @@ SResult Generator_get_global_variable(in Generator* self, in char* path, in char
 }
 
 SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro) {
-    for(u32 i=0; i<Vec_len(&self->asmacroes); i++) {
+    Vec candidates = HashMap_get(&self->asmacro_index, asmacro.name);
+    for(u32 candidate = 0; candidate < Vec_len(&candidates); candidate++) {
+        u32 i = *(u32*)Vec_index(&candidates, candidate);
         Asmacro* ptr = Vec_index(&self->asmacroes, i);
         if(Asmacro_cmp_signature(ptr, &asmacro)) {
             if(ptr->type == Asmacro_FnExtern) {
@@ -350,6 +370,7 @@ SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro) {
         }
     }
 
+    HashMap_add(&self->asmacro_index, asmacro.name, Vec_len(&self->asmacroes));
     Vec_push(&self->asmacroes, &asmacro);
     return SResult_new(NULL);
 }
@@ -357,7 +378,9 @@ SResult Generator_add_asmacro(inout Generator* self, Asmacro asmacro) {
 SResult Generator_get_asmacro(in Generator* self, in char* name, out Vec* asmacroes) {
     *asmacroes = Vec_new(sizeof(Asmacro));
 
-    for(u32 i=0; i<Vec_len(&self->asmacroes); i++) {
+    Vec candidates = HashMap_get(&self->asmacro_index, name);
+    for(u32 candidate = 0; candidate < Vec_len(&candidates); candidate++) {
+        u32 i = *(u32*)Vec_index(&candidates, candidate);
         Asmacro* asmacro_ptr = Vec_index(&self->asmacroes, i);
 
         if(strcmp(asmacro_ptr->name, name) == 0) {
@@ -381,7 +404,9 @@ void Generator_add_error(inout Generator* self, Error error) {
 }
 
 SResult Generator_new_section(inout Generator* self, in char* name) {
-    for(u32 i=0; i<Vec_len(&self->sections); i++) {
+    Vec candidates = HashMap_get(&self->section_index, name);
+    for(u32 candidate = 0; candidate < Vec_len(&candidates); candidate++) {
+        u32 i = *(u32*)Vec_index(&candidates, candidate);
         Section* section = Vec_index(&self->sections, i);
         if(strcmp(section->name, name) == 0) {
             char msg[256];
@@ -395,12 +420,16 @@ SResult Generator_new_section(inout Generator* self, in char* name) {
         Section_new(name, &section), (void)NULL
     );
 
+    HashMap_add(&self->section_index, section.name, Vec_len(&self->sections));
     Vec_push(&self->sections, &section);
 
     return SResult_new(NULL);
 }
 
 SResult Generator_new_label(inout Generator* self, Label label) {
+    HashMap_free(self->symbol_index);
+    self->symbol_index = HashMap_new();
+    HashMap_add(&self->label_index, label.name, Vec_len(&self->labels));
     Vec_push(&self->labels, &label);
     return SResult_new(NULL);
 }
@@ -432,16 +461,23 @@ SResult Generator_append_label(inout Generator* self, optional in char* section,
     label.type = type;
     label.size = 0;
 
-    for(u32 i=0; i<Vec_len(&self->labels); i++) {
+    Vec candidates = HashMap_get(&self->label_index, label.name);
+    for(u32 candidate = 0; candidate < Vec_len(&candidates); candidate++) {
+        u32 i = *(u32*)Vec_index(&candidates, candidate);
         Label* ptr = Vec_index(&self->labels, i);
         if(strcmp(ptr->name, label.name) == 0) {
             if(label.section_name[0] != '\0') {
+                HashMap_free(self->symbol_index);
+                self->symbol_index = HashMap_new();
                 *ptr = label;
             }
             return SResult_new(NULL);
         }
     }
 
+    HashMap_free(self->symbol_index);
+    self->symbol_index = HashMap_new();
+    HashMap_add(&self->label_index, label.name, Vec_len(&self->labels));
     Vec_push(&self->labels, &label);
     return SResult_new(NULL);
 }
@@ -455,7 +491,9 @@ SResult Generator_end_label(inout Generator* self, in char* name) {
         wrapped_strcpy(resolved_name, name, sizeof(resolved_name));
     }
 
-    for(u32 i=0; i<Vec_len(&self->labels); i++) {
+    Vec candidates = HashMap_get(&self->label_index, resolved_name);
+    for(u32 candidate = 0; candidate < Vec_len(&candidates); candidate++) {
+        u32 i = *(u32*)Vec_index(&candidates, candidate);
         Label* label = Vec_index(&self->labels, i);
 
         if(strcmp(label->name, resolved_name) == 0) {
@@ -490,13 +528,18 @@ SResult Generator_append_rela(inout Generator* self, in char* section, in char* 
         (void)NULL
     );
 
+    if(!flag) {
+        HashMap_add(&self->pending_relas, section, Vec_len(&self->relas));
+    }
     Vec_push(&self->relas, &rela);
 
     return SResult_new(NULL);
 }
 
 SResult Generator_addend_rela(inout Generator* self, in char* section) {
-    for(u32 i=0; i<Vec_len(&self->relas); i++) {
+    Vec pending = HashMap_get(&self->pending_relas, section);
+    for(u32 candidate = 0; candidate < Vec_len(&pending); candidate++) {
+        u32 i = *(u32*)Vec_index(&pending, candidate);
         Rela* rela = Vec_index(&self->relas, i);
         if(strcmp(rela->section_name, section) == 0 && !rela->flag) {
             u32 section_len = 0;
@@ -509,29 +552,26 @@ SResult Generator_addend_rela(inout Generator* self, in char* section) {
         }
     }
 
+    HashMap_clear_values(&self->pending_relas, section);
     return SResult_new(NULL);
 }
 
 static SResult Generator_get_section(in Generator* self, in char* name, out Section** section) {
-    static bool cache_flag = false;
-    static char cache_section[256] = "";
-    static u32 cache_index = 0;
-
-    if(cache_flag && strcmp(cache_section, name) == 0) {
-        *section = Vec_index(&self->sections, cache_index);
-        return SResult_new(NULL);
-    }else {
-        cache_flag = false;
-        
-        for(u32 i=0; i<Vec_len(&self->sections); i++) {
-            *section = Vec_index(&self->sections, i);
-            if(strcmp((*section)->name, name) == 0) {
-                wrapped_strcpy(cache_section, name, sizeof(cache_section));
-                cache_index = i;
-                cache_flag = true;
-                return SResult_new(NULL);
-            }
+    /* Most emitted bytes belong to the same section. Cache its index per
+     * generator, and resolve it again after any vector reallocation. */
+    if(self->section_cache_index < Vec_len(&self->sections)) {
+        Section* cached = Vec_index(&self->sections, self->section_cache_index);
+        if(strcmp(cached->name, name) == 0) {
+            *section = cached;
+            return SResult_new(NULL);
         }
+    }
+    Vec candidates = HashMap_get(&self->section_index, name);
+    if(Vec_len(&candidates) != 0) {
+        u32 index = *(u32*)Vec_index(&candidates, 0);
+        self->section_cache_index = index;
+        *section = Vec_index(&self->sections, index);
+        return SResult_new(NULL);
     }
 
     char msg[256];
@@ -602,7 +642,9 @@ void Generator_finish_asmacro_expand(inout Generator* self) {
 }
 
 SResult Generator_add_template(inout Generator* self, Template template) {
-    for(u32 i=0; i<Vec_len(&self->templates); i++) {
+    Vec candidates = HashMap_get(&self->template_index, template.name);
+    for(u32 candidate = 0; candidate < Vec_len(&candidates); candidate++) {
+        u32 i = *(u32*)Vec_index(&candidates, candidate);
         Template* ptr = Vec_index(&self->templates, i);
         if(strcmp(ptr->name, template.name) == 0
             && strcmp(ptr->valid_path, template.valid_path)) {
@@ -612,6 +654,7 @@ SResult Generator_add_template(inout Generator* self, Template template) {
             return SResult_new(msg);
         }
     }
+    HashMap_add(&self->template_index, template.name, Vec_len(&self->templates));
     Vec_push(&self->templates, &template);
 
     return SResult_new(NULL);
@@ -620,7 +663,9 @@ SResult Generator_add_template(inout Generator* self, Template template) {
 SResult Generator_expand_template(
     inout Generator* self, in char* name, in char* path, Vec parser_vars, out bool* expanded_flag, out Parser* template_parser) {
     Template* temp = NULL;
-    for(u32 i=0; i<Vec_len(&self->templates); i++) {
+    Vec candidates = HashMap_get(&self->template_index, name);
+    for(u32 candidate = 0; candidate < Vec_len(&candidates); candidate++) {
+        u32 i = *(u32*)Vec_index(&candidates, candidate);
         Template* ptr = Vec_index(&self->templates, i);
         if(strcmp(ptr->name, name) == 0) {
             if(ptr->valid_path[0] == '\0') {
@@ -685,6 +730,16 @@ void Generator_free(Generator self) {
     Vec_free_all(self.sections, Section_free_for_vec);
     Vec_free(self.labels);
     Vec_free(self.relas);
+    HashMap_free(self.type_index);
+    HashMap_free(self.variable_index);
+    HashMap_free(self.asmacro_index);
+    HashMap_free(self.template_index);
+    HashMap_free(self.import_index);
+    HashMap_free(self.section_index);
+    HashMap_free(self.label_index);
+    HashMap_free(self.pending_relas);
+    HashMap_free(self.symbol_index);
+
 }
 
 void Generator_free_for_vec(inout void* ptr) {
@@ -708,4 +763,5 @@ bool resolve_parsermsg(ParserMsg msg, inout Generator* generator) {
     }
     return false;
 }
+
 

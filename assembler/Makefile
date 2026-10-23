@@ -11,13 +11,16 @@ ifeq ($(RELEASE),1)
 	CFLAGS := -Wall -Wextra -Ofast -flto -static
 endif
 
-asm.elf: main.o types.o vec.o parser.o util.o register.o gen.o gen_type.o gen_encode.o gen_storage.o gen_data.o gen_variable.o gen_asmacro.o gen_elf.o gen_template.o syntax.o global_syntax.o cmd.o path.o
+ASM_OBJECTS := main.o types.o vec.o hashmap.o parser.o util.o register.o gen.o gen_type.o gen_encode.o gen_storage.o gen_data.o gen_variable.o gen_asmacro.o gen_elf.o gen_template.o syntax.o global_syntax.o cmd.o path.o
+
+asm.elf: $(ASM_OBJECTS)
 	$(CC) $(CFLAGS) $^ -o $@
 
 main.o: main.c types.h cmd.h
 types.o: types.c types.h util.h
 parser.o: parser.c parser.h util.h
 vec.o: vec.c vec.h types.h
+hashmap.o: hashmap.c hashmap.h vec.h types.h
 util.o: util.c util.h types.h
 register.o: register.c register.h types.h
 gen.o: gen.c types.h register.h parser.h gen.h path.h util.h
@@ -39,7 +42,7 @@ parser.h: types.h vec.h
 vec.h: types.h
 util.h: types.h
 register.h: types.h parser.h
-gen.h: types.h register.h vec.h
+gen.h: types.h register.h vec.h hashmap.h
 gen_elf.h: types.h vec.h gen.h
 syntax.h: types.h gen.h
 global_syntax.h: syntax.h
@@ -66,4 +69,12 @@ debug: asm.elf
 
 clean:
 	rm -f *.elf *.o *.out
+
+.PHONY: check
+check: asm.elf
+	$(CC) $(CFLAGS) -I. ../test/hashmap.c hashmap.o vec.o types.o util.o -o hashmap-test.out
+	./hashmap-test.out
+	$(CC) $(CFLAGS) -I. ../test/generator_index.c $(filter-out main.o,$(ASM_OBJECTS)) -o generator-index-test.out
+	./generator-index-test.out
+
 

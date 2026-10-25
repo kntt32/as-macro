@@ -67,10 +67,10 @@ void Vec_print(Vec* self, void (*f)(void*)) {
 }
 
 static inline void Vec_reserve(Vec* self, u32 capacity) {
-    if(capacity < self->len) {
+    if(capacity <= self->capacity) {
         return;
     }
-    u32 new_capacity = (self->len == 0)?(4):(self->len * 1.5);
+    u32 new_capacity = (self->capacity == 0)?(4):(self->capacity + self->capacity / 2);
     if(new_capacity < capacity) {
         new_capacity = capacity;
     }
@@ -185,4 +185,5 @@ void Vec_save(Vec self, in char* path) {
 
     Vec_free(self);
 }
+
 
